@@ -3,26 +3,29 @@ import { ElectrumWS } from 'ws-electrumx-client';
 import Liquid from 'liquidjs-lib';
 import ZkpLib from '@vulpemventures/secp256k1-zkp';
 import QrCode from 'qrcode';
-import AssetRegistry from './AssetRegistry.js';
-import { SLIP77Factory } from 'slip77';
-import * as ecc from 'tiny-secp256k1';
-
+import BlockExplorer from './BlockExplorer.js';
+import VByteEstimator from './VByteEstimator.js';
+import Constants from './Constants.js';
+import Exchange from './Exchange.js';
+import Icons from './Icons.js';
 export default class LiquidProvider {
-    constructor(electrumWs, esploraHttps) {
+    constructor(electrumWs, esploraHttps, sideswapWs) {
         this.electrumWs = electrumWs;
         this.esploraHttps = esploraHttps;     
-        this.slip77 = SLIP77Factory(ecc);
-
+        this.sideswapWs = sideswapWs;
+        // initialize refresh callback list
+        if (!this.refreshCallbacks) this.refreshCallbacks = [];
     }
 
     async start(){
-        return this._reloadAccount();
+        await this._reloadAccount();
+        await this.refresh();
     }
 
     async elcAction(action, params){
         console.log("elcAction",action,params);
         console.trace();
-        return this.elc.request(action,params);
+        return this.elc.request(action,...params);
     }
 
     async elcActions(batch){
@@ -58,6 +61,7 @@ export default class LiquidProvider {
         // if they are unset: use the defaults
         let electrumWs = this.electrumWs;
         let esploraHttps = this.esploraHttps;
+        let sideswapWs = this.sideswapWs;
 
         if (!electrumWs) {
             if (this.networkName === "testnet") {
@@ -79,6 +83,17 @@ export default class LiquidProvider {
             esploraHttps = esploraHttps(this.networkName);
         }
 
+        if(!sideswapWs){
+            if (this.networkName === "testnet") {
+                sideswapWs = "wss://api-testnet.sideswap.io/json-rpc-ws";
+            } else {
+                sideswapWs = "wss://api.sideswap.io/json-rpc-ws";
+            }
+            
+        }else if(typeof sideswapWs === "function"){
+            sideswapWs = sideswapWs(this.networkName);
+        }
+
         // get network object
         this.network = Liquid.networks[this.networkName];
         if (!this.network) throw new Error("Invalid network");
@@ -90,13 +105,16 @@ export default class LiquidProvider {
         this.baseAsset = this.network.assetHash;
         
         // initialize asset registry
-        this.assetRegistry = new AssetRegistry(esploraHttps,this.baseAsset,8,"L-BTC","Bitcoin (Liquid)");
+        this.assetRegistry = new BlockExplorer(esploraHttps,this.baseAsset,8,"L-BTC","Bitcoin (Liquid)");
   
         // get base asset info
-        this.baseAssetInfo = await this.assetRegistry.getInfo(this.baseAsset);
+        this.baseAssetInfo = await this.assetRegistry.getAssetInfo(this.baseAsset);
 
-        // initialize refresh callback list
-        if (!this.refreshCallbacks)this.refreshCallbacks = [];
+        // load exchange
+        this.exchange = new Exchange(this.baseAsset, sideswapWs);   
+
+        // load icons
+        this.icons=new Icons(this.exchange);
 
 
         // subscribe to events
@@ -211,7 +229,7 @@ export default class LiquidProvider {
             address = address.address;
         }
 
-        const info=await this.assetRegistry.getInfo(asset);
+        const info=await this.assetRegistry.getAssetInfo(asset);
         if(info.precision){
             amount=Math.floor(amount*10**info.precision);
         }else{
@@ -297,9 +315,9 @@ export default class LiquidProvider {
         const scripthash = this.getElectrumScriptHash(addr.outputScript);
 
         let history=[];
-        history.push(...await this.elcAction('blockchain.scripthash.get_history', scripthash));
+        history.push(...await this.elcAction('blockchain.scripthash.get_history', [scripthash]));
         // history.push(...await this.elcAction('blockchain.scripthash.get_mempool', scripthash));
-
+        console.log("History",history);
         const transactions=[];
         
         for(const tx of history){
@@ -329,76 +347,112 @@ export default class LiquidProvider {
         return fee;
     }
    
-    async transact(amount, asset, toAddress, fee, feeAsset){
+    async prepareTransaction(amount, asset, toAddress, estimatedFeeVByte=null, averageSizeVByte=2000){
         await this.check();
-        const address=await this.getAddress();
-        if (!asset){
-            asset=this.baseAsset;
+        if (!estimatedFeeVByte){
+            estimatedFeeVByte=(await this.assetRegistry.getFee(1)).fee;
         }
-        if(!feeAsset){
-            feeAsset=asset;
-        }
-        // const assetInfo=await this.assetRegistry.getInfo(asset);
-        // const feeAssetInfo=await this.assetRegistry.getInfo(feeAsset);
-        // if(assetInfo&&assetInfo.precision){
-        //     amount=Math.floor(amount*10**assetInfo.precision);
-        // }
-        // if(feeAssetInfo&&feeAssetInfo.precision){
-        //     fee=Math.floor(fee*10**feeAssetInfo.precision);
-        // }
-       
+        
+        if (!asset) asset = this.baseAsset;
+        const feeAsset = this.baseAsset;
+
+        const address=await this.getAddress();       
+        const isConfidential = Liquid.address.isConfidential(toAddress);
 
 
-        const buildIO=async (fee)=>{
+        const utxos = await this.getUTXOs();
 
-            const expectedAmountInBaseAsset = asset === feeAsset ? amount + fee : amount;
-            const expectedAmountInFeeAsset = asset === feeAsset ? 0 : fee;
-            
+        const buildTXIO=async (fee, size, withFeeOutput=false)=>{
             const inputs = [];
             const outputs = [];
-            
-            let collectedAmountInBaseAsset=0;
-            let collectedAmountInFeeAsset=0;
-            
-            const utxos = await this.getUTXOs();
-            console.log(utxos);
 
+            const feeXsize=Math.floor(fee*size);
+
+            const expectedCollectedAmount = feeAsset === asset ? amount + feeXsize : amount;
+            const expectedFee = feeAsset === asset ? 0 : feeXsize;
+
+            let collectedAmount = 0;
+            let collectedFee = 0;
+
+        
+            /////////// INPUTS
+            ////// VALUE
             // Collect inputs
-            for(const utxo of utxos){
-                if(utxo.ldata.assetHash!==asset){
-                    console.log("Skipping",utxo.ldata.asset,asset);
+            for (const utxo of utxos) {
+                if (utxo.ldata.assetHash !== asset) {
+                    console.log("Skipping", utxo.ldata.asset, asset);
                     continue;
-                }            
-                if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value)  || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
-                collectedAmountInBaseAsset+=utxo.ldata.value;
-                inputs.push(utxo);
-                if(collectedAmountInBaseAsset>=expectedAmountInBaseAsset) break;            
-            }
-
-            if(collectedAmountInBaseAsset<expectedAmountInBaseAsset){
-                throw new Error("Insufficient funds "+collectedAmountInBaseAsset+" < "+expectedAmountInBaseAsset);
-            }
-
-            // Collect fees inputs (if needed)
-            if(asset!==feeAsset){
-                for(const utxo of utxos){
-                    if(utxo.ldata.asset!==feeAsset)continue;
-                    if(utxo.ldata.value<=0) throw new Error("Invalid UTXO");
-                    if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
-                    collectedAmountInFeeAsset+=utxo.ldata.value;
-                    inputs.push(utxo);
-                    if(collectedAmountInFeeAsset>=expectedAmountInFeeAsset) break;
                 }
+                if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
+                collectedAmount += utxo.ldata.value;
+                inputs.push(utxo);
+                if (collectedAmount >= expectedCollectedAmount) break;
             }
 
-            if(collectedAmountInFeeAsset<expectedAmountInFeeAsset){
-                throw new Error("Insufficient funds for fees");
+            if (collectedAmount < expectedCollectedAmount) {
+                throw new Error("Insufficient funds " + collectedAmount + " < " + expectedCollectedAmount + "("+amount+"+"+feeXsize+")");
+            }
+
+            
+            // Calculate change
+            const changeAmount = collectedAmount - expectedCollectedAmount;
+            if (changeAmount < 0 || Math.floor(changeAmount) != changeAmount) {
+                throw new Error("Invalid change amount " + changeAmount );
+            }
+
+            // Set change outputs
+            if (changeAmount > 0) {
+                const changeOutput = {
+                    asset,
+                    amount: changeAmount,
+                    script: Liquid.address.toOutputScript(address.address),
+                    blinderIndex: 0,
+                    blindingPublicKey: address.publicKey,
+                };
+                console.log("Change output", changeOutput)
+                outputs.push(changeOutput);
             }
 
 
-            const isConfidential = Liquid.address.isConfidential(toAddress);
+            ///// FEES
+            // Collect fees inputs 
+            if (expectedFee>0){
+                for (const utxo of utxos) {
+                    if (utxo.ldata.asset !== feeAsset) continue;
+                    if (utxo.ldata.value <= 0) throw new Error("Invalid UTXO");
+                    if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
+                    collectedFee += utxo.ldata.value;
+                    inputs.push(utxo);
+                    if (collectedFee >= expectedFee) break;
+                }
+            
 
+                if (collectedFee < expectedFee) {
+                    throw new Error("Insufficient funds for fees");
+                }
 
+                // Calculate change
+                const changeFee = collectedFee - expectedFee;
+                if (changeFee < 0 || Math.floor(changeFee) != changeFee) {
+                    throw new Error("Invalid fee change  " + changeFee );
+                }
+
+                // Set changes
+                if (changeFee > 0) {
+                    const changeFeeOutput = {
+                        asset,
+                        amount: changeFee,
+                        script: Liquid.address.toOutputScript(address.address),
+                        blinderIndex: 0,
+                        blindingPublicKey: address.publicKey,
+                    };
+                    console.log("Change output", changeFeeOutput)
+                    outputs.push(changeFeeOutput);
+                }
+
+            }
+
+            /////// OUTPUTS
             // Set primary output
             outputs.push({
                 asset,
@@ -410,100 +464,21 @@ export default class LiquidProvider {
                     : undefined,
             });
 
-
-            // Calculate change
-            const changeAmountInBaseAsset=collectedAmountInBaseAsset-expectedAmountInBaseAsset;
-            const changeAmountInFeeAsset=collectedAmountInFeeAsset-expectedAmountInFeeAsset;
-            if(changeAmountInBaseAsset<0||changeAmountInFeeAsset<0||Math.floor(changeAmountInBaseAsset)!=changeAmountInBaseAsset||Math.floor(changeAmountInFeeAsset)!=changeAmountInFeeAsset){
-                throw new Error("Invalid change amount "+changeAmountInBaseAsset+" "+changeAmountInFeeAsset);
-            }
-
-            // Set change outputs
-            if (changeAmountInBaseAsset > 0) {
-                const changeOutput = {
-                    asset,
-                    amount: changeAmountInBaseAsset,
-                    script: Liquid.address.toOutputScript(address.address),
-                    blinderIndex: 0,
-                    blindingPublicKey: address.publicKey,
-                };
-                console.log("Change output", changeOutput)
-                outputs.push( changeOutput);
-            }
-
-            if (changeAmountInFeeAsset > 0) {
-                const changeOutput=
+            // Set fee output
+            if (withFeeOutput){
+                outputs.push(
                     {
                         asset: feeAsset,
-                        amount: changeAmountInFeeAsset,
-                        script: Liquid.address.toOutputScript(address.address),
-                        blinderIndex: 0,
-                        blindingPublicKey: address.publicKey,
-                    };
-                outputs.push(changeOutput);
+                        amount: feeXsize,
+                    }
+                );
             }
-           
 
-            // Set fee output
-            outputs.push(
-                {
-                    asset: feeAsset,
-                    amount: fee,
-                },
-            );
-
-         
-
-
-            // Estimate size
-            const estimatedVbytes = inputs.length * 68 + outputs.length * 31 + 10;
-
-            return [
-                inputs,
-                outputs,
-                 estimatedVbytes
-            ];
-
-        }
-
-        let inputs=0;
-        let outputs=0;
-        let totalFee=fee;
-
-        for(let i=0;i<10;i++){
-            let size;
-            [inputs, outputs, size] = await buildIO(totalFee);
-            break;
-            const nextTotalFee=fee*size;
-            if (nextTotalFee===totalFee){
-                console.log("Fee converged!");
-                break;
-            }else{
-                console.log("Testing fee", totalFee);
-
-                totalFee=nextTotalFee;
-            }
-        }
-
-        console.log("Inputs",inputs);
-        console.log("Outputs",outputs);
-
-        console.log("Total fee",totalFee);
-
-        console.info(`Preparing transaction
-        inputs:${JSON.stringify(inputs)}
-        outputs: ${JSON.stringify(outputs)}
-        fee: ${totalFee}
-        `);
-
-        if(totalFee > 300){
-            // throw new Error("Fee too high");
+            return [inputs, outputs, feeXsize];
         }
 
 
-        let pset = Liquid.Creator.newPset();
-        let psetUpdater = new Liquid.Updater(pset);
-        psetUpdater.addInputs(inputs.map(utxo=>{
+        const processInput = utxo => {
             return {
                 txid: utxo.tx_hash,
                 txIndex: utxo.tx_pos,
@@ -520,21 +495,83 @@ export default class LiquidProvider {
                     surjectionProof: utxo.surjectionProof
                 },
                 sighashType: Liquid.Transaction.SIGHASH_DEFAULT,
-            };            
-        }));
-        psetUpdater.addOutputs(outputs);
+            };
+        };
 
-        {
-            const totalOut = pset.outputs.reduce((acc, cur) => acc + cur.value, 0);
-            const totalIn = pset.inputs.reduce((acc, cur) => acc + cur.explicitValue, 0);
-            if (totalOut !== totalIn) {
-                throw new Error("Invalid transaction " + totalOut + " " + totalIn);
-            }else{
-                console.log("Total in",totalIn);
-                console.log("Total out",totalOut);
-            }
+        const newPset=(inputs,outputs)=>{
+            let pset = Liquid.Creator.newPset();
+            let psetUpdater = new Liquid.Updater(pset);
+            psetUpdater.addInputs(inputs.map(processInput));
+            psetUpdater.addOutputs(outputs);
+            return [pset, psetUpdater];
         }
 
+        let inputs;
+        let outputs;
+        let pset;
+        let psetUpdater;
+        let totalFee;
+
+
+        [inputs, outputs, totalFee] = await buildTXIO(estimatedFeeVByte, averageSizeVByte, false);
+        [pset, psetUpdater] = newPset(inputs, outputs);
+               
+        const estimatedSize = VByteEstimator.estimateVirtualSize(pset, true);
+        [inputs, outputs, totalFee] = await buildTXIO(estimatedFeeVByte, estimatedSize, true);
+        [pset, psetUpdater] = newPset(inputs, outputs);
+
+        console.log("Estimated fee VByte", estimatedFeeVByte);
+        console.log("Estimated size", estimatedSize);
+        console.log("Estimated total fee", totalFee);
+
+        console.info(`Preparing transaction
+        inputs:${JSON.stringify(inputs)}
+        outputs: ${JSON.stringify(outputs)}
+        fee: ${totalFee}
+        `);
+
+     
+
+       
+        // Verify
+        {
+            // decode transaction
+            let totalIn = 0;
+            let totalOut = 0;
+            let fees = 0;
+            for (const input of pset.inputs) {
+                totalIn += input.explicitValue;                
+            }
+
+            for (const output of pset.outputs) {
+                console.log(output);
+                const isFee = !output.blindingPubkey;
+                if (isFee) {
+                    fees += output.value;
+                } else {
+                    totalOut += output.value;
+                }
+            }
+
+            if (totalOut + fees !== totalIn) {
+                throw new Error("Invalid transaction " + (totalOut + fees) + " " + totalIn);
+            } else {
+                console.log("Total in", totalIn);
+                console.log("Total out", totalOut);
+            }
+
+            if (fees > totalOut){
+                throw new Error("Fees too high compared to output " + fees);
+            }
+
+            if(fees>Constants.FEE_GUARD){
+                throw new Error("Fees too high compared to guard " + fees);
+            }
+
+            console.log("Verification OK: fees", fees, "totalOut", totalOut, "totalIn", totalIn);
+        }
+
+        // Prepare zkp
         const ownedInputs = inputs.map((input, i) => {
             console.log(input);
             return {
@@ -557,6 +594,7 @@ export default class LiquidProvider {
             Liquid.Pset.ECCKeysGenerator(zkpLib.ecc),
         );
 
+        // blind
         const blinder = new Liquid.Blinder(
             pset,
             ownedInputs,
@@ -566,10 +604,9 @@ export default class LiquidProvider {
 
         blinder.blindLast({ outputBlindingArgs });
 
+
         pset=blinder.pset;
         psetUpdater =new Liquid.Updater(pset);
-
-
 
         const walletScript = address.outputScript;
         const xOnlyPubKey =address.publicKey.subarray(1);
@@ -581,22 +618,28 @@ export default class LiquidProvider {
                 psetUpdater.addInTapInternalKey(index, xOnlyPubKey);
             }
         }
+        
+      
+        
+        return {
+            dest: toAddress,
+            fee:totalFee,
+            broadcast:async ()=>{
+                let signedPset = await window.liquid.signPset(psetUpdater.pset.toBase64());
+                if (!signedPset || !signedPset.signed) {
+                    throw new Error("Failed to sign transaction");
+                }
+                signedPset = signedPset.signed;
+                console.log(signedPset);
+                const signed = Liquid.Pset.fromBase64(signedPset);
+                const finalizer = new Liquid.Finalizer(signed);
+                finalizer.finalize();
 
-        const rawTransactionB64=psetUpdater.pset.toBase64();
-
-        let signedPset = await window.liquid.signPset(rawTransactionB64);
-        if(!signedPset||!signedPset.signed){
-            throw new Error("Failed to sign transaction");
+                const hex = Liquid.Extractor.extract(finalizer.pset).toHex();
+                const txid = await this.elcAction('blockchain.transaction.broadcast',[ hex]);
+                return txid;
+            }
         }
-        signedPset=signedPset.signed;
-        console.log(signedPset);
-        const signed = Liquid.Pset.fromBase64(signedPset);
-        const finalizer = new Liquid.Finalizer(signed);
-        finalizer.finalize();
-
-        const hex= Liquid.Extractor.extract(finalizer.pset).toHex();
-        const txid = await this.elcAction('blockchain.transaction.broadcast', hex);
-        return txid;
 
     }
 
@@ -606,14 +649,42 @@ export default class LiquidProvider {
 
     async getTxInfo(tx, resolveOutputs =true, resolveInputs=true){
         await this.check();
-        const tx_hash=tx.tx_hash?tx.tx_hash:tx;
-        const txHex = await this.elcAction('blockchain.transaction.get', tx_hash, false);
-        const txData=Liquid.Transaction.fromHex(txHex);
+        let tx_hash = tx.tx_hash;
+        if(!tx_hash) throw new Error("Invalid tx");
+        // if(!tx_hash) tx_hash=tx.txid;
+        // if(!tx_hash) tx_hash=tx.tx_hash;
+        // if(!tx_hash) tx_hash=tx.hash;
+        // if(!tx_hash) tx_hash=tx;
         
+        const txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
+        const txData=Liquid.Transaction.fromHex(txHex);
+
+        txData.tx_hash=tx_hash;
+        txData.height=tx.height;
+        txData.confirmed=tx.confirmed;
+
+        const addr = await this.getAddress();
+
         if (resolveOutputs){
-            const addr = await this.getAddress();
             await Promise.all(txData.outs.map(out => this._resolveOutput(addr,out, txData)));
         }
+
+        for(const inTx of txData.ins){
+            const script = inTx.script;
+            
+            console.log("Script compare", script,addr.outputScript);
+            
+            if (script == addr.outputScript) {
+                txData.isOutgoing = true;
+         
+            }
+
+        }
+            
+        
+        txData.isIncoming = !txData.isOutgoing;
+
+
         return txData;
     }
 
@@ -696,7 +767,7 @@ export default class LiquidProvider {
             }
 
             out.ldata.assetHash=Liquid.AssetHash.fromBytes(out.ldata.asset).hex;
-            out.ldata.assetInfo = this.assetRegistry.getInfo(out.ldata.assetHash);
+            out.ldata.assetInfo = this.assetRegistry.getAssetInfo(out.ldata.assetHash);
             
         }catch(e){
             out.valid=false;
@@ -713,8 +784,8 @@ export default class LiquidProvider {
         await this.check();
         const addr  = await this.getAddress();
         const scripthash = this.getElectrumScriptHash(addr.outputScript);
-        const utxos = await this.elcAction('blockchain.scripthash.listunspent', scripthash);
-        const outputs=[];
+        const utxos = await this.elcAction('blockchain.scripthash.listunspent', [scripthash]);
+        let outputs=[];
         const transactions={};
         console.log("Raw utxo", utxos);
         for(const utxo of utxos){          
@@ -726,17 +797,25 @@ export default class LiquidProvider {
             if (out.script.length === 0) continue; // fee out
 
             try {
-                const resolvedOut=await this._resolveOutput(addr, out, transaction);
-                if(resolvedOut.valid){
-                    resolvedOut.tx_pos = utxo.tx_pos;
-                    resolvedOut.tx_hash = utxo.tx_hash;
-                    outputs.push(resolvedOut);
-                }
+                // const resolvedOut=await this._resolveOutput(addr, out, transaction);
+                // if(resolvedOut.valid){
+                //     resolvedOut.tx_pos = utxo.tx_pos;
+                //     resolvedOut.tx_hash = utxo.tx_hash;
+                //     outputs.push(resolvedOut);
+                // }
+                outputs.push(this._resolveOutput(addr, out, transaction).then(resolvedOut => {
+                    if (resolvedOut.valid) {
+                        resolvedOut.tx_pos = utxo.tx_pos;
+                        resolvedOut.tx_hash = utxo.tx_hash;
+                    }
+                    return resolvedOut;
+                }));
             }catch(err){
                 console.error("Failed to resolve" ,out,err);
-            }
-           
+            }           
         }
+        outputs=await Promise.all(outputs);
+        outputs=outputs.filter(out=>out.valid);
         return outputs;//await Promise.all(outputs);
             
 
@@ -784,7 +863,8 @@ export default class LiquidProvider {
             const asset = utxo.ldata.assetHash;
             if(!balanceXasset[asset]) balanceXasset[asset]={
                 info:undefined,
-                value:0
+                value:0,
+                hash:asset
             };
             balanceXasset[asset].value+=utxo.ldata.value;
             if(!balanceXasset[asset].info){
@@ -798,7 +878,8 @@ export default class LiquidProvider {
         if(!balanceXasset[this.baseAsset]){
             balanceXasset[this.baseAsset]={
                 info:this.baseAssetInfo,
-                value:0
+                value:0,
+                hash:this.baseAsset
             };
         }
 
@@ -806,16 +887,26 @@ export default class LiquidProvider {
         for(const asset in balanceXasset){
             const assetData=balanceXasset[asset];
             assetData.ready=false;
-            // check if promise
-            const cm=(info)=>{
-                // assetData.value = assetData.value / 10 ** info.precision;
-                assetData.ready = true;      
-            }
+            assetData.info = Promise.resolve(assetData.info);
+            assetData.icon=this.icons.getIcon(asset);
 
-            if(assetData.info.then)assetData.info.then(info=>{
-                cm(info);
+            assetData.waitForData=Promise.all([
+                assetData.info,
+                assetData.icon            
+            ]).then(()=>{
+                assetData.ready=true;
             });
-            else cm(assetData.info);
+
+            // // check if promise
+            // const cm=(info)=>{
+            //     // assetData.value = assetData.value / 10 ** info.precision;
+            //     assetData.ready = true;      
+            // }
+
+            // if(assetData.info.then)assetData.info.then(info=>{
+            //     cm(info);
+            // });
+            // else cm(assetData.info);
             balance.push(assetData);
         }
 

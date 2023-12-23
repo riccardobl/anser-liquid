@@ -1,5 +1,6 @@
 
-export default class AssetRegistry{
+import Constants from "./Constants.js";
+export default class BlockExplorer {
     constructor(esplora, baseAssetId, basePrecision, baseTicker, baseName){
         this.esplora=esplora;
         this.cache={};
@@ -25,14 +26,14 @@ export default class AssetRegistry{
             fee:Number(response[selectedKey])
         }
         if(!out.fee){
-            out.fee=270;
+            out.fee = Constants.HARDCODED_FEE;
         }
         if(!out.blocks){
             out.blocks=1;
         }
         return out;
     }
-    async getInfo(assetId){
+    async getAssetInfo(assetId){
         if(assetId===this.baseAssetId){
             return {
                 precision:this.basePrecision,
