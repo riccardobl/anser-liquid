@@ -3,11 +3,12 @@ import { ElectrumWS } from 'ws-electrumx-client';
 import Liquid from 'liquidjs-lib';
 import ZkpLib from '@vulpemventures/secp256k1-zkp';
 import QrCode from 'qrcode';
-import BlockExplorer from './BlockExplorer.js';
+import AssetProvider from './AssetProvider.js';
 import VByteEstimator from './VByteEstimator.js';
 import Constants from './Constants.js';
-import Exchange from './Exchange.js';
-import Icons from './Icons.js';
+import SideSwap from './SideSwap.js';
+import Cache from './Cache.js';
+import Esplora from './Esplora.js';
 export default class LiquidProvider {
     constructor(electrumWs, esploraHttps, sideswapWs) {
         this.electrumWs = electrumWs;
@@ -32,6 +33,18 @@ export default class LiquidProvider {
         console.log("elcActions",batch);
         console.trace();
         return this.elc.batchRequest(batch);
+    }
+
+    getNetworkName(){
+        return this.networkName;
+    }
+    
+    getBaseAsset(){
+        return this.baseAsset;
+    }
+
+    getBaseAssetInfo(){
+        return this.baseAssetInfo;
     }
 
     // Called at startup and when the account changes
@@ -103,19 +116,26 @@ export default class LiquidProvider {
 
         // get base asset
         this.baseAsset = this.network.assetHash;
-        
-        // initialize asset registry
-        this.assetRegistry = new BlockExplorer(esploraHttps,this.baseAsset,8,"L-BTC","Bitcoin (Liquid)");
-  
-        // get base asset info
-        this.baseAssetInfo = await this.assetRegistry.getAssetInfo(this.baseAsset);
 
         // load exchange
-        this.exchange = new Exchange(this.baseAsset, sideswapWs);   
+        this.sideSwap = new SideSwap(sideswapWs);   
+        
+        this.esplora=new Esplora(esploraHttps);
 
-        // load icons
-        this.icons=new Icons(this.exchange);
+        // initialize asset registry
+        this.assetProvider = new AssetProvider(
+            this.sideSwap,
+            this.esplora,
+            this.baseAsset,
+            8,
+            "L-BTC",
+            "Bitcoin (Liquid)"
+        );
+  
+        // get base asset info
+        this.baseAssetInfo = await this.assetProvider.getAssetInfo(this.baseAsset);
 
+    
 
         // subscribe to events
         const scriptHash = this.getElectrumScriptHash((await this.getAddress()).outputScript);       
@@ -217,24 +237,24 @@ export default class LiquidProvider {
     }
 
 
-    async receive(amount, confidential = false, asset=null, qrOptions={}){
+    // amount is int
+    async receive(amount,   asset=null, qrOptions={}){
         await this.check();
         let address = await this.getAddress();
         if(!asset){
             asset=this.baseAsset;
         }
-        if(confidential){             
-            address = address.confidentialAddress;
-        }else{
-            address = address.address;
-        }
 
-        const info=await this.assetRegistry.getAssetInfo(asset);
-        if(info.precision){
-            amount=Math.floor(amount*10**info.precision);
-        }else{
-            amount=undefined;
-        }
+        amount=await this.assetProvider.intToFloat(amount,asset);
+        // if(confidential){             
+        //     address = address.confidentialAddress;
+        // }else{
+            address = address.address;
+        // }
+        if(amount<0||isNaN(amount)||amount===Infinity) amount=0;
+
+        // TODO dinamic precision?
+        amount = Number(amount.toFixed(10));
 
         let payLink = address;
         let hasParams=false;
@@ -272,7 +292,7 @@ export default class LiquidProvider {
 
         const qrCode=await QrCode.toDataURL(payLink,qrOptions);
         return {
-            url:payLink,
+            addr:payLink,
             qr:qrCode
         };        
     }
@@ -314,28 +334,23 @@ export default class LiquidProvider {
         const addr=await this.getAddress();
         const scripthash = this.getElectrumScriptHash(addr.outputScript);
 
-        let history=[];
-        history.push(...await this.elcAction('blockchain.scripthash.get_history', [scripthash]));
-        // history.push(...await this.elcAction('blockchain.scripthash.get_mempool', scripthash));
-        console.log("History",history);
-        const transactions=[];
-        
-        for(const tx of history){
-            transactions.push({
-                tx_hash: tx.tx_hash,
-                height: tx.height,
-                confirmed: tx.height >0
-            });
-        }
+        const transactions =await Cache.get("hs:"+scripthash, false,async ()=>{
+            const history=[];
+            history.push(...await this.elcAction('blockchain.scripthash.get_history', [scripthash]));
+            // history.push(...await this.elcAction('blockchain.scripthash.get_mempool', scripthash));
+            console.log("History", history);
+            const transactions = [];
 
-        // history=[];
-        // for(const tx of history){
-        //     transactions.push({
-        //         tx_hash: tx.tx_hash,
-        //         height: tx.height,
-        //         confirmed: false
-        //     });
-        // }
+            for (const tx of history) {
+                transactions.push({
+                    tx_hash: tx.tx_hash,
+                    height: tx.height,
+                    confirmed: tx.height > 0
+                });
+            }
+            return [transactions,60*1000];
+            
+        });
 
         return transactions;
     }
@@ -343,14 +358,15 @@ export default class LiquidProvider {
 
     async estimateFeeRate(priority=1){
         await this.check();
-        const fee=await this.assetRegistry.getFee(priority);
+        const fee=await this.esplora.getFee(priority);
         return fee;
     }
    
+    /* amount is int*/
     async prepareTransaction(amount, asset, toAddress, estimatedFeeVByte=null, averageSizeVByte=2000){
         await this.check();
         if (!estimatedFeeVByte){
-            estimatedFeeVByte=(await this.assetRegistry.getFee(1)).fee;
+            estimatedFeeVByte = (await this.esplora.getFee(1)).fee;
         }
         
         if (!asset) asset = this.baseAsset;
@@ -418,7 +434,8 @@ export default class LiquidProvider {
             // Collect fees inputs 
             if (expectedFee>0){
                 for (const utxo of utxos) {
-                    if (utxo.ldata.asset !== feeAsset) continue;
+                    console.log(utxo.ldata.asset,feeAsset)
+                    if (utxo.ldata.assetHash !== feeAsset) continue;
                     if (utxo.ldata.value <= 0) throw new Error("Invalid UTXO");
                     if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
                     collectedFee += utxo.ldata.value;
@@ -428,7 +445,7 @@ export default class LiquidProvider {
             
 
                 if (collectedFee < expectedFee) {
-                    throw new Error("Insufficient funds for fees");
+                    throw new Error("Insufficient funds for fees " + collectedFee+ " < " + expectedFee);
                 }
 
                 // Calculate change
@@ -440,7 +457,7 @@ export default class LiquidProvider {
                 // Set changes
                 if (changeFee > 0) {
                     const changeFeeOutput = {
-                        asset,
+                        asset: feeAsset,
                         amount: changeFee,
                         script: Liquid.address.toOutputScript(address.address),
                         blinderIndex: 0,
@@ -568,7 +585,7 @@ export default class LiquidProvider {
                 throw new Error("Fees too high compared to guard " + fees);
             }
 
-            console.log("Verification OK: fees", fees, "totalOut", totalOut, "totalIn", totalIn);
+            console.log("Verification OK: fees", fees, "totalOut+fee", (totalOut + fees), "totalIn", totalIn);
         }
 
         // Prepare zkp
@@ -651,12 +668,13 @@ export default class LiquidProvider {
         await this.check();
         let tx_hash = tx.tx_hash;
         if(!tx_hash) throw new Error("Invalid tx");
-        // if(!tx_hash) tx_hash=tx.txid;
-        // if(!tx_hash) tx_hash=tx.tx_hash;
-        // if(!tx_hash) tx_hash=tx.hash;
-        // if(!tx_hash) tx_hash=tx;
+
+
+        let txHex =await Cache.get("txhex:"+tx_hash);
+        if(!txHex){
+            txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
+        }
         
-        const txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
         const txData=Liquid.Transaction.fromHex(txHex);
 
         txData.tx_hash=tx_hash;
@@ -672,18 +690,65 @@ export default class LiquidProvider {
         for(const inTx of txData.ins){
             const script = inTx.script;
             
-            console.log("Script compare", script,addr.outputScript);
             
             if (script == addr.outputScript) {
                 txData.isOutgoing = true;
-         
+        
             }
 
         }
-            
-        
-        txData.isIncoming = !txData.isOutgoing;
 
+
+        // guess output info
+        txData.outAsset=this.baseAsset;
+        for(const out of txData.outs){
+            if (!out.ldata) continue;
+            if(out.ldata.assetHash!==this.baseAsset){
+                txData.outAsset =out.ldata.assetHash;
+                break;
+            }
+        }
+        
+        txData.outAmount=0;
+        for(const out of txData.outs){
+            
+            if (!out.ldata) continue;
+            console.log("TxInfo out",out);
+            if(out.ldata.assetHash===txData.outAsset){
+                txData.outAmount += out.ldata.value;
+            }
+        }
+
+        // txData.outAmount=this.assetProvider.intToFloat(txData.outAmount_int, txData.outAsset);
+        
+
+        if (txData.outAsset){
+            txData.outAssetInfo = this.assetProvider.getAssetInfo(txData.outAsset);
+            txData.outAssetIcon = this.assetProvider.getAssetIcon(txData.outAsset);
+            // txData.getOutValue=(currencyHash,floatingPoint=true,asString=false)=>{
+            //     return this.assetProvider.getPrice(txData.outAmount,txData.outAsset,currencyHash,floatingPoint,asString);
+            // }
+        }
+
+       
+       
+        txData.extraInfo=this.esplora.getTxInfo(tx_hash);
+        txData.blockTime=async ()=>{
+            if(!txData.extraInfo) return undefined;
+            return (await txData.extraInfo).status.block_time;
+        };
+       
+        txData.isIncoming = async ()=>{
+             
+            return undefined;
+        }
+
+       
+        
+        if(txData.confirmed){
+            await Cache.set("txhex:"+tx_hash,txHex);
+        }
+    
 
         return txData;
     }
@@ -719,6 +784,8 @@ export default class LiquidProvider {
             if (out.script.length === 0) { // fees
                 throw new Error("Fee output");
             }
+
+            
 
             // const elementsValue = Liquid.ElementsValue.fromBytes(out.value);
             const isConfidential = this.isConfidentialOutput(out);
@@ -767,7 +834,8 @@ export default class LiquidProvider {
             }
 
             out.ldata.assetHash=Liquid.AssetHash.fromBytes(out.ldata.asset).hex;
-            out.ldata.assetInfo = this.assetRegistry.getAssetInfo(out.ldata.assetHash);
+            out.ldata.assetInfo = this.assetProvider.getAssetInfo(out.ldata.assetHash);
+            
             
         }catch(e){
             out.valid=false;
@@ -793,7 +861,6 @@ export default class LiquidProvider {
             if(!transactions[txid]) transactions[txid]=await this.getTxInfo(utxo,false,false);            
             const transaction=transactions[txid];
             const out=transaction.outs[utxo.tx_pos];
-            console.log(out);
             if (out.script.length === 0) continue; // fee out
 
             try {
@@ -864,9 +931,10 @@ export default class LiquidProvider {
             if(!balanceXasset[asset]) balanceXasset[asset]={
                 info:undefined,
                 value:0,
-                hash:asset
+                hash:asset,
+                asset:asset
             };
-            balanceXasset[asset].value+=utxo.ldata.value;
+            balanceXasset[asset].value += utxo.ldata.value;
             if(!balanceXasset[asset].info){
                 balanceXasset[asset].info=utxo.ldata.assetInfo;
             }
@@ -874,13 +942,16 @@ export default class LiquidProvider {
 
         console.log(balanceXasset);
 
-        // TODO pinned assets
-        if(!balanceXasset[this.baseAsset]){
-            balanceXasset[this.baseAsset]={
-                info:this.baseAssetInfo,
-                value:0,
-                hash:this.baseAsset
-            };
+        const pinnedAssets=await this.getPinnedAssets();
+        for(const asset of pinnedAssets){
+            const hash=asset.hash;
+            if (!balanceXasset[hash]){
+                balanceXasset[hash]={};
+                for(const key in asset){
+                    balanceXasset[hash][key]=asset[key];
+                }
+                balanceXasset[hash].value =0;
+            }
         }
 
         const balance=[];
@@ -888,11 +959,16 @@ export default class LiquidProvider {
             const assetData=balanceXasset[asset];
             assetData.ready=false;
             assetData.info = Promise.resolve(assetData.info);
-            assetData.icon=this.icons.getIcon(asset);
+            assetData.icon = this.assetProvider.getAssetIcon(asset);
+            // if (!assetData.price )assetData.price = this.assetProvider.getPrice(1,asset,undefined, true);
+            // assetData.getValue=(currencyHash,floatingPoint=true,asString=false)=>{
+            //     return this.assetProvider.getPrice(assetData.value,asset,currencyHash,floatingPoint,asString);
+            // };
 
             assetData.waitForData=Promise.all([
-                assetData.info,
-                assetData.icon            
+                Promise.resolve( assetData.info),
+                Promise.resolve(assetData.icon),
+                // Promise.resolve( assetData.price )           
             ]).then(()=>{
                 assetData.ready=true;
             });
@@ -909,8 +985,6 @@ export default class LiquidProvider {
             // else cm(assetData.info);
             balance.push(assetData);
         }
-
-
         
         return balance;
 
@@ -918,4 +992,83 @@ export default class LiquidProvider {
     }
 
 
+    async pinAsset(asset){
+        await this.check();
+        this.assetProvider.track(asset);
+    }
+
+    async unpinAsset(asset){
+        await this.check();
+        this.assetProvider.untrack(asset);
+    }
+
+    async getPinnedAssets(indexCurrency){
+        await this.check();
+        return this.assetProvider.getTrackedAssets(indexCurrency, false);
+    }
+
+    async getAvailableCurrencies(indexCurrency){
+        await this.check();
+        return this.assetProvider.getTrackedAssets(indexCurrency, true);
+    }
+
+   
+    v(inAmount, assetHash){
+        console.log("Test",inAmount, assetHash)
+        if (typeof inAmount == "object"){
+            if (typeof inAmount.value != "undefined"){
+                assetHash = inAmount.asset||inAmount.hash;
+                inAmount = inAmount.value;
+            } else if (typeof inAmount.outAmount !="undefined"){
+                assetHash = inAmount.outAsset;
+
+                inAmount = inAmount.outAmount;
+            }else{
+                console.log("INvalid amount",inAmount);
+                throw new Error("Invalid amount");
+            }
+        }
+
+        if(!assetHash) {
+            console.log("Invalid asset",assetHash);
+            throw new Error("Invalid asset "+assetHash);
+        }
+        if(typeof inAmount!="number") {
+            console.log("Invalid amount",inAmount);
+            throw new Error("Invalid amount "+inAmount);
+        }
+        return {
+            human: async (targetAssetHash)=>{
+                await this.check();
+                if (!targetAssetHash) targetAssetHash = assetHash;
+
+                let amount = inAmount;
+                amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
+                amount = await this.assetProvider.intToFloat(amount, targetAssetHash);
+
+                amount = await this.assetProvider.floatToStringValue(amount, targetAssetHash);
+                return amount;
+            },
+            float: async (targetAssetHash)=>{
+                await this.check();
+                if (!targetAssetHash) targetAssetHash = assetHash;
+
+                let amount = inAmount;
+
+                amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
+                amount = await this.assetProvider.intToFloat(amount, targetAssetHash);
+                return amount;
+            },
+            int: async (targetAssetHash)=>{
+                await this.check();
+                if (!targetAssetHash) targetAssetHash = assetHash;
+                let amount = inAmount;
+                amount = await this.assetProvider.floatToInt(amount, assetHash);        
+                 amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
+                 return amount;
+            }
+
+        }
+    }
+ 
 }

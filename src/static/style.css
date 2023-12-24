@@ -19,13 +19,15 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    min-width: 0;
+    min-width: 0 !important;
     font-family: 'Lato', sans-serif;
     position: relative;
     overflow: hidden;
+    flex-shrink: 1;
+    word-wrap: break-word;
 }
 
-.material-symbols-outlined{
+.material-symbols-outlined {
     font-size: inherit;
 }
 
@@ -33,8 +35,10 @@ body,
 html {
     height: 100%;
     width: 100%;
+    max-width: 100%;
+    min-width: 100%;
     padding: 0rem;
-    overflow-y:auto;
+    overflow-y: auto;
 
 }
 
@@ -42,6 +46,7 @@ body {
     background: var(--bgColor);
     color: var(--fgColor);
     font-size: 1.1rem;
+
 
 }
 
@@ -57,68 +62,87 @@ liquidWallet {
 }
 
 
-liquidWallet #history>*.confirmed {
+liquidWallet #container #history>*.confirmed {
     background-color: var(--colorConfirmed);
 }
 
-liquidWallet #history>* {
+liquidWallet #container #history>* {
 
     background-color: var(--colorPending);
 }
 
-liquidWallet #history .tx-hash {
-    max-width: 40%;
+liquidWallet #container{
+    display: flex;
+    flex-direction: column;
+    padding:0.2rem;
+}
+
+liquidWallet .toolong {
     display: inline-block;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-liquidWallet .list .listItem {
+liquidWallet #container > .list>.listItem {
     display: flex;
     padding: 1rem;
-    margin: 0.4rem;
+    margin: 0;
     margin-top: 0.1rem;
     border-radius: 14px;
-        box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
-    flex-direction: row;
+    box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
     align-items: center;
+    /* add internal padding for flex*/
+    padding: 0.2rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 
-liquidWallet .list .asset>.labelCnt {
-    margin-right: auto;
+liquidWallet #container .asset {
+    text-align: center;
+    width: max(26vw, 15rem);
 }
 
-liquidWallet .list .asset>.balanceCnt {
-    min-width: min(30%, 200px);
+
+liquidWallet #container .list .asset>.balanceCnt {
     text-align: center;
 
 }
 
-liquidWallet .list .asset .balance {
+liquidWallet #container .list .asset .balance {
     font-weight: bold;
-    font-size: 1.8rem;
+    font-size: 1.4rem;
 }
 
-liquidWallet .sub {
+liquidWallet #container>.list>.listItem .big {
+    max-width: 5rem;
+
+}
+
+liquidWallet #container .title {
+    font-size: 140%;
+    font-weight: bold;
+}
+
+liquidWallet #container .sub {
     font-style: italic;
     font-size: 1rem;
 
 }
 
-liquidWallet .list .asset .balanceAltCnt>* {
+liquidWallet #container .list .asset .balanceAltCnt>* {
     padding-left: 0.3rem;
     padding-right: 0.3rem;
     display: inline-block;
 }
 
-liquidWallet .list .asset {
+liquidWallet #container .list .asset {
     background-color: var(--assetColor);
 
 }
 
-liquidWallet .list .asset .cover {
+liquidWallet #container .cover {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -133,35 +157,65 @@ liquidWallet .list .asset .cover {
     /* Apply blur */
 }
 
-liquidWallet .list {
+liquidWallet #container .list {
     display: flex;
     flex-direction: column;
-    flex-wrap: wrap;
-    overflow-y: auto;
-    margin-top:1.3rem;
+
 }
 
-liquidWallet .list .listItem .icon {
+liquidWallet #container .list.h {
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+}
+
+liquidWallet #container .list.v {
+    max-width: 100%;
+    min-width: 100%;
+
+}
+
+liquidWallet #container .list.v .listItem {
+    margin-bottom: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+liquidWallet #container>.list {
+    flex-wrap: wrap;
+    overflow-y: auto;
+    margin-top: 1.3rem;
+}
+
+liquidWallet #container>.list>.listItem .icon {
     max-width: 3rem;
 }
 
-liquidWallet .list .listItem>* {
+liquidWallet #container>.list>.listItem>* {
     margin: 0.4rem;
 }
 
-liquidWallet .list .asset .labelCnt {
+
+liquidWallet #container .list.fill {
+    width: 100%;
+}
+
+liquidWallet #container .list.fill.h>*:last-child {
+    margin-left: auto;
+}
+
+liquidWallet #container>.list .asset .labelCnt {
     display: flex;
     flex-direction: column;
 
 }
 
-liquidWallet .list .asset .iconCnt {
+liquidWallet #container .iconCnt {
     filter: drop-shadow(1px 1px 8px rgba(0, 0, 0, 0.226));
     margin-right: 1rem;
 }
 
 
-liquidWallet #balanceSumCnt {
+liquidWallet #container #balanceSumCnt {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -171,13 +225,13 @@ liquidWallet #balanceSumCnt {
 
 }
 
-liquidWallet #balanceSumCnt .balanceSum {
-    font-size: 5.4rem;
+liquidWallet #container #balanceSumCnt .balanceSum {
+    font-size: 4rem;
     margin: 0.5rem;
     margin-top: 2rem;
 }
 
-liquidWallet .balanceSumAltCnt {
+liquidWallet #container .balanceSumAltCnt {
     width: 100%;
     font-size: 1.4rem;
     text-align: center;
@@ -185,19 +239,19 @@ liquidWallet .balanceSumAltCnt {
 }
 
 
-liquidWallet .buttons {
+liquidWallet #container .buttons {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
     width: 100%;
     padding: 0.6rem;
-        filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
 }
 
-liquidWallet .buttons>.button {
+liquidWallet #container .buttons>.button {
     flex: 1;
-    padding:0.8rem;
+    padding: 0.8rem;
     border: none;
     box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
     border-radius: 14px;
@@ -211,46 +265,185 @@ liquidWallet .buttons>.button {
     margin-right: 0.3rem;
 }
 
-liquidWallet .buttons>.button {
+liquidWallet #container .buttons>.button {
     display: flex;
     flex-direction: column;
 }
 
-liquidWallet .buttons>.button .icon {
+liquidWallet #container .buttons>.button .icon {
     margin-bottom: 0.2rem;
-font-size:3rem;
+    font-size: 3rem;
 }
 
-liquidWallet .buttons>.button:hover {
+liquidWallet #container .buttons>.button:hover {
     background-color: darken(var(--assetColor), 10%);
 }
 
-liquidWallet .buttons>.button:last-child {
+liquidWallet #container .buttons>.button:last-child {
     margin-right: 0;
 }
 
-liquidWallet #header{
-    width:100%;
+liquidWallet #header {
+    width: 100%;
     background-color: var(--assetColor);
-    font-size:2rem;
-    padding:0.2rem;
-    padding-right:1rem;
-    padding-left:1rem;
+    font-size: 2rem;
+    padding: 0.2rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-            font-size: 2rem!important;
-            
-}
-
-liquidWallet #header .icon{
-    padding-right:1rem;
-}
-liquidWallet #header .options{
-    margin-left:auto;
-    padding:0;
-    padding-top:0.4rem;
+    font-size: 2rem !important;
 
 }
 
+liquidWallet #header .icon {
+    padding-right: 1rem;
+}
+
+liquidWallet #header .options {
+    margin-left: auto;
+    padding: 0;
+    padding-top: 0.4rem;
+
+}
+
+liquidWallet #container .text.loading {
+    display: inline-block;
+    margin-top: 0.2rem;
+    margin-bottom: 0.2rem;
+    width: 8rem;
+    height: 1.4rem;
+    border-radius: 200px;
+    background: linear-gradient(90deg, transparent, var(--bgColor), transparent);
+    background-size: 200% 200%;
+    opacity: 0.9;
+    animation: loading 2s ease-in-out infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: -100% 0;
+    }
+
+    50% {
+        background-position: 100% 0;
+    }
+
+    100% {
+        background-position: -100% 0;
+    }
+}
+
+liquidWallet #container .list.loading {
+    box-shadow: 0 0 8px 2px var(--colorShadow);
+    width: 100%;
+
+    height: 200px;
+    background: linear-gradient(90deg, transparent, var(--colorShadow), transparent);
+    background-size: 200% 200%;
+    opacity: 0.9;
+    animation: loading 2s ease-in-out infinite;
+}
+
+liquidWallet #container .icon.material-symbols-outlined.loading {
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+liquidWallet #container .tx .direction {
+    font-size: 3rem;
+}
+
+liquidWallet #container .tx .txAssetIcon {
+    position: absolute;
+    left: 2rem;
+    bottom: 0rem;
+    opacity: 0.8;
+}
+
+liquidWallet #container .tx .txAssetIcon img {
+    max-width: 1rem !important;
+}
+
+liquidWallet #container .smaller {
+    margin: 0rem;
+    font-size: 0.6rem;
+}
+
+liquidWallet #container #history .blockTime {
+    position: absolute;
+    bottom: 0rem;
+    right: 1rem;
+    font-size: 0.7rem;
+}
+
+liquidWallet #container #history .statusTxHash {
+    position: absolute;
+    bottom: 0rem;
+    left: 1rem;
+    margin: 0;
+    font-size: 0.7rem;
+}
+
+
+liquidWallet #container #history .txStatus {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+
+
+liquidWallet #container .list.h.outscroll {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+liquidWallet #container .list.h.outscroll>.listItem {
+    flex-shrink: 0;
+    margin-right: 0.3rem;
+
+}
+
+liquidWallet #container .list.h.outscroll.outside {
+    justify-content: flex-start;
+}
+
+liquidWallet #container>.list>input[type="text"].listItem,
+input {
+    padding: 1rem !important;
+}
+
+liquidWallet #container .list.h.left{
+    justify-content: flex-start;
+}
+liquidWallet #container .list.v.left {
+    align-items: flex-start;
+}
+
+liquidWallet .invoiceQr{
+    max-width: min(40vh,100%);
+    
+    margin:auto;
+}
+
+ 

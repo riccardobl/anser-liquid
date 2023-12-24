@@ -1,109 +1,228 @@
 
-import LiquidProvider from "./LiquidProvider.js";
+import LiquidProvider from "./LiquidWallet.js";
 import Html from "./Html.js";
 
 
 
-async function renderAssets(parentEl, lq){
-    const balance = await lq.getBalance();
-    const assetsEl = Html.elById(parentEl, "assets",["list"]);
+async function renderAssets(parentEl, lq,filter){
+    const assetsEl = Html.$hlist(parentEl, "#assets")
+    Html.enableOutScroll(assetsEl);
     assetsEl.setPriority(-10);
+    assetsEl.initUpdate();
+    const balance = await lq.getBalance();
+    // const assetsEl = Html.elById(parentEl, "assets",["list"]);
+    // assetsEl.setPriority(-10);
+    
 
-    Html.initializeListUpdate(assetsEl);
     await Promise.all(balance.map(asset => {
+      
         const id = "asset" + asset.hash.substr(0, 8) + asset.hash.substr(-8);
-        const assetEl = Html.elById(assetsEl, id,["asset","listItem"]);
-        const coverEl = Html.elByClass(assetEl, "cover", [], "div");
+
+        const assetEl=Html.$vlist(assetsEl,"#"+id,["asset"]);        
+        const labelCntEl = Html.$vlist(assetEl, ".labelCnt");
+        const iconEl = Html.$icon(assetEl, ".icon", ["big"]);
+
+        const balanceCntEl=Html.$vlist(assetEl,".balanceCnt");
+
+
+        const balanceEl = Html.$text(balanceCntEl, ".balance");
+        const balanceAltCntEl=Html.$hlist(balanceCntEl,".balanceAltCnt");
 
         //>iconCnt< >labelCnt<           >balanceCnt<
         // IC ###  NAME  ## ###########   BALANCE     #
         // ON ### ticker ## ########### bprim / bsec  #
         //                              >balanceAltCnt<
+        
+        const tickerEl=Html.$text(labelCntEl,".ticker",["title"]);
+        const nameEl = Html.$text(labelCntEl, ".name", ["sub","smaller"]);
 
-        const iconCntEl=Html.elByClass(assetEl,"iconCnt",[]);
-        const labelCntEl=Html.elByClass(assetEl,"labelCnt",[]);
-        const balanceCntEl=Html.elByClass(assetEl,"balanceCnt",[]);
 
-        const iconEl = Html.elByClass(iconCntEl, "icon", [], "img");
-
-        const tickerEl = Html.elByClass(labelCntEl, "ticker", [], "span");
-        const nameEl = Html.elByClass(labelCntEl, "name", ["sub"], "span");
-        const balanceEl=Html.elByClass(balanceCntEl,"balance",[],"span");
-
-        const balanceAltCntEl = Html.elByClass(balanceCntEl, "balanceAltCnt", ["sub"]);
-
-        const balancePrimaryEl = Html.elByClass(balanceAltCntEl, "balancePrimary", [], "span");
-        const sepEl=Html.elByClass(balanceAltCntEl,"sep",[],"span");
+        const balancePrimaryEl = Html.$text(balanceAltCntEl, ".balancePrimary");
+        const sepEl=Html.$text(balanceAltCntEl,".sep");
         sepEl.setValue("/");
-        const balanceSecondaryEl = Html.elByClass(balanceAltCntEl, "balanceSecondary", [], "span");
-
+        const balanceSecondaryEl = Html.$text(balanceAltCntEl, ".balanceSecondary",["sub"]);
+ 
         const loadInfoPromise=Promise.resolve(asset.info).then((info)=>{
+            console.log("Info ",info);
             try {
+
+                if (filter) {
+                    if (!filter(asset.hash, true) && !filter(info.ticker)&&!filter(info.name)) {
+                        assetEl.remove();
+                        return;
+                    }                    
+                }
 
                 tickerEl.setValue(info.ticker);
 
                 nameEl.setValue(info.name);
 
-                const floatValue = asset.value ? (asset.value / 10 ** info.precision).toFixed(info.precision) : 0;
+                // const floatValue = asset.value ? (asset.value / 10 ** info.precision).toFixed(info.precision) : 0;
+                lq.v(asset).human().then((value)=>{
+                    balanceEl.setValue(value);
+                });
+                // lq.convertAsString(asset.value, asset.hash, asset.hash).then((price) => {
+                //     balanceEl.setValue(price);
+                // });
+                // balanceEl.setValue(floatValue);
 
-                balanceEl.setValue(floatValue);
 
-                if (floatValue){
-                    lq.exchange.getPrice(floatValue, asset.hash, undefined).then((price) => {
-                        balancePrimaryEl.setValue(price);
-                        assetEl.setPriority(-price);
+                // if (floatValue){
+                lq.v(asset).human(lq.getBaseAsset()).then((price)=>{
+                // lq.convertAsString(asset.value, asset.hash, lq.getBaseAsset()).then((price)=>{
+                        if (price){
+                            balancePrimaryEl.setValue(price);
+                            assetEl.setPriority(-Math.floor(Number(price.split(" ")[0])*100000));
+                        }else{
+                            assetEl.setPriority(0);
+                            balancePrimaryEl.setValue("-");
+                        }
                     });
-                }else{
-                    assetEl.setPriority(0);
-                }
-                if (floatValue) {
-                    lq.exchange.getPrice(floatValue, asset.hash, "USD").then((price) => {
-                        balanceSecondaryEl.setValue(price.toFixed(2));
-                    });
-                }  
+                    // lq.exchange.getPrice(floatValue, asset.hash, undefined).then((price) => {
+                    //     balancePrimaryEl.setValue(price);
+                    //     assetEl.setPriority(-price);
+                    // });
+                // }else{
+                // }
+    
+                lq.v(asset).human("USD").then((price) => {
+
+                // lq.convertAsString(asset.value, asset.hash, "USD").then((price) => {
+                    if (price) {
+                        balanceSecondaryEl.setValue(price);
+                    } else {
+                        balanceSecondaryEl.setValue("-");
+                    }
+                });
+
                 // const balanceSecondaryEl=Html.elByClass(assetEl,"balance-secondary","span");
                 // balanceSecondaryEl.setValue(asset.balanceSecondary);              
             } catch (e) {
                 console.error(e);
             }
         });
-
+        console.log("Asset ",asset);
         const loadIconPromise=Promise.resolve(asset.icon).then((icon)=>{
+            console.info("Loading icon",icon,asset)
             try {                 
-                iconEl.src = icon;
-                coverEl.style.backgroundImage = `url(${icon})`;
+                iconEl.setSrc( icon);
+                assetEl.setCover(icon);                
             } catch (e) {
                 console.error(e);
             }
         });
         return Promise.all([loadInfoPromise,loadIconPromise]);
     }));
-    Html.commitListUpdate(assetsEl);
+    assetsEl.commitUpdate();
 
 }
 
 
 async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
-    const historyEl = Html.elById(parentEl, "history",["list"]);
-    
-    let history = (await lq.getHistory()).slice(page * limit, page * limit + limit);
-    
-    Html.initializeListUpdate(historyEl);
+    const historyEl = Html.$vlist(parentEl, "#history", ["list"]);
+        
+    const history = (await lq.getHistory()).slice(page * limit, page * limit + limit);
+
+    historyEl.initUpdate();
     for (const tx of history) {
         const id = "history" + (tx.tx_hash.substr(0, 8) + tx.tx_hash.substr(-8));
-        const txEl = Html.elById(historyEl, id, ["list", "historyEntry", "listItem"], "div" );
-        const txHashEl = Html.elByClass(txEl, "tx-hash", [], "span");
-        txHashEl.setValue(tx.tx_hash);
+        const txElCnt = Html.$vlist(historyEl, "#" + id, []);
+        const txElCnt2 = Html.$hlist(txElCnt, ".tx", ["fill"]);
 
-        const isConfirmed = tx.confirmed;
-        const txStatusEl = Html.elByClass(txEl, "tx-status", [],"span");
-        txStatusEl.setValue(isConfirmed ? "confirmed" : "unconfirmed");
-        txEl.classList.toggle("confirmed", isConfirmed);
-        txEl.classList.toggle("unconfirmed", !isConfirmed);
+        /*
+        DIRECTION   # SYMBOL                 # STATUS TXHASH
+               ICON # AMOUNT ( AMOUNT ALT )  # BLOCKTIME
+         View on block explorer
+        */
 
-        txEl.setPriority(-tx.height);
+        const c1El = Html.$vlist(txElCnt2,".c1");
+
+        const txDirectionEl = Html.$icon(c1El,".direction");
+        const txAssetIconEl = Html.$icon(c1El, ".txAssetIcon");
+
+        const txSymbolEl = Html.$text(txElCnt2, ".txSymbol");
+        const txAmountCntEl = Html.$hlist(txElCnt2, ".txAmount");
+        const txAmountEl = Html.$text(txAmountCntEl, ".txAmount",["sub"]);
+        // Html.$text(txAmountCntEl, ".sep1").setValue("(");
+        // const txAmountAltPrimaryEl = Html.$text(txAmountCntEl, ".txAmountAltPrimary");
+        // const txAmountAltSecondaryEl = Html.$text(txAmountCntEl, ".txAmountAltSecondary");
+        // Html.$text(txAmountCntEl, ".sep2").setValue(")");
+
+        const statusTxHashCntEl = Html.$hlist(txElCnt,".statusTxHash");
+        const txHashEl = Html.$text(statusTxHashCntEl, ".txHash", ["toolong"]);
+
+        const txStatusEl = Html.$icon(statusTxHashCntEl, ".txStatus");
+        const blockTimeEl = Html.$text(txElCnt, ".blockTime");
+
+
+        txStatusEl.setValue(tx.confirmed ? "done" : "cached");
+        if(!tx.confirmed)txStatusEl.classList.add("loading");
+        else txStatusEl.classList.remove("loading");
+        txElCnt.classList.toggle("confirmed", tx.confirmed);
+        txElCnt.classList.toggle("unconfirmed", !tx.confirmed);
+        txElCnt.setPriority(-tx.height);
+
+        txHashEl.setValue(tx.tx_hash.substr(0,16)+"...");
+
         lq.getTxInfo(tx,true,true).then((txInfo)=>{
-            console.log(txInfo);
+            txInfo.isIncoming().then(res=>{
+                if(typeof res!="undefined" ){
+                    if(res){
+                        txDirectionEl.setValue("arrow_downward");
+                        txDirectionEl.classList.add("incoming");
+                    }else{
+                        txDirectionEl.setValue("arrow_upward");
+                        txDirectionEl.classList.add("outgoing");
+                    }
+                }else{
+                    txDirectionEl.setValue("receipt_log");
+                    txDirectionEl.classList.add("unknown");
+                }
+            });
+
+            txInfo.blockTime().then((timestamp)=>{
+                const  date=new Date(timestamp*1000);
+                blockTimeEl.setValue(date.toLocaleString());
+            });
+             
+
+            // if (txInfo.outAmount){
+            //     txInfo.getOutValue(undefined,true,true).then((value)=>{
+            //         txAmountAltPrimaryEl.setValue(value);
+            //     });
+            //     txInfo.getOutValue("USD",true,true).then((value)=>{
+            //         txAmountAltSecondaryEl.setValue(value);
+            //     });
+
+            // }else{
+            //     txAmountAltPrimaryEl.setValue("-");
+            //     txAmountAltSecondaryEl.setValue("-");
+            // }
+
+            if(txInfo.outAsset){
+                txInfo.outAssetIcon.then((icon)=>{
+                    txAssetIconEl.setSrc(icon);
+                });
+
+                txInfo.outAssetInfo.then(info=>{
+                    if (filter) {
+                        if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name)&&!filter(tx.tx_hash,true)) {
+                            txElCnt.remove();
+                            return;
+                        }
+                    }
+                  
+                    txSymbolEl.setValue(info.ticker);
+                });
+
+                lq.v(txInfo).human().then((value)=>{
+                // lq.convertAsString(txInfo.outAmount, txInfo.outAsset, txInfo.outAsset).then((value)=>{
+                    txAmountEl.setValue(value);
+                });
+                    
+            }
+            
+            console.log("TxInfo",txInfo);
         });
         
     }
@@ -112,19 +231,36 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
 }
 
 async function renderBalance(parentEl, lq) {
-    const balanceSumCntEl = Html.elById(parentEl, "balanceSumCnt",[]);
-    const balanceSumEl=Html.elByClass(balanceSumCntEl,"balanceSum",[],"span");
-    const balanceSumAltCntEl = Html.elByClass(balanceSumCntEl, "balanceSumAltCnt", ["sub"]);
-    const balanceSumPrimaryEl = Html.elByClass(balanceSumAltCntEl, "balanceSumPrimary", [], "span");
-    const sepEl = Html.elByClass(balanceSumAltCntEl, "sep", [], "span");
-    sepEl.setValue("/");
-    const balanceSumSecondaryEl = Html.elByClass(balanceSumAltCntEl, "balanceSumSecondary", [], "span");
     
-    balanceSumEl.setValue("0.22");
-    balanceSumPrimaryEl.setValue("0.22");
-    balanceSumSecondaryEl.setValue("0.22");
-
+    const balanceSumCntEl=Html.$cnt(parentEl,"#balanceSumCnt",[]);
+    const balanceSumEl=Html.$text(balanceSumCntEl,".balanceSum",[]);
+    const balanceSumSecondaryEl =Html.$hlist(balanceSumCntEl,".balanceSumAltCnt",["sub"]);
+    
+   
     balanceSumCntEl.setPriority(-20); 
+
+    let sumPrimary=0;
+    let sumSecondary=0;
+    let primarySymbol="";
+    let secondarySymbol="";
+    lq.getBalance().then((assets)=>{
+        for(const asset of assets){
+            lq.v(asset).human(lq.getBaseAsset()).then((value)=>{
+            // lq.convertAsString(asset.value ,asset.hash, lq.getBaseAsset()).then((value)=>{
+                [value,primarySymbol]=value.split(" ");
+                sumPrimary+=Number(value);
+                balanceSumEl.setValue(sumPrimary + " " + primarySymbol);
+            });
+            lq.v(asset).human("USD").then((value)=>{
+            // lq.convertAsString(asset.value, asset.hash ,"USD").then((value)=>{
+                [value,secondarySymbol]=value.split(" ");
+                sumSecondary+=Number(value);
+                balanceSumSecondaryEl.setValue(sumSecondary + " " + secondarySymbol);
+            });
+        }
+    });
+
+
 
 
 }
@@ -185,35 +321,222 @@ async function renderSearchBar(walletEl,lq,render){
         lastValue=value;
         if(scheduledTimeout)clearTimeout(scheduledTimeout);
         scheduledTimeout=setTimeout(()=>{
-            render(value);
-        },100);
+            const words = lastValue.toLowerCase().split(" ").filter(w=>w.trim().length>0);
+            render((str,partial)=>{
+                str=str.toLowerCase().trim();
+                if(words.length===0)return true;
+                for(const word of words){
+                    if(str.includes(word)){
+                        console.log("Match",str,word);
+                        return true;
+                    }
+                }
+                return false;
+
+
+            });
+        },1000);
     });
     
 }
 
-async function refreshUI(lq) {
-    const walletEl=document.body.querySelector("liquidWallet");
-    if(!walletEl) alert("No wallet element found")
-    const render=(filter)=>{
-        renderAssets(walletEl, lq, filter);
-        renderHistoryPanel(walletEl, lq, filter);
-        renderBalance(walletEl, lq);
-        renderSendReceive(walletEl, lq, filter);
-        renderHeader(walletEl,lq);
-    };
-    renderSearchBar(walletEl,lq,render);
-    render("");
+
+const STAGES={
+    "home": (walletEl,lq)=>{
+        const render = (filter) => {
+
+            renderAssets(walletEl, lq, filter);
+            renderHistoryPanel(walletEl, lq, filter);
+            renderBalance(walletEl, lq);
+            renderSendReceive(walletEl, lq, filter);
+        };
+        renderSearchBar(walletEl, lq, render);
+        render("");
+    },
+    "options": (walletEl,lq)=>{
+
+    },
+    "receive": (walletEl,lq)=>{
+       
+        renderReceive(walletEl,lq);
+
+    },
+    "send": (walletEl,lq)=>{
+        renderSend(walletEl,lq);
+    }
+
+}
+
+async function renderSend(walletEl,lq){
+    let ASSET_HASH=await lq.getBaseAsset();
+    let ASSET_INFO=await lq.getBaseAssetInfo();
+    let INPUT_AMOUNT=0;
+
+    let INPUT_CURRENCY = "USD";
+    let INPUT_INFO = "USD";
+
+    let TO_ADDR ="";
+
+    const sendCntEl = Html.$vlist(walletEl, "#send");
+
+    const sendAssetCnt=Html.$hlist(sendCntEl,"#sendAssetCnt",["fill"]);
+    const sendAssetLabelEl=Html.$text(sendAssetCnt,".label");
+    sendAssetLabelEl.setValue("Asset");
+    const sendAssetEl=Html.$inputSelect(sendAssetCnt,".asset");
+    sendAssetEl.setPreferredValues([ASSET_HASH]);
+    lq.getPinnedAssets().then((assets) => {
+        for (const asset of assets) {
+            asset.info.then(info => {
+                sendAssetEl.addOption(asset.hash, info.ticker, (value) => {
+                    ASSET_HASH = value;
+                    ASSET_INFO = info;
+                });
+            });
+        }
+    });
+
+    const sendEl = Html.$hlist(sendCntEl, "#sendEl", ["fill"]);
+    const labelValueEl=Html.$text(sendEl,".label");
+    labelValueEl.setValue("Amount");
+    const valueEl=Html.$inputNumber(sendEl,".value");
+    valueEl.setPlaceHolder("0.00");
+    valueEl.setAction((value)=>{
+        INPUT_AMOUNT=value;
+    });
+
+    const currencyEl=Html.$inputSelect(sendEl,".currency");
+    currencyEl.setPreferredValues([await lq.getBaseAsset(), "USD"]);
+    lq.getPinnedAssets().then((assets) => {
+        for (const asset of assets) {
+            asset.info.then(info => {
+                currencyEl.addOption(asset.hash, info.ticker, (value) => {
+                    INPUT_CURRENCY = value;
+                    INPUT_INFO = info;
+                });
+            });
+        }
+    });
+
+    const addrCntEl=Html.$hlist(sendCntEl,"#addCnt",["fill"]);
+    const addrLabelEl=Html.$text(addrCntEl,".label");
+    addrLabelEl.setValue("To");
+    const addrEl=Html.$inputText(addrCntEl,".addr");
+    addrEl.setPlaceHolder("Address");
+    addrEl.setAction((value)=>{
+        TO_ADDR=value;
+    });
+
+    const sendBtnEl=Html.$button(sendCntEl,"#sendBtn",["fill","button"]);
+    sendBtnEl.setValue("Confirm and sign");
+    sendBtnEl.setAction(async ()=>{
+        let amount = await lq.v(INPUT_AMOUNT, INPUT_CURRENCY).int(ASSET_HASH);
+        const asset=ASSET_HASH;
+        const to=TO_ADDR;
+        let tx=await lq.prepareTransaction(amount,asset,to);
+        
+        console.info(tx);
+        tx=await tx.broadcast();
+        console.info(tx);
+
+    });
+
+
+}
+
+async function renderReceive(walletEl,lq){
+    let INPUT_AMOUNT=0;
+    let ASSET_HASH=await lq.getBaseAsset();
+    let ASSET_INFO=await lq.getBaseAssetInfo();
+    let INPUT_CURRENCY="USD";
+    const invoiceEl = Html.$vlist(walletEl, "#invoice");
+    const updateInvoice = async () => {
+        if (!ASSET_HASH||!ASSET_INFO) return;
+        // const amount = await lq.convertAsFloat(AMOUNT, INFO_CURRENCY, ASSET_HASH);
+        let amount = await lq.v(INPUT_AMOUNT, INPUT_CURRENCY).int(ASSET_HASH);
+        const { addr, qr } = await lq.receive(amount, ASSET_HASH);
+        Html.$img(invoiceEl, ".qr",["invoiceQr"]).setSrc(qr);
+        Html.$text(invoiceEl, ".addr").setValue(addr);
+        // render(addr, qr);
+    }
+
+    const inputsEl=Html.$vlist(walletEl,"#receiveInputs");
+    const assetCntEl = Html.$hlist(inputsEl, "#assetCnt", ["left"]);
+
+    Html.$text(assetCntEl,".label").setValue("Asset: ");
+    const assetSelectionEl=Html.$inputSelect(assetCntEl,".assetSelect");
+    assetSelectionEl.setPreferredValues([ASSET_HASH]);
+
+    lq.getPinnedAssets().then((assets) => {
+        for (const asset of assets) {
+            asset.info.then(info => {
+                assetSelectionEl.addOption(asset.hash, info.ticker,(value)=>{
+                    ASSET_HASH=value;
+                    ASSET_INFO=info;
+                    updateInvoice();                
+                });
+            });
+        }
+    });
+
+    //  const assetSelectoEl=Html.$select(assetCntEl,".assetSelect");
+    const amountCntEl = Html.$hlist(inputsEl, "#amountCnt", ["left"]);
+    Html.$text(amountCntEl,".label").setValue("Request amount: ");
+    const amountInputEl=Html.$inputNumber(amountCntEl,".amountInput");
+    amountInputEl.setPlaceHolder("0.00");
+    amountInputEl.setAction((value)=>{
+        INPUT_AMOUNT=value;        
+        updateInvoice();
+    });
+
+    const currencySelector=Html.$inputSelect(amountCntEl,".currencySelect");
+    currencySelector.setPreferredValues([ASSET_HASH,"L-BTC","USD"]);
+
+    lq.getAvailableCurrencies().then((assets)=>{
+        for(const asset of assets){
+            asset.info.then(info=>{
+                currencySelector.addOption(asset.hash, info.ticker,(value)=>{
+                    INPUT_CURRENCY=value;
+                    updateInvoice();                
+                });
+            });
+        }
+    });
+
+    const infoEl=Html.$vlist(inputsEl,"#conversionCnt",["left"]);
+    Html.$text(infoEl, ".network").setValue("Network: " + lq.getNetworkName());
+
+    
+    updateInvoice();
+    
+    
+
+}
+
+async function refreshUI(walletEl,lq) {
+    STAGES["home"](walletEl,lq);
+    
 
 }
 
 
 async function main() {
+   
+
     // import('./LiquidProvider.js').then(async ({ default: LiquidProvider }) => {
         const lq = new LiquidProvider();
+    const walletEl = document.body.querySelector("liquidWallet");
+    if (!walletEl) alert("No wallet element found")
+    const containerEl = document.createElement("div");
+    containerEl.id = "container";
+    walletEl.appendChild(containerEl);
+
         lq.addRefreshCallback(()=>{
-        refreshUI(lq);
+        refreshUI(containerEl,lq);
         });   
     await lq.start();
+    renderHeader(walletEl, lq);
+
+   
 
         window.lq = lq;
     // });
