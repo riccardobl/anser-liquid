@@ -164,21 +164,64 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
 
         txHashEl.setValue(tx.tx_hash.substr(0,16)+"...");
 
-        lq.getTxInfo(tx,true,true).then((txInfo)=>{
-            txInfo.isIncoming().then(res=>{
-                if(typeof res!="undefined" ){
-                    if(res){
-                        txDirectionEl.setValue("arrow_downward");
-                        txDirectionEl.classList.add("incoming");
-                    }else{
-                        txDirectionEl.setValue("arrow_upward");
-                        txDirectionEl.classList.add("outgoing");
-                    }
-                }else{
-                    txDirectionEl.setValue("receipt_log");
-                    txDirectionEl.classList.add("unknown");
+        lq.getTxInfo(tx.tx_hash,true,true).then((txInfo)=>{
+            if (!txInfo.valid){
+                txDirectionEl.setValue("receipt_log");
+            }else{
+            
+                if (txInfo.isIncoming) {
+                    // if(typeof res!="undefined" ){
+                    //     if(res){
+                    txDirectionEl.setValue("arrow_downward");
+                    txDirectionEl.classList.add("incoming");
+                    txInfo.inAssetIcon.then((icon) => {
+                        txAssetIconEl.setSrc(icon);
+                    });
+
+                    txInfo.inAssetInfo.then(info => {
+                        if (filter) {
+                            if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name) && !filter(tx.tx_hash, true)) {
+                                txElCnt.remove();
+                                return;
+                            }
+                        }
+
+                        txSymbolEl.setValue(info.ticker);
+                    });
+
+                    lq.v(txInfo.inAmount, txInfo.inAsset).human().then((value) => {
+                        // lq.convertAsString(txInfo.outAmount, txInfo.outAsset, txInfo.outAsset).then((value)=>{
+                        txAmountEl.setValue(value);
+                    });
+                } else {
+                    txDirectionEl.setValue("arrow_upward");
+                    txDirectionEl.classList.add("outgoing");
+                    txInfo.outAssetIcon.then((icon) => {
+                        txAssetIconEl.setSrc(icon);
+                    });
+
+                    txInfo.outAssetInfo.then(info => {
+                        if (filter) {
+                            if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name) && !filter(tx.tx_hash, true)) {
+                                txElCnt.remove();
+                                return;
+                            }
+                        }
+
+                        txSymbolEl.setValue(info.ticker);
+                    });
+
+                    lq.v(txInfo.outAmount,txInfo.outAsset).human().then((value) => {
+                        // lq.convertAsString(txInfo.outAmount, txInfo.outAsset, txInfo.outAsset).then((value)=>{
+                        txAmountEl.setValue(value);
+                    });
                 }
-            });
+            }
+            //     }else{
+            //         txDirectionEl.setValue("receipt_log");
+            //         txDirectionEl.classList.add("unknown");
+            //     }
+            // });
 
             txInfo.blockTime().then((timestamp)=>{
                 const  date=new Date(timestamp*1000);
@@ -199,29 +242,7 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
             //     txAmountAltSecondaryEl.setValue("-");
             // }
 
-            if(txInfo.outAsset){
-                txInfo.outAssetIcon.then((icon)=>{
-                    txAssetIconEl.setSrc(icon);
-                });
-
-                txInfo.outAssetInfo.then(info=>{
-                    if (filter) {
-                        if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name)&&!filter(tx.tx_hash,true)) {
-                            txElCnt.remove();
-                            return;
-                        }
-                    }
-                  
-                    txSymbolEl.setValue(info.ticker);
-                });
-
-                lq.v(txInfo).human().then((value)=>{
-                // lq.convertAsString(txInfo.outAmount, txInfo.outAsset, txInfo.outAsset).then((value)=>{
-                    txAmountEl.setValue(value);
-                });
-                    
-            }
-            
+           
             console.log("TxInfo",txInfo);
         });
         

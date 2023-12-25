@@ -7,8 +7,10 @@ import AssetProvider from './AssetProvider.js';
 import VByteEstimator from './VByteEstimator.js';
 import Constants from './Constants.js';
 import SideSwap from './SideSwap.js';
-import Cache from './Cache.js';
 import Esplora from './Esplora.js';
+import { SLIP77Factory } from 'slip77';
+import BrowserStore from './storage/BrowserStore.js';
+
 export default class LiquidProvider {
     constructor(electrumWs, esploraHttps, sideswapWs) {
         this.electrumWs = electrumWs;
@@ -52,6 +54,7 @@ export default class LiquidProvider {
         await this.check();
         console.log("Reload");
 
+
         // deinitialize electrum client
         // if (this.elc) {
         //     this.elc.close();
@@ -67,6 +70,10 @@ export default class LiquidProvider {
         
         // detect network for new account
         this.networkName = (await window.liquid.getAddress()).address.startsWith("tlq") ? "testnet" : "liquid";
+
+        this.cache=await BrowserStore.best("cache:"+this.networkName+(await this.getAddress()).address);
+
+        this.store = await BrowserStore.best("store:"+this.networkName+(await this.getAddress()).address,0);
 
         // load electrum and esplora endpoints
         // if they are provided in the constructor: use them
@@ -118,12 +125,13 @@ export default class LiquidProvider {
         this.baseAsset = this.network.assetHash;
 
         // load exchange
-        this.sideSwap = new SideSwap(sideswapWs);   
+        this.sideSwap = new SideSwap(this.cache, this.store,sideswapWs);   
         
-        this.esplora=new Esplora(esploraHttps);
+        this.esplora = new Esplora(this.cache, this.store,esploraHttps);
 
         // initialize asset registry
         this.assetProvider = new AssetProvider(
+            this.cache,this.store,
             this.sideSwap,
             this.esplora,
             this.baseAsset,
@@ -211,6 +219,11 @@ export default class LiquidProvider {
                 Alert.fatal(err);
                 return false;
             }
+        }
+        if(!this.zkpLib){
+            this.zkpLib = await ZkpLib();
+            this.zkpLibValidator = new Liquid.ZKPValidator(this.zkpLib);
+            this.slip77=new SLIP77Factory(this.zkpLib.ecc);
         }
     }
 
@@ -329,12 +342,19 @@ export default class LiquidProvider {
         return Liquid.crypto.sha256(script).reverse().toString('hex');
     }
 
+
+    async getTxHeight(tx_hash){
+        await this.check();
+        const height=await this.store.get("tx:"+tx_hash+":height");
+        return height?height:-1;
+    }
+
     async getHistory(){
         await this.check();
         const addr=await this.getAddress();
         const scripthash = this.getElectrumScriptHash(addr.outputScript);
 
-        const transactions =await Cache.get("hs:"+scripthash, false,async ()=>{
+        const transactions =await this.cache.get("hs:"+scripthash, false,async ()=>{
             const history=[];
             history.push(...await this.elcAction('blockchain.scripthash.get_history', [scripthash]));
             // history.push(...await this.elcAction('blockchain.scripthash.get_mempool', scripthash));
@@ -347,7 +367,9 @@ export default class LiquidProvider {
                     height: tx.height,
                     confirmed: tx.height > 0
                 });
+                
             }
+            await Promise.all(transactions.map(tx=>this.store.set("tx:"+tx.tx_hash+":height",tx.height)));
             return [transactions,60*1000];
             
         });
@@ -423,7 +445,7 @@ export default class LiquidProvider {
                     amount: changeAmount,
                     script: Liquid.address.toOutputScript(address.address),
                     blinderIndex: 0,
-                    blindingPublicKey: address.publicKey,
+                    blindingPublicKey: Liquid.address.fromConfidential(address.address).blindingKey
                 };
                 console.log("Change output", changeOutput)
                 outputs.push(changeOutput);
@@ -461,7 +483,7 @@ export default class LiquidProvider {
                         amount: changeFee,
                         script: Liquid.address.toOutputScript(address.address),
                         blinderIndex: 0,
-                        blindingPublicKey: address.publicKey,
+                        blindingPublicKey: Liquid.address.fromConfidential(address.address).blindingKey,
                     };
                     console.log("Change output", changeFeeOutput)
                     outputs.push(changeFeeOutput);
@@ -590,7 +612,6 @@ export default class LiquidProvider {
 
         // Prepare zkp
         const ownedInputs = inputs.map((input, i) => {
-            console.log(input);
             return {
                 index: i,
                 value: input.ldata.value,
@@ -600,27 +621,57 @@ export default class LiquidProvider {
             }
         });
 
-        const zkpLib=await this.getZkp();
+
+        const outputIndexes = [];
+        for (const [index, output] of pset.outputs.entries()) {
+            if (output.blindingPubkey && output.blinderIndex) {
+                outputIndexes.push(index);
+            }
+        }
+   
+
+        const inputIndexes = ownedInputs.map((input) => input.index);
+        let isLast = true;
+        for (const out of pset.outputs) {
+            if (out.isFullyBlinded()) continue;
+            if (out.needsBlinding() && out.blinderIndex) {
+                if (!inputIndexes.includes(out.blinderIndex)) {
+                    isLast = false;
+                    break;
+                }
+            }
+        }
+
+
+        const zkpLib = this.zkpLib;
+        const zkpLibValidator = this.zkpLibValidator;
+     
         const zkpGenerator = new Liquid.ZKPGenerator(
             zkpLib,
             Liquid.ZKPGenerator.WithOwnedInputs(ownedInputs),
         );
-
+        
         const outputBlindingArgs = zkpGenerator.blindOutputs(
             pset,
             Liquid.Pset.ECCKeysGenerator(zkpLib.ecc),
+            outputIndexes
         );
 
-        // blind
+        
+
         const blinder = new Liquid.Blinder(
             pset,
             ownedInputs,
-            zkpLib.validator,
+            zkpLibValidator,
             zkpGenerator
         );
 
-        blinder.blindLast({ outputBlindingArgs });
-
+        // blinder.blindLast({ outputBlindingArgs });
+        if (isLast) {
+            blinder.blindLast({ outputBlindingArgs });
+        } else {
+            blinder.blindNonLast({ outputBlindingArgs });
+        }
 
         pset=blinder.pset;
         psetUpdater =new Liquid.Updater(pset);
@@ -662,75 +713,141 @@ export default class LiquidProvider {
 
 
      
-
-
-    async getTxInfo(tx, resolveOutputs =true, resolveInputs=true){
-        await this.check();
-        let tx_hash = tx.tx_hash;
-        if(!tx_hash) throw new Error("Invalid tx");
-
-
-        let txHex =await Cache.get("txhex:"+tx_hash);
-        if(!txHex){
-            txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
+    async getTxBuffer(tx_hash){
+        let txBuffer = await this.store.get("txbf:" + tx_hash);
+        if (!txBuffer) {
+            const txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
+            txBuffer = Buffer.from(txHex, 'hex');
         }
+
+        const height = await this.getTxHeight(tx_hash);
+        const confirmed=height>-1;
+
+        if (confirmed) {
+            await this.store.set("txbf:" + tx_hash, txBuffer);
+        } else {
+            await this.store.set("txbf:" + tx_hash, txBuffer, 60 * 1000);
+        }
+
+        return txBuffer;
+
+    }
+
+
+    async getTxInfo(tx_hash, resolveOutputs =true, resolveInputs=true){
+        await this.check();
+        // let tx_hash = tx.tx_hash;
+        // if(!tx_hash) throw new Error("Invalid tx");
+
+
         
-        const txData=Liquid.Transaction.fromHex(txHex);
+        const txBuffer=await this.getTxBuffer(tx_hash);
+        
+        const txData = Liquid.Transaction.fromBuffer(txBuffer);
 
         txData.tx_hash=tx_hash;
-        txData.height=tx.height;
-        txData.confirmed=tx.confirmed;
+        txData.height=await this.getTxHeight(tx_hash);
+        txData.confirmed = txData.height>-0;
 
         const addr = await this.getAddress();
 
-        if (resolveOutputs){
-            await Promise.all(txData.outs.map(out => this._resolveOutput(addr,out, txData)));
-        }
+        // if (resolveOutputs){
+        await Promise.all([
+            await Promise.all(txData.outs.map(out => this._resolveOutput(addr,out, txData))),
+            await Promise.all(txData.ins.map(inp => this._resolveInput(addr, inp, txData)))
+        ]);
 
-        for(const inTx of txData.ins){
-            const script = inTx.script;
-            
-            
-            if (script == addr.outputScript) {
-                txData.isOutgoing = true;
-        
-            }
-
-        }
+        // }
 
 
-        // guess output info
-        txData.outAsset=this.baseAsset;
-        for(const out of txData.outs){
-            if (!out.ldata) continue;
-            if(out.ldata.assetHash!==this.baseAsset){
-                txData.outAsset =out.ldata.assetHash;
+        // check if has an owned input
+        let ownedInput=false;
+        for(const inp of txData.ins){
+            if(inp.ldata&&inp.owner.equals(addr.outputScript)){
+                ownedInput=true;
                 break;
             }
         }
-        
-        txData.outAmount=0;
-        for(const out of txData.outs){
-            
-            if (!out.ldata) continue;
-            console.log("TxInfo out",out);
-            if(out.ldata.assetHash===txData.outAsset){
-                txData.outAmount += out.ldata.value;
-            }
+
+        if (ownedInput){
+            txData.isOutgoing = true;
+            txData.isIncoming = false;
+        }else{
+            txData.isOutgoing = false;
+            txData.isIncoming = true;
         }
 
-        // txData.outAmount=this.assetProvider.intToFloat(txData.outAmount_int, txData.outAsset);
         
+        if(txData.isOutgoing){
+            const outXasset={};
+            const changeXasset={};
+            for (const out of txData.outs) {
+                if(out.fee){
+                    if(!changeXasset[out.fee.assetHash]) changeXasset[out.fee.assetHash]=0;
+                    changeXasset[out.fee.assetHash]+=out.fee.value;
+                    continue;
+                }
+                if (!out.ldata) continue;
+                if (out.owner.equals(addr.outputScript)){
+                    const hash=out.ldata.assetHash;
+                    if(!changeXasset[hash]) changeXasset[hash]=0;
+                    changeXasset[hash]+=out.ldata.value;
+                }
+            }
+
+            for(const inp of txData.ins){
+                if (!inp.ldata) continue;
+                if (inp.owner.equals(addr.outputScript)) {
+                    const hash = inp.ldata.assetHash;
+                    if (!outXasset[hash]) outXasset[hash] = 0;
+                    outXasset[hash] += inp.ldata.value;
+                }
+            }
+
+            for(let k in outXasset){
+                if(!outXasset[k]) outXasset[k]=0;
+                else{
+                    if (!changeXasset[k]) changeXasset[k] = 0;
+                    outXasset[k]-=changeXasset[k];
+                }
+            }
+
+            const out=Object.entries(outXasset)[0];
+            txData.outAsset =out?out[0]:undefined;
+            txData.outAmount =out?out[1]:0;
+        }else{
+            const inXAsset={};
+            for(const out of txData.outs){
+                if (!out.ldata) continue;
+                if (out.owner.equals(addr.outputScript)) {
+                    const hash = out.ldata.assetHash;
+                    if (!inXAsset[hash]) inXAsset[hash] = 0;
+                    inXAsset[hash] += out.ldata.value;
+                }
+            }
+
+            const inp=Object.entries(inXAsset)[0];
+            txData.inAsset =inp?inp[0]:undefined;
+            txData.inAmount =inp?inp[1]:0;
+        }
+
+
+      
 
         if (txData.outAsset){
             txData.outAssetInfo = this.assetProvider.getAssetInfo(txData.outAsset);
             txData.outAssetIcon = this.assetProvider.getAssetIcon(txData.outAsset);
-            // txData.getOutValue=(currencyHash,floatingPoint=true,asString=false)=>{
-            //     return this.assetProvider.getPrice(txData.outAmount,txData.outAsset,currencyHash,floatingPoint,asString);
-            // }
         }
 
-       
+        if (txData.inAsset) {
+            txData.inAssetInfo = this.assetProvider.getAssetInfo(txData.inAsset);
+            txData.inAssetIcon = this.assetProvider.getAssetIcon(txData.inAsset);
+        }
+
+        txData.valid=!!(txData.inAsset||txData.outAsset);
+        console.log("Resolved?",txData);
+        console.log("Interpret i/o", txData);
+
        
         txData.extraInfo=this.esplora.getTxInfo(tx_hash);
         txData.blockTime=async ()=>{
@@ -738,64 +855,82 @@ export default class LiquidProvider {
             return (await txData.extraInfo).status.block_time;
         };
        
-        txData.isIncoming = async ()=>{
-             
-            return undefined;
-        }
-
+     
        
-        
-        if(txData.confirmed){
-            await Cache.set("txhex:"+tx_hash,txHex);
-        }
     
-
         return txData;
     }
 
 
-    isConfidentialOutput(tx) {
-        const { rangeProof, surjectionProof, nonce } = tx;
-        function bufferNotEmptyOrNull(buffer) {
-            return buffer != null && buffer.length > 0;
+    async _resolveInput(address, input, txData){
+        console.log("Input ",input);
+        const scriptBuffer0=input.script;
+        const scriptBuffer2=address.outputScript;
+        try{
+            // if (scriptBuffer0.equals(scriptBuffer2)) { // owned input
+                const originTxId = input.hash.reverse().toString('hex');
+                const originOutId=input.index;
+                const originBuffer=await this.getTxBuffer(originTxId);
+                const originTx= Liquid.Transaction.fromBuffer(originBuffer);
+                const originOut = originTx.outs[originOutId];
+                await this._resolveOutput(address, originOut, originTx);
+                input.ldata = originOut.ldata;
+                input.owner=originOut.owner;
+                input.valid=true;
+            console.log("Resolved Input", input, txData);
+                // const revealedInput = this._resolveOutput()
+            // }
+        }catch(e){
+            input.valid=false;
+            if(!input.debug) input.debug=[];
+            input.debug.push(e);
+            console.log("Input discarded", input, e, txData);
         }
 
-        return (
-            bufferNotEmptyOrNull(rangeProof) &&
-            bufferNotEmptyOrNull(surjectionProof) &&
-            nonce !== Buffer.from('0x00', 'hex')
-        );
     }
-
-
-    async getZkp(){
-        if(!this.zkpLib){
-            this.zkpLib = await ZkpLib();
-        }
-        if (!this.zkpLib.validator){
-            this.zkpLib.validator = new Liquid.ZKPValidator(this.zkpLib);
-        }
-        return this.zkpLib;
-    }
-
+ 
     async _resolveOutput(address,out,txData){
         try{
+            if(out.ldata)   return out;
             out.valid = true;
             if (out.script.length === 0) { // fees
+                out.fee={
+                    asset: Liquid.AssetHash.fromBytes(out.asset).bytesWithoutPrefix,
+                    value: Liquid.confidential.confidentialValueToSatoshi(out.value),
+                    assetHash:Liquid.AssetHash.fromBytes(out.asset).hex
+                }
+                out.owner=Buffer.alloc(0);
                 throw new Error("Fee output");
             }
 
             
+            function bufferNotEmptyOrNull(buffer) {
+                return buffer != null && buffer.length > 0;
+            }
+
+            function isConfidentialOutput({ rangeProof, surjectionProof, nonce }) {
+                const emptyNonce = Buffer.from('0x00', 'hex');
+                return (
+                    bufferNotEmptyOrNull(rangeProof) &&
+                    bufferNotEmptyOrNull(surjectionProof) &&
+                    nonce !== emptyNonce
+                );
+            }
+            out.owner = out.script;
 
             // const elementsValue = Liquid.ElementsValue.fromBytes(out.value);
-            const isConfidential = this.isConfidentialOutput(out);
+            const isConfidential = isConfidentialOutput(out);
             if (!isConfidential) {
+                
                 out.ldata = {
                     assetBlindingFactor: Buffer.alloc(32).fill(0),
                     valueBlindingFactor: Buffer.alloc(32).fill(0),
                     asset: Liquid.AssetHash.fromBytes(out.asset).bytesWithoutPrefix,
                     // value: parseInt(elementsValue.number.toString(), 10),
                     value: Liquid.confidential.confidentialValueToSatoshi(out.value)
+                    // value: Liquid.ElementsValue.fromBytes(
+                    //     out.value
+                    // ).number.toString(),
                 }
             } else {
                 // const slip77node = this.slip77.fromMasterBlindingKey(address.blindingPrivateKey);
@@ -806,22 +941,25 @@ export default class LiquidProvider {
                 }
 
                 // if (out.rangeProof && out.rangeProof.length !== 0) {
-                    let cnfd;
-                    if(!this.cnfd){
-                        const zkpLib = await this.getZkp();
-                        this.cnfd = new Liquid.confidential.Confidential(zkpLib);
-                        cnfd = this.cnfd;
-                    }else{
-                        cnfd=this.cnfd;
-                    }
+
+                const zkpLib = this.zkpLib;
+                const masterKey=this.slip77.fromMasterBlindingKey(address.blindingPrivateKey);
+                const zkpGenerator = new Liquid.ZKPGenerator(
+                    zkpLib,
+                    Liquid.ZKPGenerator.WithBlindingKeysOfInputs([blindPrivKey]),
+                );
+                // const cnfd = new Liquid.confidential.Confidential(zkpLib);
+
+                  
 
                    
-                    out.ldata = cnfd.unblindOutputWithKey(
-                        out,
-                        blindPrivKey
-                    );
+                //     out.ldata = cnfd.unblindOutputWithKey(
+                //         out,
+                //         blindPrivKey
+                //     );
+                out.ldata = await zkpGenerator.unblindUtxo(out);
 
-                    out.ldata.value = parseInt(out.ldata.value.toString(), 10);
+                out.ldata.value = parseInt(out.ldata.value.toString(), 10);
                 // }else{
                 //     out.ldata = {
                 //         assetBlindingFactor: Buffer.alloc(32).fill(0),
@@ -856,9 +994,9 @@ export default class LiquidProvider {
         let outputs=[];
         const transactions={};
         console.log("Raw utxo", utxos);
-        for(const utxo of utxos){          
-            const txid=utxo.tx_hash;
-            if(!transactions[txid]) transactions[txid]=await this.getTxInfo(utxo,false,false);            
+        for(const utxo of utxos){       
+            const txid=utxo.tx_hash;   
+            if(!transactions[txid]) transactions[txid]=await this.getTxInfo(utxo.tx_hash,false,false);            
             const transaction=transactions[txid];
             const out=transaction.outs[utxo.tx_pos];
             if (out.script.length === 0) continue; // fee out

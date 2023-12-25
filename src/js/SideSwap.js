@@ -1,12 +1,13 @@
-import Cache from "./Cache.js";
-export default class Exchange {
-    constructor( sideSwapWs) {
+export default class SideSwap {
+    constructor(cache,store,sideSwapWs) {
         this.id = 0;
         this.pending = {};
         this.assetSubscriptions = {};
         this.trackedAssets=[];
         this.sideSwapWs = sideSwapWs;
-           }
+        this.cache= cache;
+        this.store=store;
+    }
 
     async subscribeToAssetPriceUpdate(assetHash, callback) {
         if(!this.assetSubscriptions[assetHash])this.assetSubscriptions[assetHash]=[];
@@ -22,7 +23,7 @@ export default class Exchange {
     }
 
     async getAllAssets(){
-        const assets=await Cache.get("sw:assets",false,async ()=>{
+        const assets=await this.cache.get("sw:assets",false,async ()=>{
             const assets={};
             const availableAssets = (await this.query("assets", { embedded_icons: true })).assets;
             for (const asset of availableAssets) {    

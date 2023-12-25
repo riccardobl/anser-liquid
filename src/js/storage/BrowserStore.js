@@ -1,8 +1,19 @@
 
 export default class BrowserStore {
+
+    static async best(prefix = "", limit = 100 * 1024 * 1024){
+        const IDBStore = await import("./IDBStore.js").then((module)=>module.default);
+        const LocalStore = await import("./LocalStore.js").then((module)=>module.default);
+        const MemStore = await import("./MemStore.js").then((module)=>module.default);
+        if (IDBStore.isSupported()) return new IDBStore(prefix,limit);
+        if(LocalStore.isSupported())return new LocalStore(prefix,limit);
+        return new MemStore(prefix,limit);
+    }
+
     // default limit = 100 mb
-    constructor(limit=100*1024*1024) {
+    constructor(prefix,limit) {
         this.limit = limit;
+        this.prefix=prefix;
     }
 
     async _init() {
@@ -78,9 +89,11 @@ export default class BrowserStore {
             this.expirationTable.delete(key);
             this.sizeTable.delete(key);
         } else {
-            const entrySize = this._calcSize(key, value);
-            while ((await this.getUsedMemory()) + entrySize > this.limit) {
-                await this.deleteOldestAccess();
+            const entrySize = await this._calcSize(key, value);
+            if (this.limit){
+                while ((await this.getUsedMemory()) + entrySize > this.limit) {
+                    await this.deleteOldestAccess();
+                }
             }
             await this._store(key, value);
             // localStorage.setItem(key, JSON.stringify(value));

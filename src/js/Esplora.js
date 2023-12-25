@@ -1,10 +1,11 @@
 import Constants from "./Constants.js";
-import Cache from "./Cache.js";
 import fetch from "./utils/fetch-timeout.js";
 
 export default class Esplora{
-    constructor(esploraHttps){
+    constructor(cache,store,esploraHttps){
         this.esploraHttps = esploraHttps;
+        this.cache=cache;
+        this.store=store;
     }
 
     async query(action, params = {}, method="GET") {

@@ -1,9 +1,10 @@
 
 import Constants from "./Constants.js";
-import Cache from "./Cache.js";
 import fetch from "./utils/fetch-timeout.js";
 export default class AssetProvider {
     constructor(
+        cache,
+        store,
         sideSwap,
         esplora, 
         baseAssetId, 
@@ -15,6 +16,8 @@ export default class AssetProvider {
         staticIconsUrl="/static/icons.json",
         specialSymbolsUrl="/static/specialSymbols.json"
     ){
+        this.cache=cache;
+        this.store=store;
         this.sideSwap=sideSwap;
         this.esplora=esplora;
         this.baseAssetId=baseAssetId;
@@ -37,7 +40,7 @@ export default class AssetProvider {
             await new Promise(res=>setTimeout(res,100));
         }
         const fiatTickerUrlDescriber=fiatTicker.toLowerCase().replace(" ","_");
-        let fiatData = await Cache.get("fiat:" + fiatTickerUrlDescriber);
+        let fiatData = await this.cache.get("fiat:" + fiatTickerUrlDescriber);
         if (!fiatData||Date.now()-fiatData.timestamp>this.fiatTrackerTimeout) {
             try{
                 this.fiatSyncing=true;
@@ -47,7 +50,7 @@ export default class AssetProvider {
                     timestamp,
                     data
                 }
-                await Cache.set("fiat:" + fiatTickerUrlDescriber, fiatData);
+                await this.cache.set("fiat:" + fiatTickerUrlDescriber, fiatData);
                 this.fiatSyncing=false;
             }catch(e){
                 console.log(e);
@@ -77,14 +80,14 @@ export default class AssetProvider {
             // restore tracked assets
             this.ready = true;
 
-            const trackedAssets=await Cache.get("trackedAssets");
+            const trackedAssets=await this.store.get("trackedAssets");
             if(trackedAssets){
                 for(const asset of trackedAssets){
                     await this.track(asset,true);
                 }
             }
 
-            const trackedFiatAssets=await Cache.get("trackedFiatAssets");
+            const trackedFiatAssets=await this.store.get("trackedFiatAssets");
             if(trackedFiatAssets){
                 for(const asset of trackedFiatAssets){
                     await this.track(asset,true);
@@ -134,7 +137,7 @@ export default class AssetProvider {
         await this._init();
         let icon = this.staticIcons[assetId];
         if(!icon){
-            icon=await Cache.get("icon:"+assetId,true,async ()=>{
+            icon=await this.cache.get("icon:"+assetId,true,async ()=>{
                 const assets=await this.sideSwap.getAllAssets();
                 const asset=assets[assetId];
                 if (!asset) return undefined;
@@ -158,7 +161,7 @@ export default class AssetProvider {
         if(this._isFiat(assetHash)){
             if(this.trackedFiatAssets.indexOf(assetHash)<0){
                 this.trackedFiatAssets.push(assetHash);
-                await Cache.set("trackedFiatAssets", this.trackedFiatAssets);
+                await this.store.set("trackedFiatAssets", this.trackedFiatAssets);
             }
             return;
         }
@@ -166,12 +169,12 @@ export default class AssetProvider {
         if (this.trackedAssets.indexOf(assetHash) >= 0) return;
         
         this.trackedAssets.push(assetHash);
-        await Cache.set("trackedAssets", this.trackedAssets);
+        await this.store.set("trackedAssets", this.trackedAssets);
 
         let first = true;
         return new Promise((res, rej) => {
             const trackerCallback = async (price, baseAssetId) => {
-                await Cache.set("p:" + assetHash, price);
+                await this.cache.set("p:" + assetHash, price);
                 if (first) {
                     res(price);
                     first = false;
@@ -190,7 +193,7 @@ export default class AssetProvider {
         const index = this.trackedAssets.indexOf(assetHash);
         if (index < 0) return;
         this.trackedAssets.splice(index, 1);
-        await Cache.set("trackedAssets", this.trackedAssets);
+        await this.store.set("trackedAssets", this.trackedAssets);
         const trackerCallback=this.trackerCallbacks[assetHash];
         if(trackerCallback){
             this.sideSwap.unsubscribeFromAssetPriceUpdate(assetHash, trackerCallback);
@@ -264,7 +267,7 @@ export default class AssetProvider {
             if(this._isFiat(asset)){
                 fl = 1./await this._getFiatPrice(asset);
             }else{
-                fl= 1./await Cache.get("p:" + asset);
+                fl= 1./await this.cache.get("p:" + asset);
             }
             if (fl < 0 || fl==Infinity || fl==NaN) return 0;
             return fl*10**this.basePrecision;
@@ -314,7 +317,7 @@ export default class AssetProvider {
                 hash: assetId
             }
         }
-        let info=await Cache.get("as:"+assetId);
+        let info=await this.cache.get("as:"+assetId);
         if(!info){
             
             const response = await this.esplora.getAssetInfo(assetId);
@@ -324,7 +327,7 @@ export default class AssetProvider {
             console.log("Esplora",response);
             info = { precision, ticker, name, hash:assetId};
          
-            await Cache.set("as:"+assetId,info);
+            await this.cache.set("as:"+assetId,info);
         }
         return info;
     }

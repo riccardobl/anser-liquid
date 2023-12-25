@@ -1,7 +1,11 @@
 import BrowserStore from "./BrowserStore.js";
 export default class LocalStore extends BrowserStore {
-    constructor(limit) {
-        super(limit);     
+    static isSupported() {
+        return 'localStorage' in window;
+    }
+
+    constructor(prefix,limit) {
+        super(prefix,limit);     
     }
 
     async _serialize(value){
@@ -24,9 +28,13 @@ export default class LocalStore extends BrowserStore {
             value = JSON.stringify(Array.from(value.entries()));
             valueType = "Map"
         }
-        else if (valueType === "object" && value instanceof ArrayBuffer) {
-            value = JSON.stringify(new Uint8Array(value));
-            valueType = "ArrayBuffer"
+        else if (valueType === "object" && value instanceof Buffer) {
+            value = value.toString("hex");
+            const isArrayBuffer = value instanceof ArrayBuffer;
+            valueType = isArrayBuffer?"ArrayBuffer":"Buffer";
+        }else if (valueType === "object" && value instanceof Uint8Array) {
+            value = JSON.stringify(value);
+            valueType = "Uint8Array";
         }
         else value = JSON.stringify(value);
         return [value,valueType];
@@ -57,7 +65,11 @@ export default class LocalStore extends BrowserStore {
             }
         }
         else if (valueType === "Map") value = new Map(JSON.parse(value));
-        else if (valueType === "ArrayBuffer") value = JSON.parse(value).buffer;
+        else if (valueType === "ArrayBuffer") {
+            value = Buffer.from(value,"hex");
+            value = new Uint8Array(value).buffer;
+        }else if(valueType === "Buffer") value = Buffer.from(value,"hex");
+        else if (valueType === "Uint8Array") value = new Uint8Array(JSON.parse(value));
         else value = JSON.parse(value);
         return value;
     }
@@ -67,7 +79,7 @@ export default class LocalStore extends BrowserStore {
         if(!key)throw new Error("Key is required");
         if(!this.typeTable){
             this.typeTable=new Map();
-            const typeTable=localStorage.getItem("s:typeTable");
+            const typeTable = localStorage.getItem(`${this.prefix}:s:typeTable`);
             if(typeTable){
                 const entries=JSON.parse(typeTable);
                 for(const [key,value] of entries){
@@ -75,14 +87,21 @@ export default class LocalStore extends BrowserStore {
                 }
             }
         }
-        let valueType;
-        [value,valueType]=await this._serialize(value);
-        if (valueType) {
-            this.typeTable.set(key, valueType);
-            localStorage.setItem("s:typeTable", JSON.stringify(Array.from(this.typeTable.entries())));
+        if (value instanceof Promise || key instanceof Promise) {
+            console.trace();
+            throw new Error("Promise not allowed in db");
         }
 
-        localStorage.setItem(key, value);
+        let valueType;
+        [value,valueType]=await this._serialize(value);
+        
+
+        if (valueType) {
+            this.typeTable.set(key, valueType);
+            localStorage.setItem(`${this.prefix}:s:typeTable`, JSON.stringify(Array.from(this.typeTable.entries())));
+        }
+
+        localStorage.setItem(`${this.prefix}:${key}`, value);
     }
 
     async _retrieve(key,asDataUrl=false){
@@ -90,7 +109,7 @@ export default class LocalStore extends BrowserStore {
 
         if(!this.typeTable){
             this.typeTable=new Map();
-            const typeTable=localStorage.getItem("s:typeTable");
+            const typeTable = localStorage.getItem(`${this.prefix}:s:typeTable`);
             if(typeTable){
                 const entries=JSON.parse(typeTable);
                 for(const [key,value] of entries){
@@ -98,7 +117,7 @@ export default class LocalStore extends BrowserStore {
                 }
             }
         }
-        let value=localStorage.getItem(key);
+        let value = localStorage.getItem(`${this.prefix}:${key}`);
         if(!value)return value;
         const valueType = this.typeTable.get(key);
 
@@ -111,7 +130,7 @@ export default class LocalStore extends BrowserStore {
         if (!key) throw new Error("Key is required");
 
         this.typeTable.delete(key);
-        localStorage.removeItem(key);
+        localStorage.removeItem(`${this.prefix}:${key}`);
 
     }
 
