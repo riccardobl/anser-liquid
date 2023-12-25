@@ -1,7 +1,7 @@
 import BrowserStore from "./BrowserStore.js";
 export default class IDBStore extends BrowserStore {
     static isSupported() {
-        return false&&'indexedDB' in window;
+        return 'indexedDB' in window;
     }
     constructor(prefix, limit) {
         super(prefix, limit);
@@ -38,7 +38,12 @@ export default class IDBStore extends BrowserStore {
         const store = transaction.objectStore('store');
         console.log("putting", { value, valueType }, key   )
         store.put({ value, valueType }, key);
-        await transaction.complete;
+        
+
+        await new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
     }
 
     async _retrieve(key, asDataUrl = false) {
@@ -47,7 +52,12 @@ export default class IDBStore extends BrowserStore {
         const db = await this.dbPromise;
         const transaction = db.transaction('store');
         const store = transaction.objectStore('store');
-        const { value, valueType } = await store.get(key) || {};
+        const request = store.get(key);
+        const result = await new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = reject;
+        });
+        const { value, valueType } = result || {};
 
         if (!value) return undefined;
 
@@ -61,8 +71,12 @@ export default class IDBStore extends BrowserStore {
         const transaction = db.transaction('store', 'readwrite');
         const store = transaction.objectStore('store');
         store.delete(key);
-        await transaction.complete;
+        await new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
     }
+
 
     async _serialize(value) {
         let valueType = typeof value;
