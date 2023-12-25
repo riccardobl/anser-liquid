@@ -1,13 +1,21 @@
 
+import Constants from "../Constants.js";
 export default class BrowserStore {
 
     static async best(prefix = "", limit = 100 * 1024 * 1024){
-        const IDBStore = await import("./IDBStore.js").then((module)=>module.default);
-        const LocalStore = await import("./LocalStore.js").then((module)=>module.default);
+        for (const storageMethod of Constants.STORAGE_METHODS){
+            try{
+                const StorageMethod = await import("./"+storageMethod+".js").then((module)=>module.default);
+                if (StorageMethod.isSupported()){
+                    return new StorageMethod(prefix,limit);
+                }
+            }catch(e){
+                console.error(e);
+            }
+        }
+        console.error("No storage methods available");
         const MemStore = await import("./MemStore.js").then((module)=>module.default);
-        if (IDBStore.isSupported()) return new IDBStore(prefix,limit);
-        if(LocalStore.isSupported())return new LocalStore(prefix,limit);
-        return new MemStore(prefix,limit);
+        return new MemStore(prefix,limit);        
     }
 
     // default limit = 100 mb
@@ -28,6 +36,7 @@ export default class BrowserStore {
             this.starting = true;
 
             this.accessTable = await this._retrieve("s:accessTable");
+            
             this.expirationTable = await this._retrieve("s:expirationTable");
             this.sizeTable = await this._retrieve("s:sizeTable");
             if (!this.accessTable) {
@@ -39,10 +48,10 @@ export default class BrowserStore {
             if (!this.sizeTable) {
                 this.sizeTable = new Map();
             }
-
             this.ready = true;
             this.starting = false;
         } catch (e) {
+            alert(e);
             console.error(e);
         } finally {
             this.ready = true;
@@ -81,8 +90,14 @@ export default class BrowserStore {
     }
 
     async set(key, value, expiration = 0) {
-        if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
         await this._init();
+
+        if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
+        if(!value){
+            console.log("Setting "+key+" to null")
+            console.trace();
+        }
+
         if (!value) {
             await this._delete(key);
             this.accessTable.delete(key);
@@ -113,8 +128,10 @@ export default class BrowserStore {
 
 
     async get(key, asDataUrl = false, refreshCallback = undefined, waitForRefresh=undefined) {
-        if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
         await this._init();
+
+        if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
+
         let value = await this._retrieve(key, asDataUrl);
 
         if(value){
@@ -158,6 +175,7 @@ export default class BrowserStore {
         let oldestKey = null;
         let oldestAccess = Infinity;
         for (let [key, access] of this.accessTable) {
+            if(key.startsWith("s:"))continue;
             if (access < oldestAccess) {
                 oldestAccess = access;
                 oldestKey = key;

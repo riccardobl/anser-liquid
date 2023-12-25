@@ -8,12 +8,19 @@ export default class LocalStore extends BrowserStore {
         super(prefix,limit);     
     }
 
-    async _serialize(value){
+
+   
+
+    async _serialize(value) {
         let valueType = typeof value;
-        if (valueType === "string") value = value;
-        else if (valueType === "number") value = value.toString();
-        else if (valueType === "boolean") value = value.toString();
-        else if (valueType === "object" && value instanceof Blob) {
+        if (value === undefined || value === null) {
+            value = "";
+            valueType = "undefined";
+        } else if (value instanceof Map) {
+            value = Array.from(value.entries());
+            value=JSON.stringify(value);
+            valueType = "Map";
+        } else if (value instanceof Blob) {
             const blobType = value.type;
             const reader = new FileReader();
             reader.readAsDataURL(value);
@@ -21,34 +28,48 @@ export default class LocalStore extends BrowserStore {
                 reader.onloadend = () => resolve(reader.result);
                 reader.onerror = reject;
             });
-            valueType="Blob";
+            valueType = "Blob";
             value = JSON.stringify({ blobType, blobData });
-        }
-        else if (valueType === "object" && value instanceof Map) {
-            value = JSON.stringify(Array.from(value.entries()));
-            valueType = "Map"
-        }
-        else if (valueType === "object" && value instanceof Buffer) {
-            value = value.toString("hex");
-            const isArrayBuffer = value instanceof ArrayBuffer;
-            valueType = isArrayBuffer?"ArrayBuffer":"Buffer";
-        }else if (valueType === "object" && value instanceof Uint8Array) {
-            value = JSON.stringify(value);
+        } else if (value instanceof Buffer) {
+            valueType = value instanceof ArrayBuffer ? "ArrayBuffer" : "Buffer";
+            value = value.toString('hex');
+        } else if (value instanceof Uint8Array) {
             valueType = "Uint8Array";
+            value = JSON.stringify(Array.from(value));
+
+        } else if (valueType == "object") {
+            if (Array.isArray(value)) {
+                const serializedValue = [];
+                for (let i = 0; i < value.length; i++) {
+                    serializedValue[i] = await this._serialize(value[i], true);
+                }
+                value = serializedValue;
+                valueType = "[]";
+            } else {
+                const serializedValue = {};
+                for (const [key, val] of Object.entries(value)) {
+                    serializedValue[key] = await this._serialize(val, true);
+                }
+                value = serializedValue;
+                valueType = "{}";
+            }
+            value = JSON.stringify(value);
         }
-        else value = JSON.stringify(value);
-        return [value,valueType];
+
+        return [value, valueType];
     }
 
-    async _deserialize(value, valueType, asDataUrl){
-        if (valueType === "string") value = value;
-        else if (valueType === "number") value = parseFloat(value);
-        else if (valueType === "boolean") value = value === "true";
-        else if (valueType === "Blob") {
+    async _deserialize(value, valueType, asDataUrl) {
+        if (valueType === "undefined") {
+            value = undefined;
+        } else if (valueType === "number") {
+            value = parseFloat(value);
+        } else if (valueType === "boolean") {
+            value = value === "true";
+        } else if (valueType === "Blob" && asDataUrl) {
             value = JSON.parse(value);
             const blobType = value.blobType;
             const blobData = value.blobData;
-
             // Convert base64 to Blob
             const byteCharacters = atob(blobData.split(',')[1]);
             const byteNumbers = new Array(byteCharacters.length);
@@ -63,16 +84,34 @@ export default class LocalStore extends BrowserStore {
             } else {
                 return blob;
             }
+        } else if (valueType === "Map") {
+            value = new Map(JSON.parse(value));
+        } else if (valueType === "ArrayBuffer") {
+            value = new Uint8Array(Buffer.from(value, 'hex')).buffer;
+        } else if (valueType === "Buffer") {
+            value = Buffer.from(value, 'hex');
+        } else if (valueType === "Uint8Array") {
+            value = new Uint8Array(JSON.parse(value));
+        } else if (valueType == "{}") {
+            value = JSON.parse(value);
+            const deserializedValue = {};
+            for (const [key, valType] of Object.entries(value)) {
+                const [val, type] = valType;
+                deserializedValue[key] = await this._deserialize(val, type, true);
+            }
+            value = deserializedValue;
+        } else if (valueType == "[]") {
+            value = JSON.parse(value);
+            const deserializedValue = [];
+            for (let i = 0; i < value.length; i++) {
+                const [val, type] = value[i];
+                deserializedValue[i] = await this._deserialize(val, type, true);
+            }
+            value = deserializedValue;
         }
-        else if (valueType === "Map") value = new Map(JSON.parse(value));
-        else if (valueType === "ArrayBuffer") {
-            value = Buffer.from(value,"hex");
-            value = new Uint8Array(value).buffer;
-        }else if(valueType === "Buffer") value = Buffer.from(value,"hex");
-        else if (valueType === "Uint8Array") value = new Uint8Array(JSON.parse(value));
-        else value = JSON.parse(value);
         return value;
     }
+
 
     async    _store(key,value){
         if(!value)return;

@@ -43,32 +43,14 @@ export default class MemStore extends BrowserStore {
 
     async _serialize(value) {
         let valueType = typeof value;
-        if (valueType === "object") {
-            if (value instanceof Map) {
-                // value = value;
-                valueType = "Map";
-            } else if (value instanceof Blob) {
-                valueType = "Blob";
-            } else if (value instanceof ArrayBuffer) {
-                valueType = "ArrayBuffer";
-            } else {
-                // value = value;
-            }
-        }
+        
         return [value, valueType];
     }
 
     async _deserialize(value, valueType, asDataUrl) {
-        if (valueType === "number") {
-            // value = parseFloat(value);
-        } else if (valueType === "boolean") {
-            // value = value === "true";
-        } else if (valueType === "Blob" && asDataUrl) {
+
+         if (valueType === "Blob" && asDataUrl) {
             value = URL.createObjectURL(value);
-        } else if (valueType === "Map") {
-            // value = new Map(value);
-        } else if (valueType !== "string" && valueType !== "number" && valueType !== "boolean" && !(value instanceof Blob) && !(value instanceof ArrayBuffer)) {
-            // value = value;
         }
         return value;
     }

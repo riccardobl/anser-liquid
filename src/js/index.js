@@ -122,7 +122,6 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
     const historyEl = Html.$vlist(parentEl, "#history", ["list"]);
         
     const history = (await lq.getHistory()).slice(page * limit, page * limit + limit);
-
     historyEl.initUpdate();
     for (const tx of history) {
         const id = "history" + (tx.tx_hash.substr(0, 8) + tx.tx_hash.substr(-8));
@@ -164,21 +163,21 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
 
         txHashEl.setValue(tx.tx_hash.substr(0,16)+"...");
 
-        lq.getTxInfo(tx.tx_hash,true,true).then((txInfo)=>{
-            if (!txInfo.valid){
+        lq.getTxInfo(tx.tx_hash,true,true).then((txData)=>{
+            if (!txData.info.valid){
                 txDirectionEl.setValue("receipt_log");
             }else{
             
-                if (txInfo.isIncoming) {
+                if (txData.info.isIncoming) {
                     // if(typeof res!="undefined" ){
                     //     if(res){
                     txDirectionEl.setValue("arrow_downward");
                     txDirectionEl.classList.add("incoming");
-                    txInfo.inAssetIcon.then((icon) => {
+                    txData.info.inAssetIcon.then((icon) => {
                         txAssetIconEl.setSrc(icon);
                     });
 
-                    txInfo.inAssetInfo.then(info => {
+                    txData.info.inAssetInfo.then(info => {
                         if (filter) {
                             if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name) && !filter(tx.tx_hash, true)) {
                                 txElCnt.remove();
@@ -189,18 +188,18 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
                         txSymbolEl.setValue(info.ticker);
                     });
 
-                    lq.v(txInfo.inAmount, txInfo.inAsset).human().then((value) => {
+                    lq.v(txData.info.inAmount, txData.info.inAsset).human().then((value) => {
                         // lq.convertAsString(txInfo.outAmount, txInfo.outAsset, txInfo.outAsset).then((value)=>{
                         txAmountEl.setValue(value);
                     });
                 } else {
                     txDirectionEl.setValue("arrow_upward");
                     txDirectionEl.classList.add("outgoing");
-                    txInfo.outAssetIcon.then((icon) => {
+                    txData.info.outAssetIcon.then((icon) => {
                         txAssetIconEl.setSrc(icon);
                     });
 
-                    txInfo.outAssetInfo.then(info => {
+                    txData.info.outAssetInfo.then(info => {
                         if (filter) {
                             if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name) && !filter(tx.tx_hash, true)) {
                                 txElCnt.remove();
@@ -211,7 +210,7 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
                         txSymbolEl.setValue(info.ticker);
                     });
 
-                    lq.v(txInfo.outAmount,txInfo.outAsset).human().then((value) => {
+                    lq.v(txData.info.outAmount, txData.info.outAsset).human().then((value) => {
                         // lq.convertAsString(txInfo.outAmount, txInfo.outAsset, txInfo.outAsset).then((value)=>{
                         txAmountEl.setValue(value);
                     });
@@ -223,7 +222,7 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
             //     }
             // });
 
-            txInfo.blockTime().then((timestamp)=>{
+            txData.info.blockTime().then((timestamp)=>{
                 const  date=new Date(timestamp*1000);
                 blockTimeEl.setValue(date.toLocaleString());
             });
@@ -243,7 +242,7 @@ async function renderHistoryPanel(parentEl, lq, filter, limit = 20, page = 0) {
             // }
 
            
-            console.log("TxInfo",txInfo);
+            console.log("TxInfo",txData);
         });
         
     }

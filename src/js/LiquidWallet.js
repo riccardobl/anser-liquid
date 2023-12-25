@@ -714,7 +714,7 @@ export default class LiquidProvider {
 
      
     async getTxBuffer(tx_hash){
-        let txBuffer = await this.store.get("txbf:" + tx_hash);
+        let txBuffer = await this.cache.get("txbf:" + tx_hash);
         if (!txBuffer) {
             const txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
             txBuffer = Buffer.from(txHex, 'hex');
@@ -724,9 +724,9 @@ export default class LiquidProvider {
         const confirmed=height>-1;
 
         if (confirmed) {
-            await this.store.set("txbf:" + tx_hash, txBuffer);
+            await this.cache.set("txbf:" + tx_hash, txBuffer);
         } else {
-            await this.store.set("txbf:" + tx_hash, txBuffer, 60 * 1000);
+            await this.cache.set("txbf:" + tx_hash, txBuffer, 60 * 1000);
         }
 
         return txBuffer;
@@ -751,106 +751,123 @@ export default class LiquidProvider {
 
         const addr = await this.getAddress();
 
+        const cachedOuts=await this.cache.get(`tx:${tx_hash}:outs`,false);
+        const cachedIns=await this.cache.get(`tx:${tx_hash}:ins`,false);
+        console.log("Cached I/O", cachedOuts, cachedIns);
         // if (resolveOutputs){
-        await Promise.all([
-            await Promise.all(txData.outs.map(out => this._resolveOutput(addr,out, txData))),
-            await Promise.all(txData.ins.map(inp => this._resolveInput(addr, inp, txData)))
-        ]);
-
-        // }
-
-
-        // check if has an owned input
-        let ownedInput=false;
-        for(const inp of txData.ins){
-            if(inp.ldata&&inp.owner.equals(addr.outputScript)){
-                ownedInput=true;
-                break;
-            }
-        }
-
-        if (ownedInput){
-            txData.isOutgoing = true;
-            txData.isIncoming = false;
+        if(!cachedOuts||!cachedIns){
+            console.log("Resolving", txData);
+            await Promise.all([
+                await Promise.all(txData.outs.map(out => this._resolveOutput(addr,out, txData))),
+                await Promise.all(txData.ins.map(inp => this._resolveInput(addr, inp, txData)))
+            ]);
+            await this.cache.set(`tx:${tx_hash}:outs`, txData.outs);
+            await this.cache.set(`tx:${tx_hash}:ins`, txData.ins);
         }else{
-            txData.isOutgoing = false;
-            txData.isIncoming = true;
-        }
-
-        
-        if(txData.isOutgoing){
-            const outXasset={};
-            const changeXasset={};
-            for (const out of txData.outs) {
-                if(out.fee){
-                    if(!changeXasset[out.fee.assetHash]) changeXasset[out.fee.assetHash]=0;
-                    changeXasset[out.fee.assetHash]+=out.fee.value;
-                    continue;
-                }
-                if (!out.ldata) continue;
-                if (out.owner.equals(addr.outputScript)){
-                    const hash=out.ldata.assetHash;
-                    if(!changeXasset[hash]) changeXasset[hash]=0;
-                    changeXasset[hash]+=out.ldata.value;
-                }
-            }
-
-            for(const inp of txData.ins){
-                if (!inp.ldata) continue;
-                if (inp.owner.equals(addr.outputScript)) {
-                    const hash = inp.ldata.assetHash;
-                    if (!outXasset[hash]) outXasset[hash] = 0;
-                    outXasset[hash] += inp.ldata.value;
-                }
-            }
-
-            for(let k in outXasset){
-                if(!outXasset[k]) outXasset[k]=0;
-                else{
-                    if (!changeXasset[k]) changeXasset[k] = 0;
-                    outXasset[k]-=changeXasset[k];
-                }
-            }
-
-            const out=Object.entries(outXasset)[0];
-            txData.outAsset =out?out[0]:undefined;
-            txData.outAmount =out?out[1]:0;
-        }else{
-            const inXAsset={};
-            for(const out of txData.outs){
-                if (!out.ldata) continue;
-                if (out.owner.equals(addr.outputScript)) {
-                    const hash = out.ldata.assetHash;
-                    if (!inXAsset[hash]) inXAsset[hash] = 0;
-                    inXAsset[hash] += out.ldata.value;
-                }
-            }
-
-            const inp=Object.entries(inXAsset)[0];
-            txData.inAsset =inp?inp[0]:undefined;
-            txData.inAmount =inp?inp[1]:0;
+            txData.outs=cachedOuts;
+            txData.ins=cachedIns;
         }
 
 
-      
+        let info = await this.cache.get(`tx:${tx_hash}:info`);
+        if (!info) {
+            info = {};
 
-        if (txData.outAsset){
-            txData.outAssetInfo = this.assetProvider.getAssetInfo(txData.outAsset);
-            txData.outAssetIcon = this.assetProvider.getAssetIcon(txData.outAsset);
+            // check if has an owned input
+            let ownedInput = false;
+            for (const inp of txData.ins) {
+                if (inp.ldata && inp.owner.equals(addr.outputScript)) {
+                    ownedInput = true;
+                    break;
+                }
+            }
+
+            if (ownedInput) {
+                info.isOutgoing = true;
+                info.isIncoming = false;
+            } else {
+                info.isOutgoing = false;
+                info.isIncoming = true;
+            }
+
+
+            if (info.isOutgoing) {
+                const outXasset = {};
+                const changeXasset = {};
+                for (const out of txData.outs) {
+                    if (out.fee) {
+                        if (!changeXasset[out.fee.assetHash]) changeXasset[out.fee.assetHash] = 0;
+                        changeXasset[out.fee.assetHash] += out.fee.value;
+                        continue;
+                    }
+                    if (!out.ldata) continue;
+                    if (out.owner.equals(addr.outputScript)) {
+                        const hash = out.ldata.assetHash;
+                        if (!changeXasset[hash]) changeXasset[hash] = 0;
+                        changeXasset[hash] += out.ldata.value;
+                    }
+                }
+
+                for (const inp of txData.ins) {
+                    if (!inp.ldata) continue;
+                    if (inp.owner.equals(addr.outputScript)) {
+                        const hash = inp.ldata.assetHash;
+                        if (!outXasset[hash]) outXasset[hash] = 0;
+                        outXasset[hash] += inp.ldata.value;
+                    }
+                }
+
+                for (let k in outXasset) {
+                    if (!outXasset[k]) outXasset[k] = 0;
+                    else {
+                        if (!changeXasset[k]) changeXasset[k] = 0;
+                        outXasset[k] -= changeXasset[k];
+                    }
+                }
+
+                const out = Object.entries(outXasset)[0];
+                info.outAsset = out ? out[0] : undefined;
+                info.outAmount = out ? out[1] : 0;
+            } else {
+                const inXAsset = {};
+                for (const out of txData.outs) {
+                    if (!out.ldata) continue;
+                    if (out.owner.equals(addr.outputScript)) {
+                        const hash = out.ldata.assetHash;
+                        if (!inXAsset[hash]) inXAsset[hash] = 0;
+                        inXAsset[hash] += out.ldata.value;
+                    }
+                }
+
+                const inp = Object.entries(inXAsset)[0];
+                info.inAsset = inp ? inp[0] : undefined;
+                info.inAmount = inp ? inp[1] : 0;
+            }
+
+
+
+
+            if (info.outAsset) {
+                info.outAssetInfo = this.assetProvider.getAssetInfo(info.outAsset);
+                info.outAssetIcon = this.assetProvider.getAssetIcon(info.outAsset);
+            }
+
+            if (info.inAsset) {
+                info.inAssetInfo = this.assetProvider.getAssetInfo(info.inAsset);
+                info.inAssetIcon = this.assetProvider.getAssetIcon(info.inAsset);
+            }
+
+            info.valid = !!(info.inAsset || info.outAsset);
+            console.log("Resolved?", info);
+            console.log("Interpret i/o", info);
+
+            this.cache.set(`tx:${tx_hash}:meta`, info);
         }
-
-        if (txData.inAsset) {
-            txData.inAssetInfo = this.assetProvider.getAssetInfo(txData.inAsset);
-            txData.inAssetIcon = this.assetProvider.getAssetIcon(txData.inAsset);
-        }
-
-        txData.valid=!!(txData.inAsset||txData.outAsset);
-        console.log("Resolved?",txData);
-        console.log("Interpret i/o", txData);
+        txData.info = info;
 
        
-        txData.extraInfo=this.esplora.getTxInfo(tx_hash);
-        txData.blockTime=async ()=>{
+        txData.info.extraInfo=this.esplora.getTxInfo(tx_hash);
+        txData.info.blockTime=async ()=>{
             if(!txData.extraInfo) return undefined;
             return (await txData.extraInfo).status.block_time;
         };
@@ -863,9 +880,9 @@ export default class LiquidProvider {
 
 
     async _resolveInput(address, input, txData){
-        console.log("Input ",input);
-        const scriptBuffer0=input.script;
-        const scriptBuffer2=address.outputScript;
+        // console.log("Input ",input);
+        // const scriptBuffer0=input.script;
+        // const scriptBuffer2=address.outputScript;
         try{
             // if (scriptBuffer0.equals(scriptBuffer2)) { // owned input
                 const originTxId = input.hash.reverse().toString('hex');
@@ -876,12 +893,12 @@ export default class LiquidProvider {
                 await this._resolveOutput(address, originOut, originTx);
                 input.ldata = originOut.ldata;
                 input.owner=originOut.owner;
-                input.valid=true;
-            console.log("Resolved Input", input, txData);
+                // input.valid=true;
+            // console.log("Resolved Input", input, txData);
                 // const revealedInput = this._resolveOutput()
             // }
         }catch(e){
-            input.valid=false;
+            // input.valid=false;
             if(!input.debug) input.debug=[];
             input.debug.push(e);
             console.log("Input discarded", input, e, txData);
@@ -892,12 +909,13 @@ export default class LiquidProvider {
     async _resolveOutput(address,out,txData){
         try{
             if(out.ldata)   return out;
-            out.valid = true;
+            // out.valid = true;
             if (out.script.length === 0) { // fees
                 out.fee={
                     asset: Liquid.AssetHash.fromBytes(out.asset).bytesWithoutPrefix,
                     value: Liquid.confidential.confidentialValueToSatoshi(out.value),
-                    assetHash:Liquid.AssetHash.fromBytes(out.asset).hex
+                    assetHash:Liquid.AssetHash.fromBytes(out.asset).hex,
+                    
                 }
                 out.owner=Buffer.alloc(0);
                 throw new Error("Fee output");
@@ -976,7 +994,7 @@ export default class LiquidProvider {
             
             
         }catch(e){
-            out.valid=false;
+            // out.valid=false;
             if(!out.debug) out.debug=[];
             out.debug.push(e);
             console.log("Output discarded",out,e);
@@ -994,7 +1012,8 @@ export default class LiquidProvider {
         let outputs=[];
         const transactions={};
         console.log("Raw utxo", utxos);
-        for(const utxo of utxos){       
+        for(const utxo of utxos){   
+                
             const txid=utxo.tx_hash;   
             if(!transactions[txid]) transactions[txid]=await this.getTxInfo(utxo.tx_hash,false,false);            
             const transaction=transactions[txid];
@@ -1009,10 +1028,10 @@ export default class LiquidProvider {
                 //     outputs.push(resolvedOut);
                 // }
                 outputs.push(this._resolveOutput(addr, out, transaction).then(resolvedOut => {
-                    if (resolvedOut.valid) {
+                    // if (resolved.Out.valid) {
                         resolvedOut.tx_pos = utxo.tx_pos;
                         resolvedOut.tx_hash = utxo.tx_hash;
-                    }
+                    // }
                     return resolvedOut;
                 }));
             }catch(err){
@@ -1020,7 +1039,7 @@ export default class LiquidProvider {
             }           
         }
         outputs=await Promise.all(outputs);
-        outputs=outputs.filter(out=>out.valid);
+        outputs=outputs.filter(out=>out.owner.equals(addr.outputScript)&&out.ldata);
         return outputs;//await Promise.all(outputs);
             
 
