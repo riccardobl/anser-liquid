@@ -25,6 +25,28 @@ export default class LiquidProvider {
         await this.refresh();
     }
 
+    async exportApi(window){
+        await this.check();
+        if(!window.liquid){
+            window.liquid={};
+        }
+        window.liquid.receive=async (amount/*float*/, assetHash,qrOptions)=>{
+            if(!assetHash) assetHash=this.baseAsset;
+            amount = await this.v(amount,assetHash).int(assetHash);//int
+            return this.receive(amount, assetHash, qrOptions);
+        }
+        window.liquid.createTransaction=async (amount/*float*/, assetHash, toAddress)=>{
+            if(!assetHash) assetHash=this.baseAsset;
+            amount = await this.v(amount,assetHash).int(assetHash);//int
+            return this.prepareTransaction(amount, assetHash, toAddress);
+        }
+        window.liquid.send=async (amount/*float*/, assetHash, toAddress)=>{
+            const tr=window.liquid.createTransaction(amount, assetHash, toAddress);
+            const txid=await tr.broadcast();
+            return txid;
+        }
+    }
+
     async elcAction(action, params){
         console.log("elcAction",action,params);
         console.trace();
@@ -374,7 +396,9 @@ export default class LiquidProvider {
             
         });
 
-        return transactions;
+        
+
+        return transactions.reverse();
     }
 
 
@@ -747,7 +771,7 @@ export default class LiquidProvider {
 
         txData.tx_hash=tx_hash;
         txData.height=await this.getTxHeight(tx_hash);
-        txData.confirmed = txData.height>-0;
+        txData.confirmed = txData.height>0;
 
         const addr = await this.getAddress();
 
@@ -847,15 +871,15 @@ export default class LiquidProvider {
 
 
 
-            if (info.outAsset) {
-                info.outAssetInfo = this.assetProvider.getAssetInfo(info.outAsset);
-                info.outAssetIcon = this.assetProvider.getAssetIcon(info.outAsset);
-            }
+            // if (info.outAsset) {
+            //     info.outAssetInfo = this.assetProvider.getAssetInfo(info.outAsset);
+            //     info.outAssetIcon = this.assetProvider.getAssetIcon(info.outAsset);
+            // }
 
-            if (info.inAsset) {
-                info.inAssetInfo = this.assetProvider.getAssetInfo(info.inAsset);
-                info.inAssetIcon = this.assetProvider.getAssetIcon(info.inAsset);
-            }
+            // if (info.inAsset) {
+            //     info.inAssetInfo = this.assetProvider.getAssetInfo(info.inAsset);
+            //     info.inAssetIcon = this.assetProvider.getAssetIcon(info.inAsset);
+            // }
 
             info.valid = !!(info.inAsset || info.outAsset);
             console.log("Resolved?", info);
@@ -866,8 +890,8 @@ export default class LiquidProvider {
         txData.info = info;
 
        
-        txData.info.extraInfo=this.esplora.getTxInfo(tx_hash);
-        txData.info.blockTime=async ()=>{
+        txData.extraInfo=this.esplora.getTxInfo(tx_hash);
+        txData.extraInfo.blockTime=async ()=>{
             if(!txData.extraInfo) return undefined;
             return (await txData.extraInfo).status.block_time;
         };
@@ -990,7 +1014,7 @@ export default class LiquidProvider {
             }
 
             out.ldata.assetHash=Liquid.AssetHash.fromBytes(out.ldata.asset).hex;
-            out.ldata.assetInfo = this.assetProvider.getAssetInfo(out.ldata.assetHash);
+            // out.ldata.assetInfo = this.assetProvider.getAssetInfo(out.ldata.assetHash);
             
             
         }catch(e){
@@ -1092,12 +1116,11 @@ export default class LiquidProvider {
                 asset:asset
             };
             balanceXasset[asset].value += utxo.ldata.value;
-            if(!balanceXasset[asset].info){
-                balanceXasset[asset].info=utxo.ldata.assetInfo;
-            }
+            // if(!balanceXasset[asset].info){
+            //     balanceXasset[asset].info=utxo.ldata.assetInfo;
+            // }
         }
 
-        console.log(balanceXasset);
 
         const pinnedAssets=await this.getPinnedAssets();
         for(const asset of pinnedAssets){
@@ -1226,6 +1249,11 @@ export default class LiquidProvider {
             }
 
         }
+    }
+
+
+    assets(){
+        return this.assetProvider;
     }
  
 }
