@@ -1,8 +1,8 @@
 
 import Html from "../Html.js";
-import UIStage from "./UIStage.js";
-import LinkOpener from "../utils/LinkOpener.js";
-import Constants from "../Constants.js";
+import UIStage from "../UIStage.js";
+import LinkOpener from "../../utils/LinkOpener.js";
+import Constants from "../../Constants.js";
 export default class WalletPage extends UIStage {
     constructor() {
         super("wallet");

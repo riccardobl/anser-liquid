@@ -1,4 +1,13 @@
-import Constants from "./Constants.js";
+import Constants from "../Constants.js";
+
+/**
+ * A chaotic wrapper around the DOM API
+ * This class is used to create the DOM required for all the UI components.
+ * The peculiarity is that the elements are reused if already present in the DOM,
+ * this allows to write code that is something in between to immediate mode UIs and
+ * retained mode UIs getting rid of the complexity of creation vs update, while also
+ * not using any big framework.
+ */
 export default class Html{
     static _enhance(el, classes=[]){
         if (!classes) classes=[];
@@ -117,6 +126,10 @@ export default class Html{
     }
 
 
+
+    /**
+     * Destroy an element
+     */
     static $0(parentEl, directSelector){
         const el=parentEl.querySelector(directSelector);
         if(el){
@@ -124,6 +137,9 @@ export default class Html{
         }                
     }
 
+    /**
+     * Create an element
+     */
     static $(parentEl, directSelector, classes = [], type = "div", prepend=false){
         
         let el = parentEl.querySelector(directSelector);

@@ -1,12 +1,14 @@
-import UIModule from "./UIModule.js";
-import Html from "../../Html.js";
+import UIModule from "../UIModule.js";
+import Html from "../Html.js";
 
+/**
+ * Show the wallet header
+ */
 export default class HeaderModule extends UIModule {
 
     constructor() {
         super("header");
     }
-
   
     onLoad(stage, stageContainerEl, walletEl, lq, ui) {
         const headerEl = Html.$(walletEl, "#header").setPriority(-30);

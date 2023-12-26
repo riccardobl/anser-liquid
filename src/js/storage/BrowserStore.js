@@ -1,5 +1,10 @@
 
 import Constants from "../Constants.js";
+/**
+ * A browser storage class that supports several backend.
+ * It can track memory usage, expiration and delete old entries.
+ * Supports all serializable objects, Map, Buffer, Uint8Array, ArrayBuffer, Blob, undefined, null and primitive types.
+ */
 export default class BrowserStore {
 
     static async best(prefix = "", limit = 100 * 1024 * 1024){

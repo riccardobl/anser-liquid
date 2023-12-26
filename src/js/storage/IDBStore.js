@@ -1,5 +1,9 @@
 import BrowserStore from "./BrowserStore.js";
 import Constants from "../Constants.js";
+/**
+ * A backend to store to IndexedDB.
+ * Should be slower but has larger storage limit.
+ */
 export default class IDBStore extends BrowserStore {
     static isSupported() {
         return 'indexedDB' in window;

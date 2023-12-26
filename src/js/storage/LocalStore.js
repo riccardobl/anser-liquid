@@ -1,4 +1,8 @@
 import BrowserStore from "./BrowserStore.js";
+/**
+ * A backend to store to localStorage.
+ * Should be faster but has smaller storage limit.
+ */
 export default class LocalStore extends BrowserStore {
     static isSupported() {
         return 'localStorage' in window;

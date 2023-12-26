@@ -1,4 +1,9 @@
 import BrowserStore from "./BrowserStore.js";
+/**
+ * Store in memory, when everything else fails.
+ * Obviously, this is not persistent.
+ * Also does no serialization, so it is pretty fast.
+ */
 export default class MemStore extends BrowserStore {
     static isSupported() {
         return true;

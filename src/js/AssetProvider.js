@@ -1,6 +1,11 @@
 
 import Constants from "./Constants.js";
 import fetch from "./utils/fetch-timeout.js";
+/**
+ * A wrapper around several apis.
+ * Provides pricing for liquid assets, fiat currencies, their icons and other info.
+ * Handles also pricing tracking, conversion and formatting.
+ */
 export default class AssetProvider {
     constructor(
         cache,

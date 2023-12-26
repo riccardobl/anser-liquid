@@ -1,7 +1,7 @@
 
 import Html from "../Html.js";
-import UIStage from "./UIStage.js";
-import Constants from "../Constants.js";
+import UIStage from "../UIStage.js";
+import Constants from "../../Constants.js";
 
 export default class SendStage extends UIStage {
     constructor() {

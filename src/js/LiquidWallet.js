@@ -11,7 +11,12 @@ import Esplora from './Esplora.js';
 import { SLIP77Factory } from 'slip77';
 import BrowserStore from './storage/BrowserStore.js';
 
-export default class LiquidProvider {
+/**
+ * The full wallet Api.
+ * Doesn't need an ui to work.
+ */
+
+export default class LiquidWallet {
     constructor(electrumWs, esploraHttps, sideswapWs) {
         this.electrumWs = electrumWs;
         this.esploraHttps = esploraHttps;     

@@ -1,5 +1,5 @@
 import Html from "../Html.js";
-import UIStage from "./UIStage.js";
+import UIStage from "../UIStage.js";
 export default class OptionsStage extends UIStage {
     constructor() {
         super("options");

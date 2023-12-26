@@ -1,9 +1,28 @@
 
+/**
+ * Main UI class
+ * A UI is composed by two logical parts:
+ * - Stages: a stage is a part of the UI that is displayed in the main window, like a page in a website.
+ * - Modules: a module is a global component of the ui. It can be enabled or disabled for certain stages, however it is not strictly related to a stage (eg. header, floating buttons etc..) 
+ * Modules and stages must be registered before the UI is created.
+ * 
+ * All stages must go in
+ *      ./ui/stages
+ * All modules must go in
+ *      ./ui/modules
+ * And they should be name like this:
+ *      [StageName]Stage.js
+ *      [ModuleName]Module.js
+ * Eg. 
+ *      WalletStage.js is for the stage "wallet"
+ *      HeaderModule.js is for the module "header"
+ */
+
 export default class UI{
     static STAGES=[];
     static registerStage(stageName){ 
         stageName=stageName[0].toUpperCase()+stageName.slice(1);
-        this.STAGES.push(import("./"+stageName+"Stage.js").then((module)=>module.default).then((Stage)=>{
+        this.STAGES.push(import("./stages/"+stageName+"Stage.js").then((module)=>module.default).then((Stage)=>{
             const stage = new Stage();
             return stage;
         }));

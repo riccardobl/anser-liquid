@@ -1,3 +1,6 @@
+/**
+ * A fetch that at some point gets tired.
+ */
 
 function fetchWithTimeout(url, options, timeout = 5000) {
   return Promise.race([
