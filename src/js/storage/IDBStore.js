@@ -128,9 +128,7 @@ export default class IDBStore extends BrowserStore {
             value=undefined;
         }else if (valueType === "number") {
             value = parseFloat(value);
-        } else if (valueType === "boolean") {
-            value = value === "true";
-        } else if (valueType === "Blob" && asDataUrl) {
+        }  else if (valueType === "Blob" && asDataUrl) {
             value = URL.createObjectURL(value);
         } else if (valueType === "Map") {
             value = new Map(JSON.parse(value));

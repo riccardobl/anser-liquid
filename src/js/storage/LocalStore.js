@@ -64,8 +64,6 @@ export default class LocalStore extends BrowserStore {
             value = undefined;
         } else if (valueType === "number") {
             value = parseFloat(value);
-        } else if (valueType === "boolean") {
-            value = value === "true";
         } else if (valueType === "Blob" && asDataUrl) {
             value = JSON.parse(value);
             const blobType = value.blobType;
