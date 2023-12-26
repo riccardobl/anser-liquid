@@ -1,13 +1,89 @@
 import Constants from "./Constants.js";
 export default class Html{
-    static _enhance(el){
+    static _enhance(el, classes=[]){
+        if (!classes) classes=[];
+       
+
+        if (!el.$$$) el.$$$ = {};
+
+        el.$$$.landScapeClasses=[];
+        el.$$$.portraitClasses=[];
+        for (const className of classes) {
+            if(className.includes("$")){
+                const [modifier, classNamePlain]=className.split("$");
+                if(modifier=="l"){
+                    el.$$$.landScapeClasses.push(classNamePlain);
+                }else if(modifier=="p"){
+                    el.$$$.portraitClasses.push(classNamePlain);
+                }                
+            }else{
+                el.classList.add(className);
+            }
+        }
+
+        if (el.$$$.landScapeClasses.length>0||el.$$$.portraitClasses.length>0){
+            const classPickOnResize=()=>{
+                let isPortrait=false;
+                if (Constants.LOCK_MODE){
+                    isPortrait=Constants.LOCK_MODE=="portrait";
+                }else{
+                    isPortrait=window.innerWidth<window.innerHeight;
+                }
+                if (!isPortrait){
+                    for(const className of el.$$$.portraitClasses){
+                        el.classList.remove(className);
+                    }
+                    for(const className of el.$$$.landScapeClasses){
+                        el.classList.add(className);
+                    }
+                }else{
+                    for(const className of el.$$$.landScapeClasses){
+                        el.classList.remove(className);
+                    }
+                    for(const className of el.$$$.portraitClasses){
+                        el.classList.add(className);
+                    }
+                }
+            };
+            el.$$$._classPickOnResize=classPickOnResize;
+            window.addEventListener("resize",classPickOnResize);
+            classPickOnResize();
+            // remove callback when element is removed from dom
+            const observer = new MutationObserver(() => {
+                if (!document.body.contains(el)) {
+                    window.removeEventListener("resize", classPickOnResize);
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // 
+
+        if(Constants.DISABLE_POINTER_EVENTS){
+            el.classList.add("disablePointerEvents");
+        }
+
         el.setPriority=(priority)=>{
             el.style.order=priority;
+            return el;
         }
+        el.grow=(value)=>{
+            el.style.flexGrow=value;
+            return el;
+        }
+        el.shrink=(value)=>{
+            el.style.flexShrink=value;
+            return el;
+        };
 
         el.commitUpdate=()=>{
             const refreshId=el.parentElement.getAttribute("refresh-id");
             el.setAttribute("refresh-id", refreshId);
+            return el;
         }
 
         el.setValue=(value,html=false)=>{
@@ -17,15 +93,38 @@ export default class Html{
             }else{
                 el.textContent=value;
             }
+            return el;
+        }
+        
+        el.setAction=(callback)=>{
+            if(el.$$$.clickCallback){
+                el.removeEventListener("click",el.$$$.clickCallback);
+            }
+            el.classList.remove("clickable");
+            if(!callback)return;
+            el.$$$.clickCallback = callback;
+            el.addEventListener("click",callback);
+            el.classList.add("clickable");
+
+            return el;
         }
 
-        if(!el.$$$)el.$$$={};
+
+
+
 
         
     }
 
 
-    static $(parentEl, directSelector, classes = [], type = "div"){
+    static $0(parentEl, directSelector){
+        const el=parentEl.querySelector(directSelector);
+        if(el){
+            el.remove();
+        }                
+    }
+
+    static $(parentEl, directSelector, classes = [], type = "div", prepend=false){
         
         let el = parentEl.querySelector(directSelector);
         if(!el){
@@ -36,17 +135,19 @@ export default class Html{
                 el.classList.add(directSelector.substr(1));
             }
             if(parentEl.$$$&&parentEl.$$$.isList){
-                parentEl.addItem(el);
+                parentEl.addItem(el,1);
             }else{
-                parentEl.appendChild(el);
+                if(prepend){
+                    parentEl.prepend(el);
+                }else{
+                    parentEl.appendChild(el);
+                }
             }
             el.classList.add("loading");
 
         }
-        this._enhance(el);
-        for(const className of classes){
-            el.classList.add(className);
-        }
+        this._enhance(el, classes);
+        
         return el;
     }
     static elById(parentEl, id, classes = [], type = "div"){
@@ -61,21 +162,6 @@ export default class Html{
             el.classList.add(className);
         }
         return el;
-    }
-
-    static elByType(parentEl, type,classes=[]){
-        let el=parentEl.querySelector(`${type}`);
-        if(!el){
-            el=document.createElement(type);
-            parentEl.appendChild(el);
-        }
-        this._enhance(el);
-        for(const className of classes){
-            el.classList.add(className);
-        }
-
-        return el;
-
     }
 
     static elByClass(parentEl, className, extraClasses=[], type="div"){
@@ -160,13 +246,15 @@ export default class Html{
         parentEl.removeAttribute("refresh-id");
     }
 
-    static $vlist(parent,directSelector,classes=[]){
+    static $list(parent,directSelector,classes=[]){
         const el = this.$(parent, directSelector, classes);
         el.classList.add("list");
-        el.classList.add("v");
-        this._enhance(el);
-        el.addItem=(item,priority=0)=>{
-            el.appendChild(item);
+        el.addItem=(item,priority=1)=>{
+            if (priority<0){
+                el.prepend(item);
+            }else{
+                el.appendChild(item);
+            }
             if (item.setPriority)item.setPriority(priority);
             item.classList.add("listItem");
             el.classList.remove("loading");
@@ -182,12 +270,20 @@ export default class Html{
         this._addCover(el);
         return el;
     }
+    
+    static $vlist(parent, directSelector, classes = []) {
+        const l = this.$list(parent, directSelector, classes);
+        l.classList.add("v");
+        return l;
+    }
+
+    static $sep(parent,directSelector,classes=[]){
+        return this.$(parent, directSelector , classes, "span");
+    }
+
 
     static $hlist(parent,directSelector,classes=[]){
-        const l=this.$vlist(parent,directSelector,classes);
-        l.classList.remove("v");
-        
-
+        const l=this.$list(parent,directSelector,classes);       
         l.classList.add("h");
         return l;
     }
@@ -195,7 +291,11 @@ export default class Html{
     static $text(parent,directSelector,classes=[]){
         const el = this.$(parent, directSelector , classes, "span");
         el.classList.add("text");
-        this._enhance(el);
+        return el;
+    }
+
+    static $title(parent,directSelector,classes=[]){
+        const el = this.$(parent, directSelector , classes, "h1");
         return el;
     }
 
@@ -206,7 +306,6 @@ export default class Html{
             el.src=src;
             el.classList.remove("loading");
         }
-        this._enhance(el);
         return el;
     }
 
@@ -250,24 +349,31 @@ export default class Html{
         const el = this.$(parent, directSelector , classes, "div");
         el.classList.add("cnt");
        this._addCover(el);
-        this._enhance(el);
         return el;
     }
 
-    static $icon(parent,directSelector,classes=[]){
-        const iconCntEl=this.$(parent,directSelector,["iconCnt",...classes],"div");
-        const materialIconEl = document.createElement("div");
-        materialIconEl.classList.add("icon");
-        materialIconEl.classList.add("material-symbols-outlined");
-        materialIconEl.innerText="cached";
-        iconCntEl.appendChild(materialIconEl);
+    static $icon(parent,directSelector,classes=[],prepend=false){
+        const iconCntEl=this.$(parent,directSelector,["iconCnt",...classes],"div",prepend);
+        let materialIconEl = iconCntEl.querySelector(".material-symbols-outlined");
+        if(!materialIconEl){
+            materialIconEl = document.createElement("div");
+            materialIconEl.classList.add("icon");
+            materialIconEl.classList.add("material-symbols-outlined");
+            materialIconEl.innerText="cached";
+        }
 
-        const iconImgEl = document.createElement("img");
-        iconImgEl.classList.add("icon");
-        iconImgEl.classList.add("img");
+        let iconImgEl = iconCntEl.querySelector(".img");
+        if(!iconImgEl){
+            iconImgEl = document.createElement("img");
+            iconImgEl.classList.add("icon");
+            iconImgEl.classList.add("img");
+        }
+
         materialIconEl.classList.add("loading");
+        iconImgEl.remove();
+        iconCntEl.appendChild(materialIconEl);
+        materialIconEl.innerText = "cached";
 
-        this._enhance(iconCntEl);
         iconCntEl.setValue=(value)=>{
             const imgEl=iconCntEl.querySelector(".img");
             if(imgEl){
@@ -275,8 +381,8 @@ export default class Html{
                 iconCntEl.appendChild(materialIconEl);
             }            
             materialIconEl.classList.remove("loading");
-
             materialIconEl.innerText=value;
+            return iconCntEl;
         }
         iconCntEl.setSrc=(src)=>{
             const materialIconEl=iconCntEl.querySelector(".material-symbols-outlined");
@@ -285,8 +391,8 @@ export default class Html{
                 iconCntEl.appendChild(iconImgEl);
             }
             iconImgEl.classList.remove("loading");
-
             iconImgEl.src=src;
+            return iconCntEl;
         }
         return iconCntEl;
     }
@@ -294,15 +400,20 @@ export default class Html{
     static $inputText(parent,directSelector,classes=[]){
         const el = this.$(parent, directSelector , classes, "input");
         el.type="text";
-        this._enhance(el);
+        el.classList.add("clickable");
+
         el.setPlaceHolder = (placeholder) => {
             el.placeholder = placeholder;
+            return el;
         };
         el.setAction = (callback) => {
             el.$$$.onChangeCallback = callback;
+             
+            return el;
         };
         el.setValue = (value) => {
             el.value = value;
+            return el;
         };
         el.getValue = () => {
             return el.value;
@@ -326,25 +437,28 @@ export default class Html{
 
     static $button(parent,directSelector,classes=[]){
         const el = this.$(parent, directSelector , classes, "button");
-        this._enhance(el);
-        el.setAction = (callback) => {
-            el.$$$.onClickCallback = callback;
-        };
-        el.setValue = (value) => {
-            el.textContent = value;
-        };
-        el.getValue = () => {
-            return el.textContent;
-        };
-        if (el.$$$.onClickCallbakWrapper) {
-            el.removeEventListener("click", el.$$$.onClickCallbakWrapper);
-        }
-        el.$$$.onClickCallbakWrapper = () => {
-            if (el.$$$.onClickCallback) {
-                el.$$$.onClickCallback(el.getValue());
+        el.setIconValue=(value)=>{
+            if(!value){
+                this.$0(el,".icon");
+                el.classList.remove("withIcon");
+            }else{
+                const iconEl=this.$icon(el,".icon",["buttonIcon"],true);
+                iconEl.setValue(value);
+                el.classList.add("withIcon");
             }
+            return el;
         };
-        el.addEventListener("click", el.$$$.onClickCallbakWrapper);
+        el.setIconSrc=(src)=>{
+            if(!src){
+                this.$0(el,".icon");
+                el.classList.remove("withIcon");
+            }else{
+                const iconEl=this.$icon(el,".icon",["buttonIcon"],true);
+                iconEl.setSrc(src);
+                el.classList.add("withIcon");
+            }
+            return el;
+        };
         return el;
 
     }
@@ -352,15 +466,20 @@ export default class Html{
     static $inputNumber(parent, directSelector,classes=[]){
         const el = this.$(parent, directSelector , classes, "input");
         el.type="number";
-        this._enhance(el);
+        el.classList.add("clickable");
+
         el.setPlaceHolder = (placeholder) => {
             el.placeholder = placeholder;
+            return el;
         };
         el.setAction = (callback) => {
             el.$$$.onChangeCallback = callback;
+           
+            return el;
         };
         el.setValue = (value) => {
             el.value = value;
+            return el;
         };
         el.getValue = () => {
             let v= Number(el.value);
@@ -389,7 +508,7 @@ export default class Html{
 
     static $inputSelect(parent,directSelector,classes=[]){
         const el = this.$(parent, directSelector , classes, "select");
-        this._enhance(el);
+        el.classList.add("clickable");
 
         const _selectPreferred=()=>{
             if (!el.$$$.preferredValues)return;
@@ -422,6 +541,7 @@ export default class Html{
             el.$$$.onChangeCallbacks[value]=action;
             _selectPreferred();
             if (el.value ==value)action(el.value);
+            return el;
         }
         el.removeOption=(value)=>{
             let optionEl=el.querySelector(`option[value="${value}"]`);
@@ -429,36 +549,37 @@ export default class Html{
                 el.removeChild(optionEl);
             }
             _selectPreferred();
+            return el;
         }
         el.clearOptions=()=>{
             for(const optionEl of el.querySelectorAll("option")){
                 el.removeChild(optionEl);
             }
+            return el;
         }
         
         el.setPreferredValues=(values)=>{
             el.$$$.preferredValues=values;
             el.$$$.preferredValueSelected=false;
             _selectPreferred();
+            return el;
         }
 
         if (el.$$$.onChangeCallbakWrapper) {
             el.removeEventListener("change", el.$$$.onChangeCallbakWrapper);
         }
-        el.$$$.onChangeCallbakWrapper = ()=>{
-            
+
+        el.$$$.onChangeCallbakWrapper = ()=>{            
             if (el.$$$.onChangeCallbackScheduledTimeout) {
                 clearTimeout(el.$$$.onChangeCallbackScheduledTimeout);
             }
             el.$$$.onChangeCallbackScheduledTimeout = setTimeout(() => {
                 if (el.$$$.onChangeCallbacks) {
-                    const value=el.value;
-                    
+                    const value=el.value;                    
                     if (el.$$$.onChangeCallbacks[value])el.$$$.onChangeCallbacks[value](value);
                 }
             }, Constants.DEBOUNCE_CALLBACK_TIME);
-        };
-        
+        };        
         el.addEventListener("change", el.$$$.onChangeCallbakWrapper);
         return el;
     }

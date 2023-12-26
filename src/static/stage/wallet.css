@@ -1,0 +1,71 @@
+
+
+
+
+
+#liquidwallet #container.wallet.stage #history>*.confirmed {
+    background-color: var(--colorConfirmed);
+}
+
+#liquidwallet #container.wallet.stage #history>* {
+
+    background-color: var(--colorPending);
+}
+
+
+
+
+#liquidwallet #container.wallet.stage .asset.h{
+    width:100%;
+}
+
+#liquidwallet #container.wallet.stage .asset {
+    text-align: center;
+    width: max(26vw, 15rem);
+        background-color: var(--assetColor);
+}
+
+#liquidwallet #container.wallet.stage .asset .icon{
+    max-width: 4rem;
+    font-size:4rem;
+}
+
+/* #liquidwallet #container.wallet.stage .asset > *{
+    padding:2rem;
+} */
+
+#liquidwallet #container.wallet.stage #history > *{
+    padding-bottom:1.2rem;
+}
+#liquidwallet #container.wallet.stage .txasset {
+   position: absolute;
+   bottom:0;
+   right:0;
+   font-size:1.2rem!important;
+   max-width: 1.2rem;
+}
+
+#liquidwallet #container.wallet.stage .txasset .material-symbols-outlined.loading{
+    font-size:1rem;
+}
+
+#liquidwallet #container.wallet.stage .txstatushash{
+    position: absolute;
+        bottom: 0.3rem;
+        left: 1rem;
+   
+
+}
+#liquidwallet #container.wallet.stage .txblocktime{
+        position: absolute;
+            bottom: 0.3rem;
+            right: 1rem;
+}
+#liquidwallet #container.wallet.stage .txstatushash,
+#liquidwallet #container.wallet.stage .txstatushash *{
+margin: 0;
+    padding: 0;
+}
+#liquidwallet #container.wallet.stage #history .tx>*:last-child{
+    margin-left:auto;
+}

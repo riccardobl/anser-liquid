@@ -1,0 +1,134 @@
+/**
+*   Make everything smooth
+*/
+#liquidwallet #container * {
+    transition: all 1s ease-in-out;
+}
+
+#liquidwallet #container .text.loading {
+    display: inline-block;
+    margin-top: 0.2rem;
+    margin-bottom: 0.2rem;
+    width: 8rem;
+    height: 1.4rem;
+    border-radius: 200px;
+    background: linear-gradient(90deg, transparent, var(--bgColor), transparent);
+    background-size: 200% 200%;
+    opacity: 0.9;
+    animation: loading 2s ease-in-out infinite;
+}
+
+#liquidwallet #container .list.loading {
+    /* box-shadow: 0 0 8px 2px var(--colorShadow); */
+    width: 100%;
+
+    height: 200px;
+background: radial-gradient(ellipse at center, var(--assetColor) 1%, transparent 50%, transparent 100%);
+background-size: 50% 50%;
+    opacity: 0;
+    background-position: center center;
+    background-repeat: no-repeat;
+    animation: loading 2s linear infinite;
+}
+
+
+@keyframes loading {    
+    0% {
+        background-size: 200% 200%;
+        opacity: 0;
+    }
+    
+    20% {
+        opacity:0.4;
+        background-size: 100% 100%;
+    }
+100% {
+    opacity: 0;
+    background-size: 300% 300%;
+}
+    
+}
+
+
+#liquidwallet #container .icon.material-symbols-outlined.loading {
+    animation: rotate 2s linear infinite;
+}
+
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+#liquidwallet #container .asset {
+    --anim-delta: 0s;
+    transform: scale(0);
+    animation: appearFromVoid 0.2s ease-in-out var(--anim-delta);
+
+    animation-fill-mode: forwards;
+}
+
+/*appearing effects*/
+#liquidwallet #container input,
+#liquidwallet #container select,
+#liquidwallet #container button,
+#liquidwallet #container .iconCnt {
+    animation: appearFromVoid 0.3s ease-in-out;
+}
+
+/*appearing effects*/
+#liquidwallet #container .tx {
+    --time-delta: 0s;
+}
+
+#liquidwallet #container .tx:nth-child(odd) {
+    transform: translateX(-100%);
+    animation: appearFromLeft 1s ease-in-out var(--anim-delta);
+
+    animation-fill-mode: forwards;
+}
+
+#liquidwallet #container .tx:nth-child(even) {
+    transform: translateX(100%);
+    animation: appearFromRight 1s ease-in-out var(--anim-delta);
+    animation-fill-mode: forwards;
+}
+
+@keyframes appearFromVoid {
+    0% {
+        transform: scale(0);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes appearFromLeft {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(0%);
+    }
+}
+
+@keyframes appearFromRight {
+    0% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(0%);
+    }
+}
