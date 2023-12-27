@@ -24,7 +24,6 @@ export default class Esplora {
             }
             url = urlObj.toString();
         }
-        console.log(url);
         const response = await fetch(url, {
             method: method,
             body: method === "GET" ? undefined : JSON.stringify(params)
@@ -37,6 +36,7 @@ export default class Esplora {
     }
 
     async getFee(priority = 1) {
+        priority = 1.0 - priority;
 
         const response = await this.query("fee-estimates");
         const keys = Object.keys(response);
@@ -52,11 +52,14 @@ export default class Esplora {
             feeRate: Number(response[selectedKey])
         }
         if (!out.feeRate) {
+            console.log("Can't estimate fee, use hardcoded value " + Constants.HARDCODED_FEE);
             out.feeRate = Constants.HARDCODED_FEE;
+
         }
         if (!out.blocks) {
             out.blocks = 1;
         }
+        
         return out;
     }
 
