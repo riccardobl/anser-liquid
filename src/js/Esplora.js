@@ -49,10 +49,10 @@ export default class Esplora {
         const selectedKey = keys[priority];
         const out = {
             blocks: Number(selectedKey),
-            fee: Number(response[selectedKey])
+            feeRate: Number(response[selectedKey])
         }
-        if (!out.fee) {
-            out.fee = Constants.HARDCODED_FEE;
+        if (!out.feeRate) {
+            out.feeRate = Constants.HARDCODED_FEE;
         }
         if (!out.blocks) {
             out.blocks = 1;
@@ -65,7 +65,15 @@ export default class Esplora {
     }
 
     async getTxInfo(txId) {
-        return await this.query("tx/" + txId);
+        const info = await this.cache.get("txExtra:" + txId, false, async () => {
+            let info= await this.query("tx/" + txId);
+            if(info.status.confirmed){
+                return [info,0];
+            }else{
+                return [info, 60*1000];
+            }
+        });
+        return info;
     }
 
 
