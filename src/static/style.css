@@ -1,64 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap');
 
- 
-
-
-
-#liquidwallet #container #history>*.confirmed {
-    background-color: var(--bgColor2);
+:root {
+    --bgColor2: #D8F4EF;
+    --colorShadow: rgba(120, 139, 138, 0.575);
+    --bgColor: #F0FDFA;
+    --fgColor: #212121;
+    --fgColor2: #D8F4EF;
+    --fgColor3: #212121;
+    --bgColor3: rgba(2, 107, 121, 0.568);
+    --bgColorShade: rgba(2, 107, 121, 1);
+    --bgTextShade: rgba(107, 107, 107, 0.349);
+    --error: #FF0000;
 }
 
-#liquidwallet #container #history>* {
-    filter: grayscale(100%);
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    min-width: 0 !important;
+    font-family: 'Lato', sans-serif;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 1;
+    word-wrap: break-word;
+}
+
+/* For Webkit browsers */
+#liquidwallet ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    /* width of the entire scrollbar */
+}
+
+#liquidwallet ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    /* color of the tracking area */
+}
+
+#liquidwallet ::-webkit-scrollbar-thumb {
+    background: var(--bgColor3);
+    /* color of the scroll thumb */
+    border-radius: 10px;
+    /* roundness of the scroll thumb */
+}
+
+#liquidwallet ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+    /* color of the scroll thumb when hovering */
+}
+
+/* For Firefox */
+#liquidwallet * {
+    scrollbar-width: thin;
+    /* "auto" or "thin"  */
+    scrollbar-color: var(--bgColor3) #f1f1f1;
+    /* scroll thumb and track */
+}
+
+body,
+html {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    padding: 0rem;
+    overflow-y: auto;
+
+}
+
+body {
+    background: var(--bgColor);
+    color: var(--fgColor);
+    font-size: 1.1rem;
+}
+
+#liquidwallet {
+    display: flex;
+    flex-direction: column;
+    /* justify-content: space-between; */
+justify-content: flex-start;
+    align-items: stretch;
+    
+    height: fit-content;
+    min-height: 100%;;
+    
+    width: 100%;
+    text-shadow: 0px 0px 4px var(--bgTextShade);
+    
+}
+
+#liquidwallet .material-symbols-outlined {
+    font-size: inherit;
 }
 
 
+/**
+*   An element that normally is not clickable
+*/
 
+#liquidwallet .disablePointerEvents {
+    pointer-events: none;
+}
 
+/**
+*   An element that becomes clickable
+*/
+#liquidwallet .disablePointerEvents.clickable {
+    pointer-events: auto;
+}
 
-
-#liquidwallet #container .asset {
-    text-align: center;
-    width: max(26vw, 15rem);
+#liquidwallet .disabled {
+    pointer-events: none!important;
+    filter: grayscale(0.9);
 }
 
 
-#liquidwallet #container .list .asset>.balanceCnt {
-    text-align: center;
-
-}
-
-#liquidwallet #container .list .asset .balance {
-    font-weight: bold;
-    font-size: 1.4rem;
-}
-
-#liquidwallet #container>.list>.listItem .big {
-    max-width: 5rem;
-
-}
-
-#liquidwallet #container .title {
-    font-size: 140%;
-    font-weight: bold;
-}
-
-#liquidwallet #container .sub {
-    font-style: italic;
-    font-size: 1rem;
-
-}
-
-#liquidwallet #container .list .asset .balanceAltCnt>* {
-    padding-left: 0.3rem;
-    padding-right: 0.3rem;
-    display: inline-block;
-}
-
-#liquidwallet #container .list .asset {
+/**
+*   The header
+*/
+#liquidwallet #header {
+    width: 100%;
     background-color: var(--bgColor3);
+    font-size: 2rem;
+    padding: 1rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 2rem !important;
+color: var(--fgColor3);
+font-weight: bold;
 
 }
 
+#liquidwallet #header>*:first-child{
+    margin-right:2rem;
+}
+
+/**
+*   The last icon
+*/
+#liquidwallet #header>*:last-child {
+    margin-left: auto;   
+}
+
+/**
+* The main container
+*/
+#liquidwallet #container {
+    display: flex;
+    flex-direction: column;
+    padding: 0.2rem;
+
+    margin-top:2rem;
+}
+
+#liquidwallet #container.h{
+    flex-direction: row;
+
+}
+
+
+
+/**
+*   An icon
+*/
+
+#liquidwallet #container .iconCnt.big .icon {
+    max-width: 3rem;
+    font-size:3rem;
+}
+
+/**
+*   A button
+*/
+#liquidwallet #container button {
+    box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    border: none;
+    background-color: var(--bgColor3);
+    color: var(--fgColor2);
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    cursor: pointer;
+    padding: 1rem;
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+}
+
+#liquidwallet #container button.small{
+    box-shadow:none;
+    border-radius:8px;
+    padding:0.4rem;
+    padding-left:1rem;
+    padding-right:1rem;
+    font-size:0.8rem;
+}
+
+/**
+*   A list of buttons that fill their parent horizontally
+*/
+#liquidwallet #container .buttons.fill {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.6rem;
+    filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
+}
+
+/**
+*   A button with an icon
+*/
+#liquidwallet #container button.withIcon {
+    display: flex;
+    flex-direction: column;
+    margin: 0.3rem;
+    padding: 1rem !important;
+}
+
+/**
+*   The icon of a button with an icon
+*/
+#liquidwallet #container button.withIcon .icon {
+    margin-bottom: 0rem;
+    font-size: 3rem;
+}
+
+
+
+/**
+*   A text that is too long
+*/
+#liquidwallet .toolong {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/**
+*   A semitransparent cover that blends in the background
+*/
 #liquidwallet #container .cover {
     width: 100%;
     height: 100%;
@@ -66,70 +254,391 @@
     pointer-events: none;
     background-repeat: no-repeat;
     background-size: 140%;
-    /* Resize the background image */
     background-position: 120% center;
-    /* Position the background image */
     filter: blur(40px);
-    opacity: 0.7;
-    /* Apply blur */
+    opacity: 0.8;
 }
 
+/**
+*   A list of items
+*/
+#liquidwallet #container .list {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+
+}
+
+/**
+*   An horizontal list
+*/
+#liquidwallet #container .list.h {
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+}
+
+
+
+/**
+*   A list with a scroller
+*/
+#liquidwallet #container .list.outscroll{
+    flex-wrap: nowrap;
+        flex-shrink: 0;
+}
+
+/**
+*   An item of a list with a scroller
+*/
+#liquidwallet #container .list.outscroll > *{
+    flex-shrink: 0;
+}
+
+/**
+*   An horizontal list with a scroller that needs to scroll
+*/
+#liquidwallet #container .list.h.outscroll.outside {
+    justify-content: flex-start;
+}
+
+/**
+*   An horizontal list with a scroller
+*/
+
+#liquidwallet #container .list.h.outscroll{
+        overflow-x: auto;
+        overflow-y: hidden;
+}
+
+/**
+*   A vertical list
+*/
+#liquidwallet #container .list.v {
+    max-width: 100%;
+    /* width:100%; */
+    min-width: 100%;
+        justify-content: center;
+            align-items: center;
+}
+
+/**
+*   A vertical list with a scroller
+*/
+#liquidwallet #container .list.v.outscroll{
+        overflow-y: auto;
+                overflow-y: hidden;
+}
+
+
+
+/**
+*   A main list of items
+*/
+#liquidwallet #container .list.main{
+    padding-top:1rem;
+        padding-bottom: 1rem;
+    padding-left:0.6rem;
+    padding-right:0.6rem;
+
+}
+
+/**
+*   An item of a list
+*/
+#liquidwallet #container .list>* {
+    /* display: flex; */
+        align-items: stretch;
+    /* padding:0; */
+    margin:0.2rem;
+    
+}
+
+/**
+*   An item of a vertical list
+*/
+#liquidwallet #container .list.v > * {
+   
+}
+
+/**
+*   An item of a main list 
+*   (Adds some extra styling to make it standout)
+*/
+#liquidwallet #container .list.main>* {
+    border-radius: 14px;
+    box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
+    margin:0.3rem;
+    padding:0.6rem;
+    
+}
+
+
+
+/* Alignments */
+#liquidwallet #container .list.h.left,
+#liquidwallet #container .list.h.left>* {
+    justify-content: flex-start;
+
+}
+
+#liquidwallet #container .list.v.left,
+#liquidwallet #container .list.v.left > * {
+    align-items: flex-start;
+}
+
+.left{
+    text-align: left;
+}
+
+.center{
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+}
+
+.right{
+    text-align: right;
+}
+
+.fillw{
+   min-width:100%;
+    flex-wrap: nowrap;
+    display: flex;
+        
+}
+
+#liquidwallet #container .list.fillw>*{
+    flex-shrink: 0;
+    flex-grow:1;
+}
+
+#liquidwallet #container .list.h.fillw{
+    /* flex-direction: row; */
+        
+        justify-content: stretch;
+        /* justify-content: stretch; */
+}
+
+#liquidwallet #container .list.v.fillw{
+    /* flex-direction: column; */
+        /* align-items: stretch; */
+        align-items: stretch;
+
+}
+
+#liquidwallet #container .buttons {
+    /* padding: 0.6rem; */
+    filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
+}
 
  
-
-
-
-#liquidwallet #container>.list>.listItem>* {
-    margin: 0.4rem;
+select,
+input {
+    padding: 1rem !important;
+    background-color: var(--bgColor3);
+    color: var(--fgColor2);
+    border-radius: 14px;
+    text-align: center;
+    font-weight: bold;
+    border:none;
+    margin:1rem;
+    box-shadow: 0px -2px 2px rgba(0, 0, 0, 0.3);
 }
 
 
-#liquidwallet #container .list.fill {
-    width: 100%;
+
+
+
+.sub,.small{
+    font-size:0.8rem;
 }
 
-#liquidwallet #container .list.fill.h>*:last-child {
-    margin-left: auto;
+.sub{
+    font-style: italic;
 }
 
-#liquidwallet #container>.list .asset .labelCnt {
+.smaller {
+    font-size: 0.5rem;
+}
+
+.title{
+    font-weight: bold;
+    font-size:1.2rem;
+}
+
+.titleBig{
+    font-weight: bold;
+        font-size: 5rem;
+}
+
+/**
+*   An icon container
+*/
+#liquidwallet .iconCnt {
     display: flex;
-    flex-direction: column;
-
-}
-
-#liquidwallet #container .iconCnt {
-    filter: drop-shadow(1px 1px 8px rgba(0, 0, 0, 0.226));
-    margin-right: 1rem;
-}
-
-
-#liquidwallet #container #balanceSumCnt {
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+#liquidwallet h1 {
     font-weight: bold;
-    margin: 1rem;
-
-}
-
-#liquidwallet #container #balanceSumCnt .balanceSum {
-    font-size: 4rem;
-    margin: 0.5rem;
-    margin-top: 2rem;
-}
-
-#liquidwallet #container .balanceSumAltCnt {
-    width: 100%;
-    font-size: 1.4rem;
+    text-shadow: 0px -2px 1px var(--colorShadow);
+    font-size:1.6rem;
     text-align: center;
-    font-weight: normal;
+    width: 100%;
+    text-transform: uppercase;
+    padding:2rem;
+    padding-bottom:1rem;
+    color:var(--bgColor3);
+    
 }
 
 
 
+#liquidwallet .select .selection{
+    width:100%;
+    text-align: center;
+}
+
+#liquidwallet .select .expand{
+    font-size:3rem;
+    font-weight: bold;
+    padding:0;
+}
  
+#liquidwallet .popup{
+    width:90vw;
+    display: flex;    
+    background: var(--bgColor3);
+    height:min(80vh,50rem);
+    overflow-y: auto;
+    z-index:99;
+    flex-direction: column;
+    position:fixed;
+    bottom:0vh;
+    border-radius: 6px;
+    right:calc(5vw);
+    justify-content: flex-start!important;
+    align-items: stretch!important;
+    backdrop-filter: blur(6px);
+    padding:1rem;
+    
+    filter: drop-shadow(6px 6px 6px var(--bgColor3));
+
+}
+#liquidwallet .popup.landscape {
+    right:10vw;
+    height:70vh;
+    bottom:10vh;
+    width:80vw;
+}
+#liquidwallet .popup > *{
+    flex-shrink: 0;
+    margin:0.5rem!important;
+
+}
+
+#liquidwallet #container .popupSelect h1{
+    color:var(--bgColor2);
+}
+
+#liquidwallet #container .popupContainer.popupOpen > *:not(.popup){
+    filter: blur(3px) grayscale(0.4);
+
+}
+#liquidwallet #container .popup.popupSelect  button{
+    width:auto;
+}
+#liquidwallet #container .popupSelect button{
+    justify-content: flex-start;
+    flex-direction: row;
+        align-items: center;
+        height:4rem;
+        width: 100%;
+}
+
+#liquidwallet #container .popupSelect button .iconCnt{
+    margin:0;
+    padding:0;
+    width:2rem;
+    margin-right:1rem;
+    /* position: absolute;
+    left:1rem; */
+}
+#liquidwallet #container .popupSelect button .secondaryLabel{
+    margin-left:auto;
+}
+
+#liquidwallet div.warning{
+    padding: 1.2rem;
+        font-size: 0.8rem;
+        text-align: center;
+        border: 1px dotted var(--bgColor3);
+        border-radius: 6px;
+        margin: 1rem!important;
+        margin-right: 1rem!important;
+        margin-left: 1rem!important;
+        margin-left: 2rem!important;
+        margin-right: 2rem!important;
+        color: var(--bgColor3);
+}
+#liquidwallet div.error {
+    padding: 1.2rem;
+    font-size: 0.8rem;
+    text-align: center;
+    border: 1px dotted var(--error);
+    border-radius: 6px;
+    margin: 1rem !important;
+    margin-right: 1rem !important;
+    margin-left: 1rem !important;
+    margin-left: 2rem !important;
+    margin-right: 2rem !important;
+    color: var(--error);
+}
+
+#liquidwallet #header .cover{
+    width:100%;
+    height:100%;
+    position:absolute;
+    top:0;
+    left:0;
+            background-size: cover;
+            background-position: 50% 80%;
+            filter: blur(50px);
+            opacity: 0.8;
+}
 
 
+#liquidwallet > #logo{
+    position: fixed;
+    width:100%;
+    height:100%;
+    top:0;
+    left:0;
+    background-color: var(--bgColorShade);
+}
+#liquidwallet>#logo .cover{
+display: block;
+    width: min(80vw, 512px);
+    height: min(80vw, 512px);
+    position: absolute;
+    top: min(calc(50vh - min(40vw, 256px)));
+    left: min(calc(50vw - min(40vw, 256px)));
+    z-index: 99;
+    filter: drop-shadow(0px 0px 500px var(--bgColor3));
 
+
+            background-size: contain;
+            background-position:center;
+            background-repeat: no-repeat;
+}
+
+#liquidwallet .enforceSmallWidth{
+    width:5rem;
+}
+
+#liquidwallet .sep.v{
+    margin-top:2rem!important;
+    min-width: 1px;
+}
