@@ -36,12 +36,18 @@ module.exports = {
             Buffer: ['buffer', 'Buffer'],
         }),
         new HtmlWebpackPlugin({
-            template: './src/html/index.html',
-            filename: 'index.html', 
+            template: './src/html/app.html',
+            filename: 'app.html', 
         }),
         new CopyWebpackPlugin({
             patterns: [
                 { from: './src/static', to: 'static' },
+                {
+                    from: './src/html', to: './',
+                    globOptions: {
+                        ignore: ['**/app.html'], // This line excludes index.html
+                    },
+                }
             ],
         }),
     ],

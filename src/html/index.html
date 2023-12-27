@@ -1,23 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
-<meta name="viewport"
-    content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-<link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <title>Liquid Alby</title>
-    <link rel="stylesheet" href="static/style.css">
-    <link rel="stylesheet" href="static/loadingeffect.css">
-    <link rel="stylesheet" href="static/stage/wallet.css">
-    <link rel="stylesheet" href="static/stage/receive.css">
-    <link rel="stylesheet" href="static/stage/send.css">
+    <title></title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            /* Dark background */
+            color: #fff;
+            /* Light text */
+        }
 
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #555;
+            /* Darker button background */
+            color: #fff;
+            /* Light text */
+            border: none;
+            /* Remove default button border */
+        }
+    </style>
+    <script>
+        function openPopupLandscape() {
+            window.open('/app.html', '_blank', 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=900,height=600,screenX=200,screenY=200');
+        }
+
+        function openPopupPortrait() {
+            window.open('/app.html', '_blank', 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=500,height=800,screenX=200,screenY=200');
+        }
+
+        function openBlank() {
+            window.open('/app.html', '_blank');
+        }
+    </script>
 </head>
 
 <body>
-    <div id="liquidwallet"></div>
+    <button onclick="openPopupLandscape()">Open in Landscape Popup</button>
+    <button onclick="openPopupPortrait()">Open in Portrait Popup</button>
+    <button onclick="openBlank()">Open in New Tab</button>
 </body>
 
 </html>
