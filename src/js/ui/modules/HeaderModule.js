@@ -11,12 +11,19 @@ export default class HeaderModule extends UIModule {
     }
   
     onLoad(stage, stageContainerEl, walletEl, lq, ui) {
-        const headerEl = Html.$(walletEl, "#header").setPriority(-30);
-        Html.$icon(headerEl, "#logo").setValue("wallet")
+        const headerEl = Html.$hlist(walletEl, "#header").setPriority(-30);
+        headerEl.setCover("static/icons/lwheader.png")
+        // Html.$icon(headerEl, "#logo").setSrc("static/icons/lw.png")
         Html.$text(headerEl, "#title").setValue("TBD Liquid Wallet");
-        Html.$icon(headerEl, "#optionsBtn").setValue("settings").setAction(() => {
-            ui.setStage("options");
-        });
+        if (stage.getName()!="wallet") {
+            Html.$icon(headerEl, "#optionsBtn").setValue("arrow_back").setAction(() => {
+                ui.setStage("wallet");
+            });
+        }else{
+            Html.$icon(headerEl, "#optionsBtn").setValue("settings").setAction(() => {
+                ui.setStage("options");
+            });
+        }
     }
 
 }

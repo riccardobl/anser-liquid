@@ -18,6 +18,8 @@
  *      HeaderModule.js is for the module "header"
  */
 
+import Constants from "../Constants.js";
+import BrowserStore from "../storage/BrowserStore.js";
 export default class UI{
     static STAGES=[];
     static registerStage(stageName){ 
@@ -28,6 +30,12 @@ export default class UI{
         }));
     }
 
+    static THEMES={};
+    static registerTheme(themeName){
+        const fullPath="/static/theme/"+themeName+".css";
+        UI.THEMES[themeName]=fullPath;        
+    }
+
     static MODULES=[];
     static registerModule(moduleName){ 
         moduleName=moduleName[0].toUpperCase()+moduleName.slice(1);
@@ -35,6 +43,14 @@ export default class UI{
             const module = new Module();
            return module;       
         }));
+    }
+
+
+    async storage(){
+        if(!this.store){
+            this.store=await BrowserStore.fast("preferences");
+        }
+        return this.store;
     }
 
     exportApi(window,lq){
@@ -56,7 +72,8 @@ export default class UI{
     }
 
     reload(){
-        this.setStage(this.stage);
+        
+        this.setStage(this.stage.getName());
     }
 
     useBrowserHistory(){
@@ -70,8 +87,43 @@ export default class UI{
         });
         
     }
+
+    async _reloadTheme(){
+        let themePath = await this.getCurrentTheme();
+        themePath = "/static/theme/"+themePath+".css";
+        let cssEl=document.head.querySelector("link#liquidwalletTheme");
+        if (!cssEl){
+            cssEl=document.createElement("link");
+            cssEl.id="liquidwalletTheme";
+            cssEl.rel="stylesheet";
+            cssEl.type="text/css";
+            document.head.appendChild(cssEl);
+        }
+        if(cssEl.href!==themePath){
+            cssEl.href=themePath;
+        }            
+
+    }
+
+    listThemes(){
+        return Object.keys(UI.THEMES);
+    }
+
+    async getCurrentTheme(){
+        return (await (await this.storage()).get("theme")) || Constants.DEFAULT_THEME;
+    }
+
+    async setTheme(themeName){
+        if (UI.THEMES[themeName]){
+            await (await this.storage()).set("theme",themeName);
+        }
+        await this._reloadTheme();
+    }
     
     async setStage(stageName){
+        console.log("Load ", stageName);
+        await this._reloadTheme();
+
         const stages=await Promise.all(UI.STAGES);
         const modules = await  Promise.all(UI.MODULES);
         let stage;
@@ -124,3 +176,10 @@ UI.registerStage("send");
 UI.registerStage("receive");
 UI.registerModule("header");
 UI.registerModule("clarity");
+UI.registerModule("logo");
+
+
+UI.registerTheme("seagoose");
+UI.registerTheme("deepoceanduck");
+UI.registerTheme("spacequack");
+UI.registerTheme("bitcoindark");

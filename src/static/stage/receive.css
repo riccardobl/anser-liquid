@@ -1,7 +1,7 @@
 
 #liquidwallet #container.receive.stage .invoiceQr{
     padding:1rem;
-    background: var(--assetColor);
+    background: var(--bgColor3);
         border-radius: 15px;
 }
 

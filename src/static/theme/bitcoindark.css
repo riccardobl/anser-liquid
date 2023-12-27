@@ -1,0 +1,30 @@
+:root {
+    --bgColor: #000000;
+    /* Black */
+    --bgColor2: #1a1a1a;
+    /* Dark Grey */
+    --bgColor3: #1a1a1a;
+    /* Dark Grey */
+    --colorShadow: rgba(33, 33, 33, 0.575);
+    /* Dark Shadow */
+    --fgColor: #f7931a;
+    /* Bitcoin Orange */
+    --fgColor2: #f7931a;
+    /* Bitcoin Orange */
+    --fgColor3: #ffffff;
+    /* White */
+    --bgColorShade: rgba(0, 0, 0, 1);
+    /* Black */
+    --bgTextShade: rgba(107, 107, 107, 0.349);
+    /* Grey Text Shade */
+    --error: #FF0000;
+    /* Red for Errors */
+}
+#liquidwallet #container .asset .cover{
+        filter: blur(20px) grayscale(0.4) brightness(0.6);
+            opacity: 0.4;
+}
+
+#liquidwallet #header .cover {
+    opacity: 0.4;
+}

@@ -5,28 +5,49 @@ export default class ReceiveStage extends UIStage {
     constructor() {
         super("receive");
     }
-    async renderReceive(stageCntEl, lq) {
-        let INPUT_AMOUNT = 0;
-        let ASSET_HASH = await lq.getBaseAsset();
-        let ASSET_INFO = await lq.getBaseAssetInfo();
+    async renderReceive(stageCntEl, lq, ui) {
+        const network = await lq.getNetworkName();
+        const store = await ui.storage();
+        const primaryCurrency = await store.get(`primaryCurrency${network}`) || lq.getBaseAsset();
+        const secondaryCurrency = await store.get(`secondaryCurrency${network}`) || "USD"
 
+
+        let ASSET_HASH = primaryCurrency
+        let ASSET_INFO = await lq.assets().getAssetInfo(primaryCurrency);
+        let INPUT_AMOUNT = 0;
+
+        let SECONDARY_CURRENCY = secondaryCurrency;
+        let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
 
         const c01El = Html.$vlist(stageCntEl, "#c01", ["fillw"]);
         const c02El = Html.$vlist(stageCntEl, "#c02", ["fillw"]).grow(100);
+
+        // @@@@@@@@@@@@@@@@@@@@@@@@@
+        // @@@@ ASSET SELECTION @@@@
+        // @@@@@@@@@@@@@@@@@@@@@@@@@
+        const assetInputEl = Html.$inputSelect(c01El, "#asset");
+        Html.$vsep(c01El, "#sep1");
 
         // @@@@@@@@@@@@
         // @@@@ QR @@@@
         // @@@@@@@@@@@@
         const qrContainerEl = Html.$hlist(c01El, "#invoice",["center"]);
+
+        const warningRowEl = Html.$vlist(c01El, "#warningNetwork", ["fillw", "warning"]);
+        warningRowEl.setValue(`
+        <span>
+        Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network. 
+        </span>
+                `, true);
         
         // @@@@ @@@@@@@@@@@@@@@@@@@@@ @@@@
         // @@@@ ADDRESS @ COPY_BUTTON @@@@
         // @@@@ @@@@@@@@@@@@@@@@@@@@@ @@@@
         // addr
         const addrContainerEl = Html.$hlist(c02El, "#addr", [ "fillw"]);
-        // button
+        // copy
         const addrEl = Html.$inputText(addrContainerEl, ".addr").grow(100);
-        Html.$icon(addrContainerEl,".copy").setValue("content_copy").setAction(()=>{
+        Html.$icon(addrContainerEl, ".copy", ["enforceSmallWidth"]).setValue("content_copy").setAction(()=>{
             navigator.clipboard.writeText(addrEl.getValue());
             alert("copied");
         }).shrink(100);
@@ -35,77 +56,84 @@ export default class ReceiveStage extends UIStage {
         // @@@@@@@@@@@@@@@@@@@@@@@@
         // @@@@ TITLE_SETTINGS @@@@
         // @@@@@@@@@@@@@@@@@@@@@@@@
-        Html.$title(c02El, "#amountTitle").setValue("Invoice Settings");
+        // Html.$title(c02El, "#amountTitle").setValue("Invoice Settings");
 
         // @@@@@@@@@@@@@@@@@@@@@@@
         // @@ AMOUNT @ CURRENCY @@
         // @@@@@@@@@@@@@@@@@@@@@@@
-        const amountCntEl = Html.$hlist(c02El, "#amountCnt", ["fillw"]);
-        // amount
-        Html.$text(amountCntEl, ".label").setValue("Amount: ");
-        const amountInputEl = Html.$inputNumber(amountCntEl, ".amountInput").grow(50).setPlaceHolder("0.00");
-        //currency
-        const currencySelector = Html.$inputSelect(amountCntEl, ".currencySelect").setPreferredValues([ASSET_HASH, "L-BTC", "USD"]);
+        Html.$vsep(c02El, "#sep2");
+        // Html.$text(c02El, ".label").setValue("Amount: ");
+
+        const amountPrimaryRow = Html.$hlist(c02El, "#amountCnt", ["fillw"]);
+        const amountPrimaryEl = Html.$inputNumber(amountPrimaryRow, ".amountInput").grow(50).setPlaceHolder("0.00");
+        const tickerEl = Html.$text(amountPrimaryRow, ".asset", ["center", "enforceSmallWidth"]).grow(5);
        
+        const amountSecondaryRow = Html.$hlist(c02El, "#amountCntS", ["fillw"]);
+        const amountSecondaryEl = Html.$inputNumber(amountSecondaryRow, ".amountInput").grow(50).setPlaceHolder("0.00");
+        const tickerEl2 = Html.$text(amountSecondaryRow, ".asset", ["center", "enforceSmallWidth"]).grow(5);
 
-        // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        // @@@@@@@@@@@@@@@@@ CONVERSION_PRIMARY / CCONVERSION SECONDARY @@
-        // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        const conversionRateCntEl = Html.$hlist(c02El, "#conversionRateCnt", ["fillw"]);
-        Html.$sep(conversionRateCntEl, ".spacer").grow(100);
-        const conversionRatePrimaryEl=Html.$text(conversionRateCntEl, ".conversionRatePrimary", ["sub"]).setValue("0.00");
-        Html.$sep(conversionRateCntEl, ".spacer2").setValue("/");
-        const conversionRateSecondaryEl=Html.$text(conversionRateCntEl, ".conversionRateSecondary", ["sub"]).setValue("0.00");
-
-        // dummy network selection (only current network is supported)
-        const netEl = Html.$hlist(c02El, "#net", ["fillw"]);
-        Html.$text(netEl, ".network").setValue("Network: ");
-        Html.$inputSelect(netEl, ".networkValue").grow(100).addOption(await lq.getNetworkName(), await lq.getNetworkName());
-
-
+       
+      
         
-        const updateInvoice = async () => {
+        const _updateInvoice = async () => {
             if (!ASSET_HASH || !ASSET_INFO) return; // if unset do nothing
-            let amount = await lq.v(INPUT_AMOUNT, ASSET_HASH).int(ASSET_HASH); // compute int value
-            const { addr, qr } = await lq.receive(amount, ASSET_HASH); // create invoice 
+            const { addr, qr } = await lq.receive(INPUT_AMOUNT, ASSET_HASH); // create invoice 
             Html.$img(qrContainerEl, ".qr", ["invoiceQr"]).setSrc(qr); // show qr
             addrEl.setValue(addr); // show copyable address
 
-            // compute conversion rates
-            lq.v(amount, ASSET_HASH).human(lq.getBaseAsset()).then((primaryRate)=>{
-                conversionRatePrimaryEl.setValue(primaryRate);
+            
 
-            });
-            lq.v(amount, ASSET_HASH).human("USD").then((secondaryRate) => {
-                conversionRateSecondaryEl.setValue(secondaryRate);
+            
 
-            });
+            
 
             
 
         }
 
+        amountPrimaryEl.setAction(async (primaryValue) => {
+            if (!primaryValue) primaryValue = 0;
+            const primaryValueInt = await lq.v(primaryValue, ASSET_HASH).int(ASSET_HASH);
+            INPUT_AMOUNT = primaryValueInt;
 
-
-        // on amount change
-        amountInputEl.setAction((value) => {
-            INPUT_AMOUNT = value;
-            updateInvoice();
+            const secondaryValueFloat = await lq.v(primaryValueInt, ASSET_HASH).float(SECONDARY_CURRENCY);
+            amountSecondaryEl.setValue(secondaryValueFloat, true);
+         
+            _updateInvoice();
         });
 
-        // load currencies async and list for changes
+        amountSecondaryEl.setAction(async (secondaryValue) => {
+            if (!secondaryValue) secondaryValue = 0;
+            const secondaryValueInt = await lq.v(secondaryValue, SECONDARY_CURRENCY).int(SECONDARY_CURRENCY);
+            const primaryValueFloat = await lq.v(secondaryValueInt, SECONDARY_CURRENCY).float(ASSET_HASH);
+
+            amountPrimaryEl.setValue(primaryValueFloat, true);
+            
+            _updateInvoice();
+        });
+
+        tickerEl.setValue(ASSET_INFO.ticker);
+        tickerEl2.setValue(SECONDARY_INFO.ticker);
+         // load currencies async and list for changes
         lq.getPinnedAssets().then((assets) => { 
             for (const asset of assets) {
-                asset.info.then(info => {
-                    currencySelector.addOption(asset.hash, info.ticker, (value) => {
+                lq.assets().getAssetInfo(asset.hash).then(info => {
+            
+                    const optionEl=assetInputEl.addOption(asset.hash, info.ticker, async (value) => {
                         ASSET_HASH = value;
-                        updateInvoice();
+                        ASSET_INFO = await lq.assets().getAssetInfo(value);
+                        tickerEl.setValue(ASSET_INFO.ticker);
+                        tickerEl2.setValue(SECONDARY_INFO.ticker);
+                        _updateInvoice();
                     });
+                    lq.assets().getAssetIcon(asset.hash).then((icon) => {
+                        optionEl.setIconSrc(icon);
+                    });   
                 });
             }
         });
 
-        updateInvoice();
+        _updateInvoice();
 
  
 
@@ -114,7 +142,7 @@ export default class ReceiveStage extends UIStage {
     }
 
     onReload(walletEl, lq, ui) {
-        this.renderReceive(walletEl, lq);
+        this.renderReceive(walletEl, lq, ui);
 
     }
 

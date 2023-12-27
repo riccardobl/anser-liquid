@@ -1,0 +1,22 @@
+:root {
+    --bgColor: #ffffff;
+    /* White */
+    --bgColor2: #f2f2f2;
+    /* Light Grey */
+    --bgColor3: #f2f2f2;
+    /* Light Grey */
+    --colorShadow: rgba(200, 200, 200, 0.575);
+    /* Light Shadow */
+    --fgColor: #f7931a;
+    /* Bitcoin Orange */
+    --fgColor2: #f7931a;
+    /* Bitcoin Orange */
+    --fgColor3: #000000;
+    /* Black */
+    --bgColorShade: rgba(255, 255, 255, 1);
+    /* White */
+    --bgTextShade: rgba(107, 107, 107, 0.349);
+    /* Grey Text Shade */
+    --error: #FF0000;
+    /* Red for Errors */
+}

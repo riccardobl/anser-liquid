@@ -1,18 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap');
 
 :root {
-    --colorConfirmed: #D8F4EF;
-    /* Light Blue */
-    --colorPending: rgba(208, 236, 236, 0.575);
-    /* Pastel Turquoise */
+    --bgColor2: #D8F4EF;
     --colorShadow: rgba(120, 139, 138, 0.575);
-    /* Dark Blue */
     --bgColor: #F0FDFA;
-    /* Very Light Blue */
     --fgColor: #212121;
-    /* Ocean Green */
-    --assetColor: rgba(2, 107, 121, 0.568);
-
+    --fgColor2: #D8F4EF;
+    --fgColor3: #212121;
+    --bgColor3: rgba(2, 107, 121, 0.568);
+    --bgColorShade: rgba(2, 107, 121, 1);
+    --bgTextShade: rgba(107, 107, 107, 0.349);
+    --error: #FF0000;
 }
 
 * {
@@ -25,6 +23,38 @@
     overflow: hidden;
     flex-shrink: 1;
     word-wrap: break-word;
+}
+
+/* For Webkit browsers */
+#liquidwallet ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    /* width of the entire scrollbar */
+}
+
+#liquidwallet ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    /* color of the tracking area */
+}
+
+#liquidwallet ::-webkit-scrollbar-thumb {
+    background: var(--bgColor3);
+    /* color of the scroll thumb */
+    border-radius: 10px;
+    /* roundness of the scroll thumb */
+}
+
+#liquidwallet ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+    /* color of the scroll thumb when hovering */
+}
+
+/* For Firefox */
+#liquidwallet * {
+    scrollbar-width: thin;
+    /* "auto" or "thin"  */
+    scrollbar-color: var(--bgColor3) #f1f1f1;
+    /* scroll thumb and track */
 }
 
 body,
@@ -47,11 +77,16 @@ body {
 #liquidwallet {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    /* justify-content: space-between; */
+justify-content: flex-start;
     align-items: stretch;
-    min-height: 100%;
+    
+    height: fit-content;
+    min-height: 100%;;
+    
     width: 100%;
-    overflow-y: auto;
+    text-shadow: 0px 0px 4px var(--bgTextShade);
+    
 }
 
 #liquidwallet .material-symbols-outlined {
@@ -74,13 +109,18 @@ body {
     pointer-events: auto;
 }
 
+#liquidwallet .disabled {
+    pointer-events: none!important;
+    filter: grayscale(0.9);
+}
+
 
 /**
 *   The header
 */
 #liquidwallet #header {
     width: 100%;
-    background-color: var(--assetColor);
+    background-color: var(--bgColor3);
     font-size: 2rem;
     padding: 1rem;
     padding-right: 1rem;
@@ -90,7 +130,8 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 2rem !important;
-
+color: var(--fgColor3);
+font-weight: bold;
 
 }
 
@@ -112,7 +153,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 0.2rem;
-    margin-bottom: auto;
+
     margin-top:2rem;
 }
 
@@ -139,8 +180,8 @@ body {
     box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
     border-radius: 14px;
     border: none;
-    background-color: var(--assetColor);
-    color: var(--bgColor);
+    background-color: var(--bgColor3);
+    color: var(--fgColor2);
     font-weight: bold;
     font-size: 1rem;
     text-align: center;
@@ -395,8 +436,8 @@ body {
 select,
 input {
     padding: 1rem !important;
-    background-color: var(--assetColor);
-    color: var(--fgColor);
+    background-color: var(--bgColor3);
+    color: var(--fgColor2);
     border-radius: 14px;
     text-align: center;
     font-weight: bold;
@@ -449,5 +490,155 @@ input {
     text-transform: uppercase;
     padding:2rem;
     padding-bottom:1rem;
-    color:var(--assetColor);
+    color:var(--bgColor3);
+    
+}
+
+
+
+#liquidwallet .select .selection{
+    width:100%;
+    text-align: center;
+}
+
+#liquidwallet .select .expand{
+    font-size:3rem;
+    font-weight: bold;
+    padding:0;
+}
+ 
+#liquidwallet .popup{
+    width:90vw;
+    display: flex;    
+    background: var(--bgColor3);
+    height:min(80vh,50rem);
+    overflow-y: auto;
+    z-index:99;
+    flex-direction: column;
+    position:fixed;
+    bottom:0vh;
+    border-radius: 6px;
+    right:calc(5vw);
+    justify-content: flex-start!important;
+    align-items: stretch!important;
+    backdrop-filter: blur(6px);
+    padding:1rem;
+    
+    filter: drop-shadow(6px 6px 6px var(--bgColor3));
+
+}
+#liquidwallet .popup.landscape {
+    right:10vw;
+    height:70vh;
+    bottom:10vh;
+    width:80vw;
+}
+#liquidwallet .popup > *{
+    flex-shrink: 0;
+    margin:0.5rem!important;
+
+}
+
+#liquidwallet #container .popupSelect h1{
+    color:var(--bgColor2);
+}
+
+#liquidwallet #container .popupContainer.popupOpen > *:not(.popup){
+    filter: blur(3px) grayscale(0.4);
+
+}
+#liquidwallet #container .popup.popupSelect  button{
+    width:auto;
+}
+#liquidwallet #container .popupSelect button{
+    justify-content: flex-start;
+    flex-direction: row;
+        align-items: center;
+        height:4rem;
+        width: 100%;
+}
+
+#liquidwallet #container .popupSelect button .iconCnt{
+    margin:0;
+    padding:0;
+    width:2rem;
+    margin-right:1rem;
+    /* position: absolute;
+    left:1rem; */
+}
+#liquidwallet #container .popupSelect button .secondaryLabel{
+    margin-left:auto;
+}
+
+#liquidwallet div.warning{
+    padding: 1.2rem;
+        font-size: 0.8rem;
+        text-align: center;
+        border: 1px dotted var(--bgColor3);
+        border-radius: 6px;
+        margin: 1rem!important;
+        margin-right: 1rem!important;
+        margin-left: 1rem!important;
+        margin-left: 2rem!important;
+        margin-right: 2rem!important;
+        color: var(--bgColor3);
+}
+#liquidwallet div.error {
+    padding: 1.2rem;
+    font-size: 0.8rem;
+    text-align: center;
+    border: 1px dotted var(--error);
+    border-radius: 6px;
+    margin: 1rem !important;
+    margin-right: 1rem !important;
+    margin-left: 1rem !important;
+    margin-left: 2rem !important;
+    margin-right: 2rem !important;
+    color: var(--error);
+}
+
+#liquidwallet #header .cover{
+    width:100%;
+    height:100%;
+    position:absolute;
+    top:0;
+    left:0;
+            background-size: cover;
+            background-position: 50% 80%;
+            filter: blur(50px);
+            opacity: 0.8;
+}
+
+
+#liquidwallet > #logo{
+    position: fixed;
+    width:100%;
+    height:100%;
+    top:0;
+    left:0;
+    background-color: var(--bgColorShade);
+}
+#liquidwallet>#logo .cover{
+display: block;
+    width: min(80vw, 512px);
+    height: min(80vw, 512px);
+    position: absolute;
+    top: min(calc(50vh - min(40vw, 256px)));
+    left: min(calc(50vw - min(40vw, 256px)));
+    z-index: 99;
+    filter: drop-shadow(0px 0px 500px var(--bgColor3));
+
+
+            background-size: contain;
+            background-position:center;
+            background-repeat: no-repeat;
+}
+
+#liquidwallet .enforceSmallWidth{
+    width:5rem;
+}
+
+#liquidwallet .sep.v{
+    margin-top:2rem!important;
+    min-width: 1px;
 }

@@ -4,12 +4,11 @@
 
 
 #liquidwallet #container #history>*.confirmed {
-    background-color: var(--colorConfirmed);
+    background-color: var(--bgColor2);
 }
 
 #liquidwallet #container #history>* {
-
-    background-color: var(--colorPending);
+    filter: grayscale(100%);
 }
 
 
@@ -56,7 +55,7 @@
 }
 
 #liquidwallet #container .list .asset {
-    background-color: var(--assetColor);
+    background-color: var(--bgColor3);
 
 }
 

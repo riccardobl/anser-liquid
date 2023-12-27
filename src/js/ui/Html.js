@@ -78,6 +78,7 @@ export default class Html{
 
         el.setPriority=(priority)=>{
             el.style.order=priority;
+            el.triggerRefresh();
             return el;
         }
         el.grow=(value)=>{
@@ -86,12 +87,26 @@ export default class Html{
         }
         el.shrink=(value)=>{
             el.style.flexShrink=value;
+            el.triggerRefresh();
             return el;
         };
+
+        el.disable=()=>{
+            el.classList.add("disabled");
+            el.triggerRefresh();
+            return el;
+        }
+
+        el.enable=()=>{
+            el.classList.remove("disabled");
+            el.triggerRefresh();
+            return el;
+        }
 
         el.commitUpdate=()=>{
             const refreshId=el.parentElement.getAttribute("refresh-id");
             el.setAttribute("refresh-id", refreshId);
+            el.triggerRefresh();
             return el;
         }
 
@@ -102,6 +117,7 @@ export default class Html{
             }else{
                 el.textContent=value;
             }
+            el.triggerRefresh();
             return el;
         }
         
@@ -114,12 +130,37 @@ export default class Html{
             el.$$$.clickCallback = callback;
             el.addEventListener("click",callback);
             el.classList.add("clickable");
-
+            el.triggerRefresh();
             return el;
         }
 
+        el.setOnRefresh=(callback)=>{
+            el.$$$.onChangeCallback = callback;
+            el.triggerRefresh();
+            return el;
+        }
+
+        el.triggerRefresh=()=>{
+            if(el.$$$.onChangeCallback){
+                el.$$$.onChangeCallback();
+            }
+        }
 
 
+        el.hide=()=>{
+            if (!el.$$$.previousStyleDisplay){
+                el.$$$.previousStyleDisplay = el.style.display ? el.style.display:"flex";
+            }
+            el.style.display="none";
+        }
+        el.show=()=>{
+            if (el.$$$.previousStyleDisplay){
+                el.style.display=el.$$$.previousStyleDisplay;
+            }else{
+                el.style.display="flex";
+            }
+            el.$$$.previousStyleDisplay=undefined;
+        }
 
 
         
@@ -142,7 +183,7 @@ export default class Html{
      */
     static $(parentEl, directSelector, classes = [], type = "div", prepend=false){
         
-        let el = parentEl.querySelector(directSelector);
+        let el = parentEl?parentEl.querySelector(directSelector):undefined;
         if(!el){
             el=document.createElement(type);
             if(directSelector.startsWith("#")){
@@ -150,13 +191,15 @@ export default class Html{
             }else if(directSelector.startsWith(".")){
                 el.classList.add(directSelector.substr(1));
             }
-            if(parentEl.$$$&&parentEl.$$$.isList){
-                parentEl.addItem(el,1);
-            }else{
-                if(prepend){
-                    parentEl.prepend(el);
+            if (parentEl){
+                if(parentEl.$$$&&parentEl.$$$.isList){
+                    parentEl.addItem(el,1);
                 }else{
-                    parentEl.appendChild(el);
+                    if(prepend){
+                        parentEl.prepend(el);
+                    }else{
+                        parentEl.appendChild(el);
+                    }
                 }
             }
             el.classList.add("loading");
@@ -294,9 +337,18 @@ export default class Html{
     }
 
     static $sep(parent,directSelector,classes=[]){
-        return this.$(parent, directSelector , classes, "span");
+        const el= this.$(parent, directSelector , ["sep",...classes], "span");
+        el.classList.add("sep");
+        return el;
     }
 
+    static $vsep(parent,directSelector,classes=[]){
+        const el = this.$(parent, directSelector , classes, "span");
+        el.classList.add("v");
+        el.classList.add("sep");
+
+        return el;
+    }
 
     static $hlist(parent,directSelector,classes=[]){
         const l=this.$list(parent,directSelector,classes);       
@@ -398,6 +450,7 @@ export default class Html{
             }            
             materialIconEl.classList.remove("loading");
             materialIconEl.innerText=value;
+            iconCntEl.triggerRefresh();
             return iconCntEl;
         }
         iconCntEl.setSrc=(src)=>{
@@ -408,6 +461,7 @@ export default class Html{
             }
             iconImgEl.classList.remove("loading");
             iconImgEl.src=src;
+            iconCntEl.triggerRefresh();
             return iconCntEl;
         }
         return iconCntEl;
@@ -420,22 +474,42 @@ export default class Html{
 
         el.setPlaceHolder = (placeholder) => {
             el.placeholder = placeholder;
+            el.triggerRefresh();
             return el;
         };
         el.setAction = (callback) => {
             el.$$$.onChangeCallback = callback;
-             
+            el.triggerRefresh();
             return el;
         };
-        el.setValue = (value) => {
-            el.value = value;
+        el.setValue = (value,silent=false) => {
+            
+            if (silent) { // set value without triggering callback
+                const cs = (ev) => {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                };
+                el.addEventListener("input", cs, { once: true });
+                el.value = value;
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        el.removeEventListener("input", cs);
+                    });
+                });
+            } else {
+                el.value = value;
+                if (el.$$$.onChangeCallbakWrapper) {
+                    el.$$$.onChangeCallbakWrapper();
+                }
+            }
+            el.triggerRefresh();
             return el;
         };
         el.getValue = () => {
             return el.value;
         };
         if (el.$$$.onChangeCallbakWrapper) {
-            el.removeEventListener("change", el.$$$.onChangeCallbakWrapper);
+            el.removeEventListener("input", el.$$$.onChangeCallbakWrapper);
         }
         el.$$$.onChangeCallbakWrapper = () => {
             if (el.$$$.onChangeCallbackScheduledTimeout) {
@@ -458,10 +532,11 @@ export default class Html{
                 this.$0(el,".icon");
                 el.classList.remove("withIcon");
             }else{
-                const iconEl=this.$icon(el,".icon",["buttonIcon"],true);
+                const iconEl = this.$icon(el,".buttonIcon",["icon"],true);
                 iconEl.setValue(value);
                 el.classList.add("withIcon");
             }
+            el.triggerRefresh();
             return el;
         };
         el.setIconSrc=(src)=>{
@@ -469,10 +544,12 @@ export default class Html{
                 this.$0(el,".icon");
                 el.classList.remove("withIcon");
             }else{
-                const iconEl=this.$icon(el,".icon",["buttonIcon"],true);
+                console.log("Set icon src",src)
+                const iconEl = this.$icon(el,".buttonIcon",["icon"],true);
                 iconEl.setSrc(src);
                 el.classList.add("withIcon");
             }
+            el.triggerRefresh();
             return el;
         };
         return el;
@@ -483,29 +560,61 @@ export default class Html{
         const el = this.$(parent, directSelector , classes, "input");
         el.type="number";
         el.classList.add("clickable");
+        
+        el.min = 0;
 
         el.setPlaceHolder = (placeholder) => {
             el.placeholder = placeholder;
+            el.triggerRefresh();
             return el;
         };
         el.setAction = (callback) => {
-            el.$$$.onChangeCallback = callback;
-           
+            el.$$$.onChangeCallback = (v)=>{
+                v=Number(v);
+                callback(v);
+            }
+            el.triggerRefresh();
             return el;
         };
-        el.setValue = (value) => {
-            el.value = value;
+        el.setValue = (value, silent=false) => {
+            if(silent){ // set value without triggering callback
+                const cs = (ev) => {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                };
+                el.addEventListener("input", cs, { once: true });
+                // el.addEventListener("change", cs, { once: true });
+                el.value = value;
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        el.removeEventListener("input", cs);
+                        // el.removeEventListener("change", cs);
+                    });
+                });       
+              
+            }else{
+                el.value = value;
+                if (el.$$$.onChangeCallbakWrapper){
+                    el.$$$.onChangeCallbakWrapper();
+                }
+                el.triggerRefresh();
+
+            }
             return el;
         };
         el.getValue = () => {
             let v= Number(el.value);
-            if(isNaN(v)) return 0;
+            if(isNaN(v)){
+                return 0;  
+            } 
             return v;
         };
         if (el.$$$.onChangeCallbakWrapper) {
-            el.removeEventListener("change", el.$$$.onChangeCallbakWrapper);
+            el.removeEventListener("input", el.$$$.onChangeCallbakWrapper);
+            // el.removeEventListener("change", el.$$$.onChangeCallbakWrapper);
         }
-        el.$$$.onChangeCallbakWrapper = () => {
+        el.$$$.onChangeCallbakWrapper = (ev) => {
+
             if (el.$$$.onChangeCallbackScheduledTimeout) {
                 clearTimeout(el.$$$.onChangeCallbackScheduledTimeout);
             }
@@ -516,88 +625,341 @@ export default class Html{
             }, Constants.DEBOUNCE_CALLBACK_TIME);
         };
         el.addEventListener("input", el.$$$.onChangeCallbakWrapper);
-
+        // el.addEventListener("change", el.$$$.onChangeCallbakWrapper);
 
         return el;
     }
 
 
-    static $inputSelect(parent,directSelector,classes=[]){
-        const el = this.$(parent, directSelector , classes, "select");
+    static $inputSelect(parent, directSelector, classes = [], multiSelect=false) {
+        const el = this.$(parent, directSelector, ["popupSelect", ...classes], "div");
         el.classList.add("clickable");
 
-        const _selectPreferred=()=>{
-            if (!el.$$$.preferredValues)return;
-            for(const value of el.$$$.preferredValues){
+        let popupContainerEl = el;
+        while (popupContainerEl && !popupContainerEl.classList.contains("popupContainer")) {
+            popupContainerEl = popupContainerEl.parentElement;
+            if (!popupContainerEl) {
+                popupContainerEl = document.body;
+                break;
+            }
+        }
+
+
+        if (!el.$$$.popupId) {
+            el.$$$.popupId = "popupSelect" + Date.now() + Math.floor(Math.random() * 1000);
+        }
+
+        const btnEl = this.$button(el, ".selectBtn", ["fillw"]);
+    
+
+        el.deselectOption = (value) => {
+            const optionEl = el.$$$.selectOptions[value];
+            if (!optionEl) return false;
+            if (el.$$$.selected === value)  el.$$$.selected = undefined;
+            if (el.$$$.selectedOptions && el.$$$.selectedOptions[value]){
+                el.$$$.selectedOptions[value]=false;
+            }
+            if (multiSelect) {
+                let valueString = "";
+                for (const key in el.$$$.selectOptions) {
+                    const optionEl = el.$$$.selectOptions[key];
+                    if (el.$$$.selectedOptions[key]) {        
+                        valueString += el.$$$.selectLabels[key] + ", ";
+                    }
+                }
+
+                valueString = valueString.slice(0, -2);
                 
-                const optionEl=el.querySelector(`option[value="${value}"]`);
-                if (optionEl){
-                    optionEl.selected=true;
-                    optionEl.setAttribute("preferred",true);
-                    el.value=value; 
-                    
-                    if (el.$$$.onChangeCallbacks&&el.$$$.onChangeCallbacks[value])el.$$$.onChangeCallbacks[value](value);
+                Html.$text(btnEl, ".label").setValue(valueString);
+                Html.$text(btnEl, ".secondaryLabel").setValue("");
+
+            }  
+            if (multiSelect) {
+                el.$$$.selectActions[value](el.$$$.selectedOptions);
+            } else {
+                
+            }
+            el.triggerRefresh();
+            return optionEl;
+        };
 
 
-                    break;
+
+        el.selectOption = (value, forceRefresh=false) => {
+            if (!el.$$$.selectOptions) return;
+            const optionEl = el.$$$.selectOptions[value];
+            if (!optionEl) return false;
+            if(multiSelect){
+                if (!el.$$$.selectedOptions) el.$$$.selectedOptions=[];
+                el.$$$.selectedOptions[value]=true;
+                let valueString = "";
+                for (const key in el.$$$.selectOptions){
+                    const optionEl = el.$$$.selectOptions[key];
+                    // const toggleEl = optionEl.querySelector(".toggle");
+                    if (el.$$$.selectedOptions[key]){                       
+                    //     toggleEl.setValue("check_box_outline_blank");
+                    // }else{
+                    valueString += el.$$$.selectLabels[key]+", ";
+                    //     toggleEl.setValue("check_box");
+                    }
+                }
+                
+                valueString=valueString.slice(0,-2);
+                Html.$text(btnEl, ".label").setValue(valueString);
+                Html.$text(btnEl, ".secondaryLabel").setValue("");
+
+            }else{
+
+                if (el.$$$.selected === value && !forceRefresh) return;
+                el.$$$.selected = value;
+                optionEl.copyTo(btnEl);
+            }
+            this.$icon(btnEl, ".expand", []).setValue("arrow_drop_down");
+            el.triggerRefresh();
+            if(multiSelect){
+                el.$$$.selectActions[value](el.$$$.selectedOptions);
+            }else{
+                if (el.$$$.selectActions && el.$$$.selectActions[value]) {
+                    el.$$$.selectActions[value](value);
                 }
             }
+            return optionEl;
         }
-        el.addOption=(value, label, action=()=>{})=>{
-            let optionEl=el.querySelector(`option[value="${value}"]`);
-            if(!optionEl){
-                optionEl=document.createElement("option");
-                optionEl.value=value;
-                el.appendChild(optionEl);
+
+        const openPopup = () => {
+            el.classList.remove("clickable");
+            btnEl.classList.remove("clickable");
+            const popupOptionsEl = this.$vlist(popupContainerEl, "#" + el.$$$.popupId, ["popup", "popupSelect", "l$landscape"]);
+            popupOptionsEl.classList.remove("loading");
+            popupContainerEl.classList.add("popupOpen");
+            this.$title(popupOptionsEl, ".title", ["center"]).setValue("Select Asset");
+
+            if(multiSelect){
+                const confirmBtnEl = this.$button(popupOptionsEl, ".confirm", []).setValue("Confirm");
+                confirmBtnEl.setIconValue("check");
+                confirmBtnEl.setAction(() => {
+                    closePopup();
+                });
             }
-            optionEl.textContent=label;
-            if (!el.$$$.onChangeCallbacks){
-                el.$$$.onChangeCallbacks = {};
+
+            if (el.$$$.selectOptions) {
+                for (const key in el.$$$.selectOptions) {
+                    const btnEl = this.$button(popupOptionsEl, ".option" + key, ["option", "fillw"]);
+                    el.$$$.selectOptions[key].copyTo(btnEl);
+                    if (!el.$$$.selectedOptions) el.$$$.selectedOptions = {};
+
+                    btnEl.setAction(() => {
+                        let optionEl=undefined;
+                        if(!el.$$$.selectedOptions[key]){
+                            optionEl=el.selectOption(key);
+                        }else{
+                            optionEl =el.deselectOption(key);
+                        }
+                        if(multiSelect){
+                            
+                            optionEl.copyTo(btnEl);
+                            const toggleEl = this.$icon(btnEl, ".toggle", [], true);
+
+                            if (!el.$$$.selectedOptions[key]) {
+                                toggleEl.setValue("check_box_outline_blank");
+                            } else {
+                                // checked
+                                toggleEl.setValue("check_box");
+                            }  
+                        }else{
+                            closePopup();
+                        }       
+                      
+                    });
+                    if(multiSelect){
+                    const toggleEl = this.$icon(btnEl, ".toggle", [], true);
+
+                    if (!el.$$$.selectedOptions[key]){                       
+                        toggleEl.setValue("check_box_outline_blank");
+                    }else{
+                        console.log("selected ",key)
+                        toggleEl.setValue("check_box");
+                    }
+                }
+                }
             }
-            el.$$$.onChangeCallbacks[value]=action;
+
+
+            // close if clicked outside
+            const clickOutsideCallback = (e) => {
+                // const closeAction = () => {
+                //     if (
+                //         e.target != popupOptionsEl 
+                //         && !popupOptionsEl.contains(e.target)
+                //         && e.target != btnEl
+                //     ) {
+                //         return true;
+                //     }
+                //     return false;
+                // }
+                if(e.target==btnEl)return;
+                if (e.target == popupOptionsEl )
+                    return;
+                
+            const pX = popupOptionsEl.getBoundingClientRect().left;
+            const pY = popupOptionsEl.getBoundingClientRect().top;
+            const pW = popupOptionsEl.getBoundingClientRect().width;
+            const pH = popupOptionsEl.getBoundingClientRect().height;
+            if(e.clientX>pX&&e.clientX<pX+pW&&e.clientY>pY&&e.clientY<pY+pH){
+                return;
+            }
+                
+                closePopup();
+                 
+            };
+            requestAnimationFrame(() => {
+
+            requestAnimationFrame(()=>{
+                if (el.$$$.selectClickOutsideCallback) {
+                    window.removeEventListener("click", el.$$$.selectClickOutsideCallback);
+                    el.$$$.selectClickOutsideCallback = undefined;
+                }
+                el.$$$.selectClickOutsideCallback = clickOutsideCallback;
+                window.addEventListener("click", clickOutsideCallback);
+            })});
+        }
+
+        const closePopup = () => {
+
+            
+            if (el.$$$.selectClickOutsideCallback) {
+                window.removeEventListener("click", el.$$$.selectClickOutsideCallback);
+                el.$$$.selectClickOutsideCallback = undefined;
+            }
+            btnEl.classList.add("clickable");
+
+            el.classList.add("clickable");
+            this.$0(popupContainerEl, "#" + el.$$$.popupId);
+        }
+
+        const _selectPreferred = () => {
+            if (el.$$$.preferredValues) {
+                for (const value of el.$$$.preferredValues) {
+                    if (el.selectOption(value)){
+                        if(!multiSelect){
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // select first one
+            if(!multiSelect){
+                if (!el.$$$.selected || !el.$$$.selectOptions[el.$$$.selected]) {
+                    for (const key in el.$$$.selectOptions) {
+                        el.selectOption(key);
+                        break;
+                    }
+                }
+            }
+
+        }
+
+
+        el.addOption = (value, label, action = () => { }, selected=false) => {
+            const optionEl = this.$button(undefined, ".option" + value, ["option", "fillw"]);
+            let toggleEl;
+            if (multiSelect){
+                toggleEl =this.$icon(optionEl, ".toggle", [], true);
+                toggleEl.setPriority(-20);
+                toggleEl.setValue(selected?"check_box":"check_box_outline_blank");
+            }
+            const label1El = Html.$text(optionEl, ".label").setValue(label);
+            const label2El = Html.$text(optionEl, ".secondaryLabel").setValue("");
+            optionEl.setValue = (v, html = false) => {
+                label1El.setValue(v, html);
+            }
+            optionEl.setValue2 = (v, html = false) => {
+                label2El.setValue(v, html);
+            }
+            if(!el.$$$.selectActions){
+                el.$$$.selectActions = {};
+            }
+            if(!el.$$$.selectLabels){
+                el.$$$.selectLabels = {};
+            }
+            el.$$$.selectLabels[value] = label;
+
+            // if (multiSelect){
+            //     if (!el.$$$.selectedOptions)el.$$$.selectedOptions={};
+            //     el.$$$.selectActions[value] = ()=>{
+            //         el.$$$.selectedOptions[value]=!el.$$$.selectedOptions[value];
+            //         if (el.$$$.selectedOptions[value]){
+            //             toggleEl.setValue("check_box");
+            //         }else{
+            //             toggleEl.setValue("check_box_outline_blank");
+            //         }
+            //         action(el.$$$.selectedOptions);                   
+            //     }
+            // }else{
+                el.$$$.selectActions[value] = action;
+            // }
+
+            optionEl.setOnRefresh(()=>{
+                if(el.$$$.selected===value){
+                    el.selectOption(value,true);
+                }
+            })
+
+            if (!el.$$$.selectOptions) {
+                el.$$$.selectOptions = {};
+            }
+
+            optionEl.copyTo = (target) => {
+                const clone = optionEl.cloneNode(true);
+                while (target.firstChild) {
+                    target.removeChild(target.firstChild);
+                }
+                while (clone.firstChild) {
+                    target.appendChild(clone.firstChild);
+                }
+            }
+            el.$$$.selectOptions[value] = optionEl;
             _selectPreferred();
-            if (el.value ==value)action(el.value);
-            return el;
+            el.triggerRefresh();
+            return optionEl;
         }
-        el.removeOption=(value)=>{
-            let optionEl=el.querySelector(`option[value="${value}"]`);
-            if(optionEl){
-                el.removeChild(optionEl);
+
+        el.removeOption = (value) => {
+            if (!el.$$$.selectOptions) return;
+            el.$$$.selectOptions[value] = undefined;
+            l.$$$.selectedOptions[value] = undefined;
+            if (el.$$$.selected === value) {
+                _selectPreferred();
             }
+            el.triggerRefresh();
+        }
+
+        el.clearOptions = () => {
+            if (!el.$$$.selectOptions) return;
+            el.$$$.selectOptions = {};
+            l.$$$.selectedOptions={};
             _selectPreferred();
-            return el;
+            el.triggerRefresh();
         }
-        el.clearOptions=()=>{
-            for(const optionEl of el.querySelectorAll("option")){
-                el.removeChild(optionEl);
-            }
-            return el;
-        }
+
+
+        el.setAction(() => {
+            openPopup();
+            el.triggerRefresh();
+        });
+
         
-        el.setPreferredValues=(values)=>{
-            el.$$$.preferredValues=values;
-            el.$$$.preferredValueSelected=false;
+        el.setPreferredValues = (values) => {
+            el.$$$.preferredValues = values;
             _selectPreferred();
+            el.triggerRefresh();
             return el;
         }
 
-        if (el.$$$.onChangeCallbakWrapper) {
-            el.removeEventListener("change", el.$$$.onChangeCallbakWrapper);
-        }
-
-        el.$$$.onChangeCallbakWrapper = ()=>{            
-            if (el.$$$.onChangeCallbackScheduledTimeout) {
-                clearTimeout(el.$$$.onChangeCallbackScheduledTimeout);
-            }
-            el.$$$.onChangeCallbackScheduledTimeout = setTimeout(() => {
-                if (el.$$$.onChangeCallbacks) {
-                    const value=el.value;                    
-                    if (el.$$$.onChangeCallbacks[value])el.$$$.onChangeCallbacks[value](value);
-                }
-            }, Constants.DEBOUNCE_CALLBACK_TIME);
-        };        
-        el.addEventListener("change", el.$$$.onChangeCallbakWrapper);
         return el;
     }
 
+
+    
 }

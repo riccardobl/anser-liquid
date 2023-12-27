@@ -78,7 +78,7 @@ export default class WalletPage extends UIStage {
                 }
             });
 
-            const loadIconPromise = Promise.resolve(balance.icon).then((icon) => {
+            const loadIconPromise = lq.assets().getAssetIcon(balance.asset).then((icon) => {
                 console.info("Loading icon", icon, balance)
                 try {
                     iconEl.setSrc(icon);
@@ -147,31 +147,32 @@ export default class WalletPage extends UIStage {
             }
             txHashEl.setValue(tx.tx_hash.substr(0, 16) + "...");
 
-            lq.getTxInfo(tx.tx_hash, true, true).then((txData) => {
+            lq.getTransaction(tx.tx_hash).then((txData) => {
                 if (!txData.info.valid) {
                     txDirectionEl.setValue("receipt_log");
                 } else {
                     if (txData.info.isIncoming) {
                         txDirectionEl.setValue("arrow_downward");
                         txDirectionEl.classList.add("incoming");
-                        lq.assets().getAssetIcon(txData.info.inAsset).then((icon) => {
-                            txAssetIconEl.setSrc(icon);
-                        });
-                        lq.assets().getAssetInfo(txData.info.inAsset).then(info => {
-                            if (filter) {
-                                if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name) && !filter(tx.tx_hash, true)) {
-                                    txElCnt.remove();
-                                    return;
-                                }
-                            }
-                            txSymbolEl.setValue(info.ticker);
-                        });
-                        lq.v(txData.info.inAmount, txData.info.inAsset).human().then((value) => {
-                            txAmountEl.setValue(value);
-                        });                        
+                        // lq.assets().getAssetIcon(txData.info.inAsset).then((icon) => {
+                        //     txAssetIconEl.setSrc(icon);
+                        // });
+                        // lq.assets().getAssetInfo(txData.info.inAsset).then(info => {
+                        //     if (filter) {
+                        //         if (!filter(info.hash, true) && !filter(info.ticker) && !filter(info.name) && !filter(tx.tx_hash, true)) {
+                        //             txElCnt.remove();
+                        //             return;
+                        //         }
+                        //     }
+                        //     txSymbolEl.setValue(info.ticker);
+                        // });
+                        // lq.v(txData.info.inAmount, txData.info.inAsset).human().then((value) => {
+                        //     txAmountEl.setValue(value);
+                        // });                        
                     } else {
                         txDirectionEl.setValue("arrow_upward");
                         txDirectionEl.classList.add("outgoing");
+                    }
                         lq.assets().getAssetIcon(txData.info.outAsset).then((icon) => {
                             txAssetIconEl.setSrc(icon);
                         });
@@ -187,7 +188,7 @@ export default class WalletPage extends UIStage {
                         lq.v(txData.info.outAmount, txData.info.outAsset).human().then((value) => {
                             txAmountEl.setValue(value);
                         });
-                    }
+                    // }
                 }
 
 
@@ -214,15 +215,16 @@ export default class WalletPage extends UIStage {
         let secondarySymbol = "";
         lq.getBalance().then((assets) => {
             for (const asset of assets) {
-                lq.v(asset).human(lq.getBaseAsset()).then((value) => {
+                lq.v(asset.value, asset.asset).human(lq.getBaseAsset()).then(async (value) => {
                     [value, primarySymbol] = value.split(" ");
                     sumPrimary += Number(value);
-                    balanceSumEl.setValue(sumPrimary + " " + primarySymbol);
+                    balanceSumEl.setValue(await lq.v(await lq.v(sumPrimary,lq.getBaseAsset()).int(lq.getBaseAsset()), lq.getBaseAsset()).human(lq.getBaseAsset()));
                 });
-                lq.v(asset).human("USD").then((value) => {
+                lq.v(asset.value,asset.asset).human("USD").then(async (value) => {
                     [value, secondarySymbol] = value.split(" ");
                     sumSecondary += Number(value);
-                    balanceSumSecondaryEl.setValue(sumSecondary + " " + secondarySymbol);
+                
+                    balanceSumSecondaryEl.setValue(await lq.v(await lq.v(sumSecondary, "USD").int("USD"), "USD").human("USD"));
                 });
             }
         });
