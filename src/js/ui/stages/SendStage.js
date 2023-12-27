@@ -16,7 +16,7 @@ export default class SendStage extends UIStage {
         let ASSET_HASH = primaryCurrency;
         let ASSET_INFO = await lq.assets().getAssetInfo(primaryCurrency);
         let INPUT_AMOUNT = 0;
- 
+        let PRIORITY=1;
 
         let SECONDARY_CURRENCY = secondaryCurrency;
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
@@ -71,6 +71,9 @@ export default class SendStage extends UIStage {
         const availableBalanceValueEl=Html.$text(availableBalanceEl, ".value");
         const useAllEl=Html.$button(availableBalanceEl, ".useAll", ["button","small"]).setValue("SEND ALL");
 
+        Html.$text(c02El, ".labelPriority").setValue("Priority: ");
+        const prioritySlideEl=Html.$inputSlide(c02El, "#priority",  ["fillw"]);
+       
         const feeRowEl = Html.$hlist(c02El, "#fee", ["fillw", "sub"]);
         Html.$sep(feeRowEl, ".spacer").grow(100);
         Html.$text(feeRowEl, ".label").setValue("Fee: ");
@@ -88,7 +91,7 @@ export default class SendStage extends UIStage {
         loadinRowEl.hide();
 
         const confirmBtnEl = Html.$button(c02El, "#confirmBtn", ["fillw", "button"]).setValue("Confirm and sign");
-        
+      
         
         const _updateInvoice=async (signAndSend)=>{
             confirmBtnEl.disable();
@@ -115,7 +118,8 @@ export default class SendStage extends UIStage {
             ticker2El.setValue(SECONDARY_INFO.ticker);
 
             try{
-                const tx=await lq.prepareTransaction(INPUT_AMOUNT, ASSET_HASH, TO_ADDR);
+                const feeRate= await lq.estimateFeeRate(PRIORITY);
+                const tx = await lq.prepareTransaction(INPUT_AMOUNT, ASSET_HASH, TO_ADDR, feeRate.feeRate);
                 console.log(tx);
                 errorRowEl.hide();
                 feeValueEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human());
@@ -148,6 +152,16 @@ export default class SendStage extends UIStage {
             };
 
         };
+
+        prioritySlideEl.setAction((v) => {
+            PRIORITY = v;
+            _updateInvoice();
+
+           
+        });
+
+        prioritySlideEl.setValue(PRIORITY,true);
+
 
         confirmBtnEl.setAction(async () => {
             await _updateInvoice(true);

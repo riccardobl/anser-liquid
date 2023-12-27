@@ -17,7 +17,9 @@
 html{
     /* font-size:102%; */
 }
-
+body{
+    max-height: 100vh;
+}
 * {
     margin: 0;
     padding: 0;
@@ -31,31 +33,30 @@ html{
 }
 
 /* For Webkit browsers */
-#liquidwallet ::-webkit-scrollbar {
+ ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
     /* width of the entire scrollbar */
 }
-
-#liquidwallet ::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
     background: #f1f1f1;
     /* color of the tracking area */
 }
 
-#liquidwallet ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
     background: var(--bgColor3);
     /* color of the scroll thumb */
     border-radius: 10px;
     /* roundness of the scroll thumb */
 }
 
-#liquidwallet ::-webkit-scrollbar-thumb:hover {
+ ::-webkit-scrollbar-thumb:hover {
     background: #555;
     /* color of the scroll thumb when hovering */
 }
 
 /* For Firefox */
-#liquidwallet * {
+* {
     scrollbar-width: thin;
     /* "auto" or "thin"  */
     scrollbar-color: var(--bgColor3) #f1f1f1;
@@ -656,4 +657,43 @@ input {
 #liquidwallet .sep.v {
     margin-top: 2rem !important;
     min-width: 1px;
+}
+
+.inputSlide {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+   
+}
+
+ 
+
+.inputSlide .slider {
+    flex-grow: 1;
+    height: 0px;
+    padding:0;
+    margin:0;
+    background: var(--bgColor3);
+    border: none;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.inputSlide .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--fgColor2);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.inputSlide .slider::-moz-range-thumb {
+    width: 1.5rem;
+        height: 1.5rem;
+    background: var(--fgColor2);
+    border-radius: 50%;
+    cursor: pointer;
 }

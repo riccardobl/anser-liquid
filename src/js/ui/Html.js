@@ -961,5 +961,56 @@ export default class Html{
     }
 
 
+    static $inputSlide(parentEl,directSelector, classes=[]){
+        const el = this.$(parentEl, directSelector , classes, "div");
+        el.classList.add("inputSlide");
+        
+        const sliderEl = this.$(el, ".slider", ["fillw"], "input");
+        sliderEl.type="range";
+        sliderEl.min=0;
+        sliderEl.max=10;
+        sliderEl.value=0;
+
+        const debounce=Constants.DEBOUNCE_CALLBACK_TIME;
+        let lastValue=0;
+
+        sliderEl.addEventListener("input",()=>{
+            if(el.$$$.slideAction){
+                lastValue =Number(sliderEl.value)/10;
+                if (el.$$$.slideActionScheduledTimeout){
+                    clearTimeout(el.$$$.slideActionScheduledTimeout);
+                }
+                el.$$$.slideActionScheduledTimeout=setTimeout(()=>{
+                    el.$$$.slideActionScheduledTimeout=undefined;
+                    el.$$$.slideAction(Number(lastValue)/10);
+                },debounce);
+            }
+        });
+
+        el.setValue=(value, silent=false)=>{
+            if (silent) { // set value without triggering callback
+                const cs = (ev) => {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                };
+                el.addEventListener("input", cs, { once: true });
+                sliderEl.value = value*10;
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        el.removeEventListener("input", cs);
+                    });
+                });
+            }else{
+                sliderEl.value=value*10;
+            }
+            return el;
+        }
+        el.setAction=(callback)=>{
+            el.$$$.slideAction=callback;
+            return el;
+        }
+
+        return el;
+    }
     
 }
