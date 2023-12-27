@@ -131,7 +131,14 @@ export default class SendStage extends UIStage {
                         await tx.verify();
                         loadingTextEl.setValue("Signing...");
                         console.log("Broadcast");
-                        await tx.broadcast();
+                        const txid=await tx.broadcast();
+                        const sendOkPopupEl = Html.$newPopup(walletEl, "#sendOK", "Transaction broadcasted");
+                        Html.$icon(sendOkPopupEl, ".icon", ["sendok"]).setValue("done");
+                        setTimeout(()=>{
+                            sendOkPopupEl.hide();
+                            ui.setStage("wallet");
+                        },4000);
+                        sendOkPopupEl.show();
                     }else{
                         loadinRowEl.hide();
                         errorRowEl.show();
@@ -234,6 +241,9 @@ export default class SendStage extends UIStage {
             const primaryValueFloat= await lq.v(secondaryValueInt, SECONDARY_CURRENCY).float(ASSET_HASH);
 
             amountNativeEl.setValue(primaryValueFloat, true);
+
+            const primaryValueInt= await lq.v(primaryValueFloat, ASSET_HASH).int(ASSET_HASH);
+            INPUT_AMOUNT = primaryValueInt;
 
             _updateInvoice();
 

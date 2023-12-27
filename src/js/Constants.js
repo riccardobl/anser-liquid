@@ -28,6 +28,8 @@ export default {
     PAYURL_PREFIX:{
         "testnet":"liquidtestnet",
         "liquid":"liquidnetwork"
-    }
+    },
+
+    GLOBAL_MESSAGE:"This software is under development. Please use it only on testnet!"
    
 }

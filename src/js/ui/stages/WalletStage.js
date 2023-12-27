@@ -96,6 +96,9 @@ export default class WalletPage extends UIStage {
 
 
     async renderHistoryPanel(parentEl, lq, filter, ui, limit = 100, page = 0) {
+
+   
+
         const historyEl = Html.$vlist(parentEl, "#history", ["main","fillw"]);
 
         const history = (await lq.getHistory()).slice(page * limit, page * limit + limit);
@@ -310,6 +313,24 @@ export default class WalletPage extends UIStage {
         };
         this.renderSearchBar(c1El, lq, render, ui);
         render("");
+
+        if (walletEl.historyReloadCallbackTimer) {
+            clearTimeout(walletEl.historyReloadCallbackTimer);
+        }
+
+        const historyReloadCallback = async () => {
+            this.renderHistoryPanel(c1El, lq, undefined, ui);
+            walletEl.historyReloadCallbackTimer = setTimeout(historyReloadCallback, 10000);
+        };
+        setTimeout(historyReloadCallback, 10000);
+
+    }
+
+
+    onUnload(walletEl, lq, ui) {
+        if (walletEl.historyReloadCallbackTimer) {
+            clearTimeout(walletEl.historyReloadCallbackTimer);
+        }
     }
 
 }

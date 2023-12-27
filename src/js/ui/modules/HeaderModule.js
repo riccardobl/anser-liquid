@@ -1,5 +1,6 @@
 import UIModule from "../UIModule.js";
 import Html from "../Html.js";
+import Constants from "../../Constants.js";
 
 /**
  * Show the wallet header
@@ -23,6 +24,11 @@ export default class HeaderModule extends UIModule {
             Html.$icon(headerEl, "#optionsBtn").setValue("settings").setAction(() => {
                 ui.setStage("options");
             });
+        }
+
+        if(Constants.GLOBAL_MESSAGE){
+            const globalMessageEl = Html.$hlist(headerEl, ".globalMessage", ["fillw"]);
+            globalMessageEl.setValue(Constants.GLOBAL_MESSAGE);
         }
     }
 

@@ -108,7 +108,9 @@ export default class ReceiveStage extends UIStage {
             const primaryValueFloat = await lq.v(secondaryValueInt, SECONDARY_CURRENCY).float(ASSET_HASH);
 
             amountPrimaryEl.setValue(primaryValueFloat, true);
-            
+
+            const primaryValueInt = await lq.v(primaryValueFloat, ASSET_HASH).int(ASSET_HASH);
+            INPUT_AMOUNT = primaryValueInt;
             _updateInvoice();
         });
 

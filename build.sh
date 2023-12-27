@@ -1,3 +1,3 @@
 #!/bin/bash
-npm i --production
+npm i 
 npm run build

@@ -239,3 +239,27 @@ background-size: 50% 50%;
         }
 
 }
+
+#liquidwallet #sendOK .iconCnt.sendok{
+    /** make a confirmation animation that looks good*/
+    animation: confirm 1s ease-in-out;
+    animation-fill-mode: forwards;
+}
+
+@keyframes confirm {
+    0% {
+        filter: hue-rotate(0deg) blur(100px);
+        transform: scale(0.9);
+    }
+
+    80% {
+        filter: hue-rotate(180deg) blur(0px);
+        transform: scale(1);
+    }
+
+    100% {
+        filter: hue-rotate(360deg) blur(0px);
+        transform: scale(0.9);
+    }
+
+}

@@ -1222,7 +1222,7 @@ export default class LiquidWallet {
                     return Promise.resolve(); // we don't cache pending txs, since their height will change later...
                 }
             }));
-            return [transactions, 60 * 1000]; // the cache is considered stale after 1 minute
+            return [transactions, 5000]; // the cache is considered stale after 5 seconds
         });
         return transactions.reverse();
     }
@@ -1266,7 +1266,7 @@ export default class LiquidWallet {
 
                 outputs.push(out);
             }catch(err){
-                console.error("Failed to resolve" ,out,err);
+                console.error("Failed to resolve", utxo,err);
             }           
         }        
         return outputs;       

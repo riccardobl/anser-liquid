@@ -550,7 +550,7 @@ input {
 
 }
 
-#liquidwallet #container .popupSelect h1 {
+#liquidwallet #container .popup h1 {
     color: var(--fgColor2);
 }
 
@@ -696,4 +696,20 @@ input {
     background: var(--fgColor2);
     border-radius: 50%;
     cursor: pointer;
+}
+
+
+#liquidwallet #sendOK{
+        align-items: center !important;
+            justify-content: center !important;
+            font-size: 42vh !important;
+}
+
+
+#liquidwallet #header .globalMessage{
+        position: absolute;
+            bottom: 0;
+            font-size: 1rem;
+            color: purple;
+            text-wrap: nowrap;
 }

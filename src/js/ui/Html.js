@@ -162,6 +162,9 @@ export default class Html{
             el.$$$.previousStyleDisplay=undefined;
         }
 
+        el.isHidden=()=>{
+            return el.style.display=="none";
+        }
 
         
     }
@@ -423,12 +426,16 @@ export default class Html{
     static $icon(parent,directSelector,classes=[],prepend=false){
         const iconCntEl=this.$(parent,directSelector,["iconCnt",...classes],"div",prepend);
         let materialIconEl = iconCntEl.querySelector(":scope > .mic");
+        let isNew=true;
         if(!materialIconEl){
             materialIconEl = document.createElement("div");
             materialIconEl.classList.add("icon");
             materialIconEl.classList.add("material-symbols-outlined");
             materialIconEl.classList.add("mic");
             materialIconEl.innerText="cached";
+            
+        }else{
+            isNew=false;
         }
 
         let iconImgEl = iconCntEl.querySelector(":scope  > .img");
@@ -436,18 +443,22 @@ export default class Html{
             iconImgEl = document.createElement("img");
             iconImgEl.classList.add("icon");
             iconImgEl.classList.add("img");
+        }else{
+            isNew=false;
         }
 
-        materialIconEl.classList.add("loading");
-        iconImgEl.remove();
-        iconCntEl.appendChild(materialIconEl);
-        materialIconEl.innerText = "cached";
+        if(isNew){
+            iconImgEl.remove();
+            iconCntEl.appendChild(materialIconEl);
+            materialIconEl.classList.add("loading");
+            materialIconEl.innerText = "cached";
+        }
 
         iconCntEl.setValue=(value)=>{
-            const imgEl=iconCntEl.querySelector(".img");
+            const imgEl=iconCntEl.querySelector(":scope > .img");
             if(imgEl){
-                iconCntEl.removeChild(imgEl);
-                materialIconEl.remove();
+                imgEl.remove();
+                // materialIconEl.remove();
                 iconCntEl.appendChild(materialIconEl);
             }            
             materialIconEl.classList.remove("loading");
@@ -456,10 +467,10 @@ export default class Html{
             return iconCntEl;
         }
         iconCntEl.setSrc=(src)=>{
-            const materialIconEl=iconCntEl.querySelector(".material-symbols-outlined");
+            const materialIconEl=iconCntEl.querySelector(":scope > .material-symbols-outlined");
             if(materialIconEl){
-                iconCntEl.removeChild(materialIconEl);
-                iconImgEl.remove();
+                materialIconEl.remove();
+                // iconImgEl.remove();
                 iconCntEl.appendChild(iconImgEl);
             }
             iconImgEl.classList.remove("loading");
@@ -1015,5 +1026,48 @@ export default class Html{
 
         return el;
     }
+ 
+    static $newPopup  ( parentEl, directSelector, title ,classes=[] )  {
+
+
+        let popupContainerEl = parentEl;
+        while (popupContainerEl && !popupContainerEl.classList.contains("popupContainer")) {
+            popupContainerEl = popupContainerEl.parentElement;
+            if (!popupContainerEl) {
+                popupContainerEl = document.body;
+                break;
+            }
+        }
+        const el = this.$vlist(popupContainerEl, directSelector, ["popup", "l$landscape",...classes]);
+        el.classList.add("clickable");
+
+        this.$title(el, ".title", ["center"]).setValue(title);
+
+        el.hide();
+        // const clickOutsideCallback = (e) => {
+        //     if(el.isHidden())return;
+        //     if (e.target == btnEl) return;
+        //     if (e.target == el)
+        //         return;
+
+        //     const pX = el.getBoundingClientRect().left;
+        //     const pY = el.getBoundingClientRect().top;
+        //     const pW = el.getBoundingClientRect().width;
+        //     const pH = el.getBoundingClientRect().height;
+        //     if (e.clientX > pX && e.clientX < pX + pW && e.clientY > pY && e.clientY < pY + pH) {
+        //         return;
+        //     }
+
+        //     closePopup();
+        // };
+
+        
+
+
+        return el;
+    }
+
+
+
     
 }
