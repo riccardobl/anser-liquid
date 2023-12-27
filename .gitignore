@@ -1,3 +1,5 @@
 node_modules
 dist
 build
+src/static/icons/lw0.png
+src/static/icons/lwbg.png
