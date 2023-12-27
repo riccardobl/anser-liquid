@@ -1,6 +1,6 @@
 import Alert from './Alert.js';
 import { ElectrumWS } from 'ws-electrumx-client';
-import Liquid from 'liquidjs-lib';
+import Liquid, { address } from 'liquidjs-lib';
 import ZkpLib from '@vulpemventures/secp256k1-zkp';
 import QrCode from 'qrcode';
 import AssetProvider from './AssetProvider.js';
@@ -14,6 +14,11 @@ import BrowserStore from './storage/BrowserStore.js';
 /**
  * The full wallet Api.
  * Doesn't need an ui to work.
+ * 
+ * NB: Every monetary value inputted and outputted in this class must be considered as an
+ * integer according to the asset precision.
+ * Only the v() method deals with float and strings and can be used to convert to and from the
+ * more intuitive floating point representation. 
  */
 
 export default class LiquidWallet {
@@ -49,6 +54,19 @@ export default class LiquidWallet {
             const tr=window.liquid.createTransaction(amount, assetHash, toAddress);
             const txid=await tr.broadcast();
             return txid;
+        }
+    }
+
+    /**
+     * Check if an address is syntactically valid
+     * @param {string} address 
+     */
+    verifyAddress(address){
+        try{
+            const buf= Liquid.address.toOutputScript(address,this.network);
+            return buf.length>0;
+        }catch(e){
+            return false;
         }
     }
 
@@ -147,6 +165,7 @@ export default class LiquidWallet {
 
         // initialize electrum client
         this.elc = new ElectrumWS(electrumWs);
+        
 
         // get base asset
         this.baseAsset = this.network.assetHash;
@@ -175,11 +194,22 @@ export default class LiquidWallet {
         // subscribe to events
         const scriptHash = this.getElectrumScriptHash((await this.getAddress()).outputScript);       
         this.scripthashEventSubscription=scriptHash;
-        // this.elc.subscribe('blockchain.scripthash.subscribe',function(incomingScriptHash,status){
-        //     if (scriptHash===incomingScriptHash){
-        //         this._executeRefreshCallbacks();
-        //     }
-        // }, scriptHash);
+
+      
+        // listen for updates
+        this.elc.subscribe('blockchain.scripthash',  (incomingScriptHash, state) => {         
+            if (scriptHash == incomingScriptHash) {
+                if (!this.lastState) this.lastState = state;
+                let newState = this.lastState != state;
+                if (newState) {
+                    console.log("Received new state", state)
+                    this.lastState = state;
+                    this._executeRefreshCallbacks();
+                }               
+            }else{
+                console.log("Received event for another script hash",incomingScriptHash);
+            }
+        }, scriptHash);
 
 
         // print some info
@@ -265,14 +295,12 @@ export default class LiquidWallet {
         const outScript = outputScript;
         const pubKey = Buffer.from(out.publicKey, 'hex');
 
-        const confidentialAddress = Liquid.address.toConfidential(Liquid.address.fromOutputScript(outScript, network), pubKey);
 
         return {
             outputScript: outScript,
             address: out.address,
             blindingPrivateKey: Buffer.from(out.blindingPrivateKey, 'hex'),
             publicKey: pubKey,
-            confidentialAddress: confidentialAddress
         }
     }
 
@@ -284,17 +312,10 @@ export default class LiquidWallet {
         if(!asset){
             asset=this.baseAsset;
         }
-
-        amount=await this.assetProvider.intToFloat(amount,asset);
-        // if(confidential){             
-        //     address = address.confidentialAddress;
-        // }else{
-            address = address.address;
-        // }
+        amount=await this.v(amount,asset).float(asset);       
+        address = address.address;
         if(amount<0||isNaN(amount)||amount===Infinity) amount=0;
 
-        // TODO dinamic precision?
-        amount = Number(amount.toFixed(10));
 
         let payLink = address;
         let hasParams=false;
@@ -320,7 +341,8 @@ export default class LiquidWallet {
         }
 
         if(hasParams){
-            payLink ="liquidnetwork:"+payLink;
+            const prefix = Constants.PAYURL_PREFIX[this.networkName];
+            payLink = prefix+":"+payLink;
         } 
 
         if(!qrOptions.errorCorrectionLevel) qrOptions.errorCorrectionLevel="M";
@@ -370,92 +392,100 @@ export default class LiquidWallet {
     }
 
 
-    async getTxHeight(tx_hash){
+    /**
+     * Get the height in blocks of the blockchain
+     * @param {number} tx_hash 
+     * @returns 
+     */
+    async getTransactionHeight(tx_hash){
         await this.check();
         const height=await this.store.get("tx:"+tx_hash+":height");
         return height?height:-1;
     }
 
-    async getHistory(){
-        await this.check();
-        const addr=await this.getAddress();
-        const scripthash = this.getElectrumScriptHash(addr.outputScript);
-
-        const transactions =await this.cache.get("hs:"+scripthash, false,async ()=>{
-            const history=[];
-            history.push(...await this.elcAction('blockchain.scripthash.get_history', [scripthash]));
-            // history.push(...await this.elcAction('blockchain.scripthash.get_mempool', scripthash));
-            console.log("History", history);
-            const transactions = [];
-
-            for (const tx of history) {
-                transactions.push({
-                    tx_hash: tx.tx_hash,
-                    height: tx.height,
-                    confirmed: tx.height > 0
-                });
-                
-            }
-            await Promise.all(transactions.map(tx=>this.store.set("tx:"+tx.tx_hash+":height",tx.height)));
-            return [transactions,60*1000];
-            
-        });
-
-        
-
-        return transactions.reverse();
-    }
 
 
+
+    /**
+     * Estimate the fee rate for a transaction
+     * @param {number} priority  how fast you want the transaction to be confirmed, from 0 to 1 (1 means next block)
+     * @returns 
+     */
     async estimateFeeRate(priority=1){
         await this.check();
         const fee=await this.esplora.getFee(priority);
         return fee;
     }
    
-    /* amount is int*/
+    /**
+     * This is the most complex method of the wallet.
+     * It prepares a confidential transaction to be broadcasted.
+     * Remember: inputs are always integers
+     * @param {number} amount input amount (int)
+     * @param {string} asset asset hash
+     * @param {string} toAddress destination address
+     * @param {number} estimatedFeeVByte estimated fee rate in vbyte if unset, will get the best fee for 1 block confirmation (if possible)
+     * @param {number} averageSizeVByte average transaction size in vbyte  is used to apr the initial coins collection for fees.
+     */
     async prepareTransaction(amount, asset, toAddress, estimatedFeeVByte=null, averageSizeVByte=2000){
         await this.check();
-        if (!estimatedFeeVByte){
-            estimatedFeeVByte = (await this.esplora.getFee(1)).fee;
+        if(!this.verifyAddress(toAddress)) throw new Error("Invalid address");
+
+        // if estimateFee is not set, we get the best fee for speed
+        if (!estimatedFeeVByte) {
+            estimatedFeeVByte=(await this.estimateFeeRate(1));
+            estimatedFeeVByte=estimatedFeeVByte.feeRate;
         }
-        
+            
+        // If asset unset, we assume its the base asset (L-BTC)
         if (!asset) asset = this.baseAsset;
+
+        // Fee asset is Always L-BTC
         const feeAsset = this.baseAsset;
 
+        console.log("Initialize preparations for transaction of amount", amount, "asset", asset, "to", toAddress,
+         "estimatedFeeVByte", estimatedFeeVByte, "of asset", feeAsset,"averageSizeVByte", averageSizeVByte);
+
+
+        // Our address
         const address=await this.getAddress();       
+
+        // Check if the address supports confidential transactions
         const isConfidential = Liquid.address.isConfidential(toAddress);
 
-
+        // Now lets grab all our properly resolved UTXOs
         const utxos = await this.getUTXOs();
 
-        const buildTXIO=async (fee, size, withFeeOutput=false)=>{
+        // We wrap the code to build the psed data into a function 
+        // since it has to be called twice (once to estimate the fee, once to build the actual transaction)
+        const build=async (fee, size, withFeeOutput=false)=>{
             const inputs = [];
             const outputs = [];
 
-            const feeXsize=Math.floor(fee*size);
+            const feeXsize=Math.floor(fee*size); // fee for the entire size of the transaction
 
+            // how much we expect to collect in amount to send and in fees (nb if feeAsset==asset, we sum the fee to the amount and use a single input)
             const expectedCollectedAmount = feeAsset === asset ? amount + feeXsize : amount;
             const expectedFee = feeAsset === asset ? 0 : feeXsize;
 
+            console.log("Build a pset with fee", fee, "size", size, "expectedCollectedAmount", expectedCollectedAmount, "expectedFee", expectedFee);
+
             let collectedAmount = 0;
             let collectedFee = 0;
-
         
             /////////// INPUTS
             ////// VALUE
             // Collect inputs
             for (const utxo of utxos) {
-                if (utxo.ldata.assetHash !== asset) {
-                    console.log("Skipping", utxo.ldata.asset, asset);
-                    continue;
-                }
+                if (utxo.ldata.assetHash !== asset) continue; // not an input for this asset!
+                // first guard: something broken, better to throw an error and stop it here    
                 if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
                 collectedAmount += utxo.ldata.value;
-                inputs.push(utxo);
-                if (collectedAmount >= expectedCollectedAmount) break;
+                inputs.push(utxo); // collect this input
+                if (collectedAmount >= expectedCollectedAmount) break; // we have enough input
             }
 
+            // not enough funds
             if (collectedAmount < expectedCollectedAmount) {
                 throw new Error("Insufficient funds " + collectedAmount + " < " + expectedCollectedAmount + "("+amount+"+"+feeXsize+")");
             }
@@ -463,7 +493,7 @@ export default class LiquidWallet {
             
             // Calculate change
             const changeAmount = collectedAmount - expectedCollectedAmount;
-            if (changeAmount < 0 || Math.floor(changeAmount) != changeAmount) {
+            if (changeAmount < 0 || Math.floor(changeAmount) != changeAmount) { // guard 
                 throw new Error("Invalid change amount " + changeAmount );
             }
 
@@ -472,11 +502,10 @@ export default class LiquidWallet {
                 const changeOutput = {
                     asset,
                     amount: changeAmount,
-                    script: Liquid.address.toOutputScript(address.address),
-                    blinderIndex: 0,
+                    script: Liquid.address.toOutputScript(address.address), 
+                    blinderIndex: 0, // we have a single blinder
                     blindingPublicKey: Liquid.address.fromConfidential(address.address).blindingKey
                 };
-                console.log("Change output", changeOutput)
                 outputs.push(changeOutput);
             }
 
@@ -485,13 +514,13 @@ export default class LiquidWallet {
             // Collect fees inputs 
             if (expectedFee>0){
                 for (const utxo of utxos) {
-                    console.log(utxo.ldata.asset,feeAsset)
-                    if (utxo.ldata.assetHash !== feeAsset) continue;
-                    if (utxo.ldata.value <= 0) throw new Error("Invalid UTXO");
-                    if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value) throw new Error("Invalid UTXO");
+                    if (utxo.ldata.assetHash !== feeAsset) continue; // not the fee asset
+                    if (utxo.ldata.value <= 0) throw new Error("Invalid UTXO"); // guard
+                    if (!utxo.ldata.value || utxo.ldata.value <= 0 || isNaN(utxo.ldata.value) || Math.floor(utxo.ldata.value) != utxo.ldata.value)  // guard
+                        throw new Error("Invalid UTXO");
                     collectedFee += utxo.ldata.value;
-                    inputs.push(utxo);
-                    if (collectedFee >= expectedFee) break;
+                    inputs.push(utxo); // we collect this fee
+                    if (collectedFee >= expectedFee) break; // enough fee
                 }
             
 
@@ -501,7 +530,7 @@ export default class LiquidWallet {
 
                 // Calculate change
                 const changeFee = collectedFee - expectedFee;
-                if (changeFee < 0 || Math.floor(changeFee) != changeFee) {
+                if (changeFee < 0 || Math.floor(changeFee) != changeFee) { // guard
                     throw new Error("Invalid fee change  " + changeFee );
                 }
 
@@ -510,14 +539,12 @@ export default class LiquidWallet {
                     const changeFeeOutput = {
                         asset: feeAsset,
                         amount: changeFee,
-                        script: Liquid.address.toOutputScript(address.address),
-                        blinderIndex: 0,
+                        script: Liquid.address.toOutputScript(address.address), 
+                        blinderIndex: 0, // only us as blinder
                         blindingPublicKey: Liquid.address.fromConfidential(address.address).blindingKey,
                     };
-                    console.log("Change output", changeFeeOutput)
                     outputs.push(changeFeeOutput);
                 }
-
             }
 
             /////// OUTPUTS
@@ -525,10 +552,10 @@ export default class LiquidWallet {
             outputs.push({
                 asset,
                 amount,
-                script: Liquid.address.toOutputScript(toAddress),
-                blinderIndex: isConfidential ? 0 : undefined,
+                script: Liquid.address.toOutputScript(toAddress), // this is the destination address
+                blinderIndex: isConfidential ? 0 : undefined, // only one blinder if any
                 blindingPublicKey: isConfidential
-                    ? Liquid.address.fromConfidential(toAddress).blindingKey
+                    ? Liquid.address.fromConfidential(toAddress).blindingKey // blinded to the destination
                     : undefined,
             });
 
@@ -545,8 +572,8 @@ export default class LiquidWallet {
             return [inputs, outputs, feeXsize];
         }
 
-
-        const processInput = utxo => {
+        // take an input and prepares it for the pset
+        const processInput = (utxo) => {
             return {
                 txid: utxo.tx_hash,
                 txIndex: utxo.tx_pos,
@@ -566,6 +593,7 @@ export default class LiquidWallet {
             };
         };
 
+        // create a pset from inputs and outputs
         const newPset=(inputs,outputs)=>{
             let pset = Liquid.Creator.newPset();
             let psetUpdater = new Liquid.Updater(pset);
@@ -580,19 +608,22 @@ export default class LiquidWallet {
         let psetUpdater;
         let totalFee;
 
-
-        [inputs, outputs, totalFee] = await buildTXIO(estimatedFeeVByte, averageSizeVByte, false);
+        // first pset to calculate the fee
+        [inputs, outputs, totalFee] = await build(estimatedFeeVByte, averageSizeVByte, false);
         [pset, psetUpdater] = newPset(inputs, outputs);
                
+        // estimate the fee
         const estimatedSize = VByteEstimator.estimateVirtualSize(pset, true);
-        [inputs, outputs, totalFee] = await buildTXIO(estimatedFeeVByte, estimatedSize, true);
+
+        // real pset
+        [inputs, outputs, totalFee] = await build(estimatedFeeVByte, estimatedSize, true);
         [pset, psetUpdater] = newPset(inputs, outputs);
 
-        console.log("Estimated fee VByte", estimatedFeeVByte);
-        console.log("Estimated size", estimatedSize);
-        console.log("Estimated total fee", totalFee);
-
+        // print some useful info
         console.info(`Preparing transaction
+        estimated fee VByte: ${estimatedFeeVByte}
+        estimated size: ${estimatedSize}
+        estimated total fee: ${totalFee}
         inputs:${JSON.stringify(inputs)}
         outputs: ${JSON.stringify(outputs)}
         fee: ${totalFee}
@@ -600,40 +631,53 @@ export default class LiquidWallet {
 
      
 
+        // Now the fun part, we verify if the transaction is constructed properly
+        // and if it makes sense. 
+        // Better safe than sorry
        
-        // Verify
+        // GUARD
+        const asserts=[];
+        
         {
             // decode transaction
             let totalIn = 0;
             let totalOut = 0;
             let fees = 0;
+
+
             for (const input of pset.inputs) {
                 totalIn += input.explicitValue;                
             }
 
             for (const output of pset.outputs) {
+                const isFee =  output.script.length === 0;
                 console.log(output);
-                const isFee = !output.blindingPubkey;
                 if (isFee) {
                     fees += output.value;
                 } else {
                     totalOut += output.value;
                 }
             }
+            
 
-            if (totalOut + fees !== totalIn) {
+            if (totalOut + fees !== totalIn) { // We don't have the same amount of input and output
                 throw new Error("Invalid transaction " + (totalOut + fees) + " " + totalIn);
             } else {
                 console.log("Total in", totalIn);
                 console.log("Total out", totalOut);
+                asserts.push("Total in = total out");
             }
 
-            if (fees > totalOut){
+            if (fees > totalOut){ // we have more fees than outputs (likely an error...)
                 throw new Error("Fees too high compared to output " + fees);
+            }else{
+                asserts.push("Fees are lower than outputs");
             }
 
-            if(fees>Constants.FEE_GUARD){
+            if(fees>Constants.FEE_GUARD){ //  Fees are higher than the hardcoded value. This catches user mistakes
                 throw new Error("Fees too high compared to guard " + fees);
+            }else{
+                asserts.push("Fees are lower than guard value");
             }
 
             console.log("Verification OK: fees", fees, "totalOut+fee", (totalOut + fees), "totalIn", totalIn);
@@ -684,9 +728,7 @@ export default class LiquidWallet {
             pset,
             Liquid.Pset.ECCKeysGenerator(zkpLib.ecc),
             outputIndexes
-        );
-
-        
+        );        
 
         const blinder = new Liquid.Blinder(
             pset,
@@ -695,7 +737,6 @@ export default class LiquidWallet {
             zkpGenerator
         );
 
-        // blinder.blindLast({ outputBlindingArgs });
         if (isLast) {
             blinder.blindLast({ outputBlindingArgs });
         } else {
@@ -718,236 +759,387 @@ export default class LiquidWallet {
         
       
         
-        return {
+        const outtx= {
             dest: toAddress,
             fee:totalFee,
-            broadcast:async ()=>{
+            asserts: asserts,
+            amount:amount,
+            _compiledTx: undefined,
+            _verified:false,
+            _txData:undefined,
+            compile:async ()=>{
+                if (outtx._compiledTx) return outtx._compiledTx;
                 let signedPset = await window.liquid.signPset(psetUpdater.pset.toBase64());
                 if (!signedPset || !signedPset.signed) {
                     throw new Error("Failed to sign transaction");
                 }
                 signedPset = signedPset.signed;
-                console.log(signedPset);
                 const signed = Liquid.Pset.fromBase64(signedPset);
                 const finalizer = new Liquid.Finalizer(signed);
                 finalizer.finalize();
 
                 const hex = Liquid.Extractor.extract(finalizer.pset).toHex();
-                const txid = await this.elcAction('blockchain.transaction.broadcast',[ hex]);
+                outtx._compiledTx =hex;
+                return hex;
+            },
+            verify:async ()=>{
+                if (outtx._verified)return true;
+                // now the even funnier part, we verify the transaction as if we were the receiver
+                // and we check if everything is in order
+                // get and unblind
+                if (!outtx._txData) {
+                    const hex = await outtx.compile();
+                    const txBuffer = Buffer.from(hex, 'hex');
+                    outtx._txData = await this.getTransaction(undefined, txBuffer);
+                } 
+                const txData = outtx._txData;
+                if(!txData.info.valid) throw new Error("Invalid transaction");
+                if (txData.info.isIncoming || !txData.info.isOutgoing) throw new Error("Transaction direction is wrong "+txData.info.isIncoming+"!="+txData.info.isOutgoing);
+                if(txData.info.outAmount!==amount) throw new Error("Transaction amount is wrong "+txData.info.outAmount+"!="+amount);
+                if(txData.info.outAsset!==asset) throw new Error("Transaction asset is wrong "+txData.info.outAsset+"!="+asset);
+                if(txData.info.feeAmount!==totalFee) throw new Error("Transaction fee is wrong "+txData.info.feeAmount+"!="+totalFee);
+                 
+                if(txData.info.feeAsset!==feeAsset) throw new Error("Transaction fee asset is wrong "+txData.info.feeAsset+"!="+feeAsset);
+                outtx._verified=true;
+                return outtx;
+            },
+           
+            broadcast:async ()=>{
+                const hex = await outtx.compile();         
+                await outtx.verify();      
+                const txid = await this.elcAction('blockchain.transaction.broadcast',[hex]);
                 return txid;
             }
-        }
+        };
+        return outtx;
 
     }
 
 
      
-    async getTxBuffer(tx_hash){
+    /**
+     * Plain and simple, input a tx hash and get the txData buffer (cached internally)
+     * @param {string} tx_hash 
+     * @returns 
+     */
+    async getTransactionBuffer(tx_hash){
         let txBuffer = await this.cache.get("txbf:" + tx_hash);
         if (!txBuffer) {
             const txHex = await this.elcAction('blockchain.transaction.get', [tx_hash, false]);
             txBuffer = Buffer.from(txHex, 'hex');
         }
 
-        const height = await this.getTxHeight(tx_hash);
-        const confirmed=height>-1;
+        // const height = await this.getTransactionHeight(tx_hash);
+        // const confirmed=height>-1;
 
-        if (confirmed) {
-            await this.cache.set("txbf:" + tx_hash, txBuffer);
-        } else {
-            await this.cache.set("txbf:" + tx_hash, txBuffer, 60 * 1000);
-        }
+        // if (confirmed) {
+        await this.cache.set("txbf:" + tx_hash, txBuffer); // we always cache the buffer for ever
+        // } else {
+        //     await this.cache.set("txbf:" + tx_hash, txBuffer, 60 * 1000);
+        // }
 
         return txBuffer;
 
     }
 
 
-    async getTxInfo(tx_hash, resolveOutputs =true, resolveInputs=true){
+
+    /**
+     * infers some metadata from the transaction
+     * @param {*} txData 
+     */
+    async getTransactionInfo(txData){
+        
+        const addr= await this.getAddress();
+
+        const tx_hash=txData.tx_hash;
+
+        // Due to the confidential nature of liquid tx, we have a bazillion of checks to do
+        // and pieces to  connect together to get all the information we need.
+        // for this reason we always cache.
+
+
+        // Check if we already have the metadata
+        let info = tx_hash?await this.cache.get(`tx:${tx_hash}:info`):undefined;
+
+        if (!info) { // no metadata, we need to compute it
+            info = {};
+
+            try{
+
+                // First we check if we own at least one input 
+                let ownedInput = false;
+                for (const inp of txData.ins) {
+                    if(!inp.ldata) continue;// no ldata means not unblindable, we can't possibly own this input...
+                    if (inp.owner.equals(addr.outputScript)) { // It seems we can read this input, so we check if we actually own it
+                        ownedInput = true;
+                        break;
+                    }
+                }
+
+
+                if (ownedInput) { // if there is at least one owned input, likely the transaction is coming from us
+                    info.isOutgoing = true;
+                    info.isIncoming = false;
+                } else { // if not, we are likely receiving it
+                    info.isOutgoing = false;
+                    info.isIncoming = true;
+                }
+
+                info.feeAsset=this.baseAsset; // fee asset is always base asset
+                info.feeAmount=0
+            
+                if (info.isOutgoing) {
+                    // unfortunately we can't simply read the blinded outputs, but
+                    // we can infer them by summing our inputs and subtracting the output change if preset
+                    // and the fee
+
+                    const outXasset = {};
+                    // const outDestXasset = {};
+                    const changeXasset = {};
+                    // lets start by collecting the change for each output asset
+                    // and the fee
+                    for (const out of txData.outs) {
+                        if (out.fee) { // this is a special fee output, we handle it specially
+                            if (!changeXasset[out.fee.assetHash]) changeXasset[out.fee.assetHash] = 0;
+                            changeXasset[out.fee.assetHash] += out.fee.value;
+                            info.feeAmount+=out.fee.value;
+                            continue;
+                        }
+                        if (!out.ldata) continue; // ldata is not available, this can't possibly be a change out, so skip
+                        if (out.owner.equals(addr.outputScript)) { // seems we can read it, so we check if the output is coming back to us
+                            const hash = out.ldata.assetHash;
+                            if (!changeXasset[hash]) changeXasset[hash] = 0;
+                            changeXasset[hash] += out.ldata.value;
+                            // outDestXasset[hash] = out.owner;
+                        }
+                    }
+
+                    // Now lets collect the input amount
+                    for (const inp of txData.ins) {
+                        if (!inp.ldata) {
+                            console.error("Blinded input of outgoing tx ?? UNEXPECTED")
+                            continue; // somehow this input can't be unblinded, so we skip it.
+                        }
+                        if (inp.owner.equals(addr.outputScript)) { // we check if we own the input (is this really needed?)
+                            const hash = inp.ldata.assetHash;
+                            if (!outXasset[hash]) outXasset[hash] = 0;
+                            outXasset[hash] += inp.ldata.value;
+                            // outDestXasset[hash] = out.owner;
+
+                        }
+                    }
+
+                    // Good, now we must subtract the change and fee from the input and we shall have the real spent amount
+                    for (let k in outXasset) {
+                        if (!outXasset[k]) outXasset[k] = 0;
+                        else {
+                            if (!changeXasset[k]) changeXasset[k] = 0;
+                            outXasset[k] -= changeXasset[k];
+                        }
+                    }
+
+                    // delete empty assets
+                    for (let k in outXasset) {
+                        if (outXasset[k] <= 0) delete outXasset[k];
+                    }
+
+                    // We don't support multiasset transactions
+                    if(Object.keys(outXasset).length>1){
+                        console.error("Multiasset transaction ?? UNEXPECTED",outXasset)
+                        throw new Error("Multiasset transaction not supported");
+                    }
+                    
+                    // lets grab the only asset we are outputting
+                    const out = Object.entries(outXasset)[0];
+
+                    // We didn't manage to parse the tx or it was invalid
+                    if(!out){
+                        console.error("Invalid transaction ?? UNEXPECTED", outXasset)
+                        throw new Error("Invalid transaction");
+                    }
+
+                    // const outOwner = outDestXasset[out[0]];
+
+                    // if(!outOwner){
+                    //     console.error("Invalid output owner ?? UNEXPECTED", outXasset, outDestXasset,out)
+                    //     throw new Error("Invalid output owner");
+                    // }
+                    
+                    // Great we have the output!
+                    info.outAsset =  out[0];
+                    info.outAmount = out[1];
+                    info.toAddress = "confidential";
+                } else {
+                    // The incoming transaction is much easier to parse, we just need to check the outputs since we own them
+                    const inXAsset = {};
+                    for (const out of txData.outs) {
+                        if(out.fee){ // this is a special fee output, we handle it specially
+                            info.feeAmount+=out.fee.value;
+                            continue;
+                        }
+                        if (!out.ldata) continue; // ldata is not available, this can't possibly be an owned output, likely a change output, so skip
+                        if (out.owner.equals(addr.outputScript)) { // check if we own the output
+                            const hash = out.ldata.assetHash;
+                            if (!inXAsset[hash]) inXAsset[hash] = 0;
+                            inXAsset[hash] += out.ldata.value;
+                        }
+                    }
+
+                    // We don't support multiasset transactions
+                    // TODO: maybe we need to handle self transactions here?
+                    if (Object.keys(inXAsset).length > 1) {
+                        console.error("Multiasset transaction ?? UNEXPECTED", inXAsset)
+                        throw new Error("Multiasset transaction not supported");
+                    }
+
+                    const inp = Object.entries(inXAsset)[0];
+                    info.outAsset = inp[0];
+                    info.outAmount =  inp[1];
+                    info.toAddress = address.address;
+
+                }
+
+                // TODO: Are self transactions parsed correctly?
+
+
+                // Good finally if we have an input or an output, we consider the tx valid.
+                if (info.outAsset) info.valid=true;
+                else info.valid=false;
+                // info.valid = !!(info.inAsset || info.outAsset);
+        
+                
+            }  catch (e) {
+                console.error("Error while parsing transaction", txData, e);
+                // we won't throw, but we will mark the tx as invalid
+                info.valid = false;
+                if(!info.debug){
+                    info.debug=[];
+                }
+                info.debug.push(e);
+            }
+            // And cache
+            if (tx_hash)this.cache.set(`tx:${tx_hash}:info`, info);
+        }
+
+        return info;
+    }
+
+    /**
+     * Returns a fully unblinded transaction.
+     * Both inputs and outputs are resolved by piecing together the historic data, however unowned inputs and outputs
+     * that have never been seen before cannot be unblinded obviously.
+     * Unblinded inputs and outputs have an extra ldata value containing all the clear data.
+     * Inputs and outputs without ldata should just be skipped since they are unusable.
+     * 
+     * @param {string} tx_hash 
+     * @param {Buffer} providedTxBuffer this is a special parameter we can pass if we want to resolve a transaction that is not in our history yet
+     * @returns 
+     */
+    async getTransaction(tx_hash, providedTxBuffer=undefined){
         await this.check();
-        // let tx_hash = tx.tx_hash;
-        // if(!tx_hash) throw new Error("Invalid tx");
+     
 
-
+        // Get the raw buffer of the transaction   
+        const txBuffer =providedTxBuffer?providedTxBuffer:await this.getTransactionBuffer(tx_hash);
+        console.log(txBuffer);
         
-        const txBuffer=await this.getTxBuffer(tx_hash);
-        
+        // Deserialize it to a liquidjs-lib transaction
         const txData = Liquid.Transaction.fromBuffer(txBuffer);
 
+        // We add some extra useful metadata
         txData.tx_hash=tx_hash;
-        txData.height=await this.getTxHeight(tx_hash);
-        txData.confirmed = txData.height>0;
+        txData.height =tx_hash?await this.getTransactionHeight(tx_hash)||-1:-1; // if the tx is in our history, we know the height, otherwise we consider it unconfirmed (height=-1)
+        txData.confirmed = txData.height>0; // if height > 0, the tx is confirmed
 
+        // get the wallet address
         const addr = await this.getAddress();
 
-        const cachedOuts=await this.cache.get(`tx:${tx_hash}:outs`,false);
-        const cachedIns=await this.cache.get(`tx:${tx_hash}:ins`,false);
-        console.log("Cached I/O", cachedOuts, cachedIns);
-        // if (resolveOutputs){
+        // Since unblinding inputs and outputs is very slow, we want to cache them.
+        // However the txData is not serializable and all the transaction information is actually 
+        // already serialized efficiently in txBuffer, for this reason we cache only the resolved ins and outs separately
+        // instead of dumping the whole txData in a json mess.
+
+        // Load caches
+        const cachedOuts = tx_hash?await this.cache.get(`tx:${tx_hash}:outs`):undefined;
+        const cachedIns = tx_hash?await this.cache.get(`tx:${tx_hash}:ins`):undefined;
+
+        // We are out of luck, we need to unblind the inputs and outputs
         if(!cachedOuts||!cachedIns){
             console.log("Resolving", txData);
+            // We just launch the unblinding of everything and wait
             await Promise.all([
-                await Promise.all(txData.outs.map(out => this._resolveOutput(addr,out, txData))),
-                await Promise.all(txData.ins.map(inp => this._resolveInput(addr, inp, txData)))
+                await Promise.all(txData.outs.map(out => this._unblindOutput(addr,out, txData))),
+                await Promise.all(txData.ins.map(inp => this._unblindInput(addr, inp, txData)))
             ]);
-            await this.cache.set(`tx:${tx_hash}:outs`, txData.outs);
-            await this.cache.set(`tx:${tx_hash}:ins`, txData.ins);
+
+            // once unblinded, we cache the results
+            if (tx_hash){
+                await this.cache.set(`tx:${tx_hash}:outs`, txData.outs);
+                await this.cache.set(`tx:${tx_hash}:ins`, txData.ins);
+            }
         }else{
+            // Data is cached, we can skip the unblinding
             txData.outs=cachedOuts;
             txData.ins=cachedIns;
         }
 
 
-        let info = await this.cache.get(`tx:${tx_hash}:info`);
-        if (!info) {
-            info = {};
+        // We parse the txData to infer the meatadata
+        txData.info = await this.getTransactionInfo(txData);
 
-            // check if has an owned input
-            let ownedInput = false;
-            for (const inp of txData.ins) {
-                if (inp.ldata && inp.owner.equals(addr.outputScript)) {
-                    ownedInput = true;
-                    break;
-                }
-            }
-
-            if (ownedInput) {
-                info.isOutgoing = true;
-                info.isIncoming = false;
-            } else {
-                info.isOutgoing = false;
-                info.isIncoming = true;
-            }
-
-
-            if (info.isOutgoing) {
-                const outXasset = {};
-                const changeXasset = {};
-                for (const out of txData.outs) {
-                    if (out.fee) {
-                        if (!changeXasset[out.fee.assetHash]) changeXasset[out.fee.assetHash] = 0;
-                        changeXasset[out.fee.assetHash] += out.fee.value;
-                        continue;
-                    }
-                    if (!out.ldata) continue;
-                    if (out.owner.equals(addr.outputScript)) {
-                        const hash = out.ldata.assetHash;
-                        if (!changeXasset[hash]) changeXasset[hash] = 0;
-                        changeXasset[hash] += out.ldata.value;
-                    }
-                }
-
-                for (const inp of txData.ins) {
-                    if (!inp.ldata) continue;
-                    if (inp.owner.equals(addr.outputScript)) {
-                        const hash = inp.ldata.assetHash;
-                        if (!outXasset[hash]) outXasset[hash] = 0;
-                        outXasset[hash] += inp.ldata.value;
-                    }
-                }
-
-                for (let k in outXasset) {
-                    if (!outXasset[k]) outXasset[k] = 0;
-                    else {
-                        if (!changeXasset[k]) changeXasset[k] = 0;
-                        outXasset[k] -= changeXasset[k];
-                    }
-                }
-
-                const out = Object.entries(outXasset)[0];
-                info.outAsset = out ? out[0] : undefined;
-                info.outAmount = out ? out[1] : 0;
-            } else {
-                const inXAsset = {};
-                for (const out of txData.outs) {
-                    if (!out.ldata) continue;
-                    if (out.owner.equals(addr.outputScript)) {
-                        const hash = out.ldata.assetHash;
-                        if (!inXAsset[hash]) inXAsset[hash] = 0;
-                        inXAsset[hash] += out.ldata.value;
-                    }
-                }
-
-                const inp = Object.entries(inXAsset)[0];
-                info.inAsset = inp ? inp[0] : undefined;
-                info.inAmount = inp ? inp[1] : 0;
-            }
-
-
-
-
-            // if (info.outAsset) {
-            //     info.outAssetInfo = this.assetProvider.getAssetInfo(info.outAsset);
-            //     info.outAssetIcon = this.assetProvider.getAssetIcon(info.outAsset);
-            // }
-
-            // if (info.inAsset) {
-            //     info.inAssetInfo = this.assetProvider.getAssetInfo(info.inAsset);
-            //     info.inAssetIcon = this.assetProvider.getAssetIcon(info.inAsset);
-            // }
-
-            info.valid = !!(info.inAsset || info.outAsset);
-            console.log("Resolved?", info);
-            console.log("Interpret i/o", info);
-
-            this.cache.set(`tx:${tx_hash}:meta`, info);
+       
+        // Some extra info from the esplora api.
+        // TODO: this will be progressively removed and inferred locally
+        if (tx_hash){
+            txData.extraInfo=this.esplora.getTxInfo(tx_hash);
+            txData.extraInfo.blockTime=async ()=>{
+                if(!txData.extraInfo) return undefined;
+                return (await txData.extraInfo).status.block_time;
+            };
         }
-        txData.info = info;
-
-       
-        txData.extraInfo=this.esplora.getTxInfo(tx_hash);
-        txData.extraInfo.blockTime=async ()=>{
-            if(!txData.extraInfo) return undefined;
-            return (await txData.extraInfo).status.block_time;
-        };
-       
-     
-       
-    
+        // it was a long journey, but we are finally here
         return txData;
     }
 
 
-    async _resolveInput(address, input, txData){
-        // console.log("Input ",input);
-        // const scriptBuffer0=input.script;
-        // const scriptBuffer2=address.outputScript;
-        try{
-            // if (scriptBuffer0.equals(scriptBuffer2)) { // owned input
-                const originTxId = input.hash.reverse().toString('hex');
-                const originOutId=input.index;
-                const originBuffer=await this.getTxBuffer(originTxId);
-                const originTx= Liquid.Transaction.fromBuffer(originBuffer);
-                const originOut = originTx.outs[originOutId];
-                await this._resolveOutput(address, originOut, originTx);
-                input.ldata = originOut.ldata;
-                input.owner=originOut.owner;
-                // input.valid=true;
-            // console.log("Resolved Input", input, txData);
-                // const revealedInput = this._resolveOutput()
-            // }
-        }catch(e){
-            // input.valid=false;
-            if(!input.debug) input.debug=[];
+    async _unblindInput(address, input, txData) {
+        try {
+            if (input.ldata) return input; // so this input is already unblinded, we just return it
+            // An input doesn't carry enough information to be unblinded, we need to fetch the original transaction
+            // and then gets the data of when it was an utxo.
+            const originTxId = input.hash.reverse().toString('hex');
+            const originOutId = input.index;
+            const originBuffer = await this.getTransactionBuffer(originTxId);
+            // we don't call getTransactionInfo or we will end up in an infinite recursion.
+            // not a problem since caching is handled elsewhere and this method should never be called
+            // from outside (see the discouraging _ prefix)
+            const originTx = Liquid.Transaction.fromBuffer(originBuffer);
+            const originOut = originTx.outs[originOutId];
+            // Now we can unblind it as if it was an output
+            await this._unblindOutput(address, originOut, originTx);
+            // and set the data back to the input
+            input.ldata = originOut.ldata;
+            input.owner = originOut.owner;
+        } catch (e) {
+            if (!input.debug) input.debug = [];
             input.debug.push(e);
-            console.log("Input discarded", input, e, txData);
+            console.log("Input discarded", input, e, txData); // well it seems this wasn't the input we are looking for...
         }
 
     }
  
-    async _resolveOutput(address,out,txData){
+    async _unblindOutput(address,out,txData){
         try{
-            if(out.ldata)   return out;
-            // out.valid = true;
-            if (out.script.length === 0) { // fees
-                out.fee={
+            if(out.ldata)   return out; // so this output is already unblinded, we just return it
+            if (out.script.length === 0) { // it doesn't have a script-> it's a fee output
+                out.fee={ // we use this special field to mark it as a fee output and hold the data
                     asset: Liquid.AssetHash.fromBytes(out.asset).bytesWithoutPrefix,
                     value: Liquid.confidential.confidentialValueToSatoshi(out.value),
-                    assetHash:Liquid.AssetHash.fromBytes(out.asset).hex,
-                    
+                    assetHash:Liquid.AssetHash.fromBytes(out.asset).hex,                    
                 }
-                out.owner=Buffer.alloc(0);
-                throw new Error("Fee output");
+                out.owner=Buffer.alloc(0); // no owner
+                return out;
             }
 
             
@@ -963,155 +1155,136 @@ export default class LiquidWallet {
                     nonce !== emptyNonce
                 );
             }
+
+
             out.owner = out.script;
 
             // const elementsValue = Liquid.ElementsValue.fromBytes(out.value);
             const isConfidential = isConfidentialOutput(out);
-            if (!isConfidential) {
-                
+            if (!isConfidential) { // if not confidential, we just pretend we unblinded it     
                 out.ldata = {
                     assetBlindingFactor: Buffer.alloc(32).fill(0),
                     valueBlindingFactor: Buffer.alloc(32).fill(0),
                     asset: Liquid.AssetHash.fromBytes(out.asset).bytesWithoutPrefix,
-                    // value: parseInt(elementsValue.number.toString(), 10),
                     value: Liquid.confidential.confidentialValueToSatoshi(out.value)
-                    // value: Liquid.ElementsValue.fromBytes(
-                    //     out.value
-                    // ).number.toString(),
                 }
             } else {
-                // const slip77node = this.slip77.fromMasterBlindingKey(address.blindingPrivateKey);
-                const blindPrivKey = address.blindingPrivateKey;// slip77node.derive(out.script).privateKey;
+                // unblinding!
+                const blindPrivKey = address.blindingPrivateKey;
 
-                if (!blindPrivKey){
+                if (!blindPrivKey) {
                     throw new Error('Blinding private key error for script ' + output.script.toString('hex'));
                 }
 
-                // if (out.rangeProof && out.rangeProof.length !== 0) {
-
                 const zkpLib = this.zkpLib;
-                const masterKey=this.slip77.fromMasterBlindingKey(address.blindingPrivateKey);
                 const zkpGenerator = new Liquid.ZKPGenerator(
                     zkpLib,
                     Liquid.ZKPGenerator.WithBlindingKeysOfInputs([blindPrivKey]),
                 );
-                // const cnfd = new Liquid.confidential.Confidential(zkpLib);
 
-                  
-
-                   
-                //     out.ldata = cnfd.unblindOutputWithKey(
-                //         out,
-                //         blindPrivKey
-                //     );
                 out.ldata = await zkpGenerator.unblindUtxo(out);
-
-                out.ldata.value = parseInt(out.ldata.value.toString(), 10);
-                // }else{
-                //     out.ldata = {
-                //         assetBlindingFactor: Buffer.alloc(32).fill(0),
-                //         valueBlindingFactor: Buffer.alloc(32).fill(0),
-                //         asset: Liquid.AssetHash.fromBytes(out.asset).bytesWithoutPrefix,
-                //         value: Liquid.confidential.confidentialValueToSatoshi(out.value), 
-                //     }
-                // }
-                    console.log("Unblinded", out);
+                out.ldata.value = parseInt(out.ldata.value.toString(), 10);                
+                console.log("Unblinded", out);
             }
 
-            out.ldata.assetHash=Liquid.AssetHash.fromBytes(out.ldata.asset).hex;
-            // out.ldata.assetInfo = this.assetProvider.getAssetInfo(out.ldata.assetHash);
-            
-            
+            out.ldata.assetHash=Liquid.AssetHash.fromBytes(out.ldata.asset).hex;          
         }catch(e){
-            // out.valid=false;
             if(!out.debug) out.debug=[];
             out.debug.push(e);
             console.log("Output discarded",out,e);
-
         }
-
         return out;
     }
 
+    /**
+     * Get the history of both confirmed and unconfirmed transactions
+     * @returns 
+     */
+    async getHistory() {
+        await this.check();
+        const addr = await this.getAddress();
+        const scripthash = this.getElectrumScriptHash(addr.outputScript); // scriphash used for api calls
+
+        // If the history is cached we return it, otherwise we fetch it from the api
+        // nb the way the cache is used here, allows us to return stale data while the api refreshes.
+        const transactions = await this.cache.get("hs:" + scripthash, false, async () => {
+            const history = await this.elcAction('blockchain.scripthash.get_history', [scripthash]);
+            const transactions = [];
+            for (const tx of history) {
+                transactions.push({
+                    tx_hash: tx.tx_hash,
+                    height: tx.height,
+                    confirmed: tx.height > 0
+                });
+            }
+            // We store (not cache) the tx height that is otherwise very expensive to fetch on demand.
+            await Promise.all(transactions.map(tx =>{
+                if(tx.height>0){ 
+                    return this.store.set("tx:" + tx.tx_hash + ":height", tx.height);
+                }else{
+                    return Promise.resolve(); // we don't cache pending txs, since their height will change later...
+                }
+            }));
+            return [transactions, 60 * 1000]; // the cache is considered stale after 1 minute
+        });
+        return transactions.reverse();
+    }
+
+    /**
+     * Get unspent outputs
+     * @returns 
+     */
     async getUTXOs(){
         await this.check();
-        const addr  = await this.getAddress();
-        const scripthash = this.getElectrumScriptHash(addr.outputScript);
-        const utxos = await this.elcAction('blockchain.scripthash.listunspent', [scripthash]);
-        let outputs=[];
-        const transactions={};
-        console.log("Raw utxo", utxos);
-        for(const utxo of utxos){   
-                
-            const txid=utxo.tx_hash;   
-            if(!transactions[txid]) transactions[txid]=await this.getTxInfo(utxo.tx_hash,false,false);            
-            const transaction=transactions[txid];
-            const out=transaction.outs[utxo.tx_pos];
-            if (out.script.length === 0) continue; // fee out
 
-            try {
-                // const resolvedOut=await this._resolveOutput(addr, out, transaction);
-                // if(resolvedOut.valid){
-                //     resolvedOut.tx_pos = utxo.tx_pos;
-                //     resolvedOut.tx_hash = utxo.tx_hash;
-                //     outputs.push(resolvedOut);
-                // }
-                outputs.push(this._resolveOutput(addr, out, transaction).then(resolvedOut => {
-                    // if (resolved.Out.valid) {
-                        resolvedOut.tx_pos = utxo.tx_pos;
-                        resolvedOut.tx_hash = utxo.tx_hash;
-                    // }
-                    return resolvedOut;
-                }));
+        const addr  = await this.getAddress();
+        const scripthash = this.getElectrumScriptHash(addr.outputScript); // the scripthash used for api calls
+
+        const utxos = await this.elcAction('blockchain.scripthash.listunspent', [scripthash]); // list the utxos
+
+        const transactions = {}; // cache txs to speedup resolution
+        let outputs=[];        
+        for(const utxo of utxos){    
+            try {               
+                const txid=utxo.tx_hash;   
+                // get the tx of this utxo
+                const transaction=transactions[txid]?transactions[txid]:await this.getTransaction(utxo.tx_hash); // nb this also unblinds it
+                
+                // get the output
+                const out=transaction.outs[utxo.tx_pos];
+                
+                // if it doesn't have a script, it is probably fee, we skip it
+                if (out.script.length === 0) continue; // fee out
+
+                // NB. the output was already unblinded when fetching the tx
+                if(!out.ldata) continue;// somehow unblinding failed, likely we don't own this output or the tx is invalid, skip
+
+                // we are not the owner of this output, skip (this is needed because unconfidential outputs are not skipped by the previous check)
+                if(!out.owner.equals(addr.outputScript)) continue;
+
+
+                // we add some metadata to the utxo to reference its tx for later
+                out.tx_pos=utxo.tx_pos;
+                out.tx_hash=utxo.tx_hash;
+
+                outputs.push(out);
             }catch(err){
                 console.error("Failed to resolve" ,out,err);
             }           
-        }
-        outputs=await Promise.all(outputs);
-        outputs=outputs.filter(out=>out.owner.equals(addr.outputScript)&&out.ldata);
-        return outputs;//await Promise.all(outputs);
-            
-
-
-
-
-        // let utxos = this.
-        // utxos =utxos.map(utxo=>{
-        //     const elementsValue = Liquid.ElementsValue.fromBytes(utxo.output.value);
-        //     if (!elementsValue.isConfidential) {
-        //         return {
-        //             ...utxo,
-        //             ldata: {
-        //                 assetBlindingFactor: ZERO,
-        //                 valueBlindingFactor: ZERO,
-        //                 asset: Liquid.AssetHash.fromBytes(utxo.output.asset).bytesWithoutPrefix,
-        //                 value: elementsValue.number.toString(),
-        //             },
-        //         }
-        //     } else{
-        //         const ldata = cnfd.unblindOutputWithKey(
-        //             utxo.output,
-        //             blindingKeyBuffer
-        //         );
-        //         return {
-        //             ...utxo,
-        //             ldata
-        //         }
-        //     }         
-        // });
-
-
-        // return utxos;
-       
+        }        
+        return outputs;       
     }
 
     async getBalance(filter){
         await this.check();
+
+        const balanceXasset = {};
+
+        // sum all valid utxos
         const utxos = await this.getUTXOs();
-        const balanceXasset={};
         for(const utxo of utxos){
             if (filter){
-                if (!filter(utxo.ldata.assetHash, utxo.ldata.assetName)) continue;
+                if (!filter(utxo.ldata.assetHash)) continue;
             }
             const asset = utxo.ldata.assetHash;
             if(!balanceXasset[asset]) balanceXasset[asset]={
@@ -1120,109 +1293,94 @@ export default class LiquidWallet {
                 hash:asset,
                 asset:asset
             };
-            balanceXasset[asset].value += utxo.ldata.value;
-            // if(!balanceXasset[asset].info){
-            //     balanceXasset[asset].info=utxo.ldata.assetInfo;
-            // }
+            balanceXasset[asset].value += utxo.ldata.value;            
         }
 
-
+        // create 0 balance for pinned assets if not present
         const pinnedAssets=await this.getPinnedAssets();
         for(const asset of pinnedAssets){
             const hash=asset.hash;
+            if (filter) {
+                if (!filter(hash)) continue;
+            }
             if (!balanceXasset[hash]){
                 balanceXasset[hash]={};
                 for(const key in asset){
                     balanceXasset[hash][key]=asset[key];
                 }
-                balanceXasset[hash].value =0;
+                balanceXasset[hash].value = 0;
+                balanceXasset[hash].asset = hash;
+                balanceXasset[hash].hash = hash;
+
             }
         }
 
+        // return array of balances
         const balance=[];
         for(const asset in balanceXasset){
             const assetData=balanceXasset[asset];
-            assetData.ready=false;
-            assetData.info = Promise.resolve(assetData.info);
-            assetData.icon = this.assetProvider.getAssetIcon(asset);
-            // if (!assetData.price )assetData.price = this.assetProvider.getPrice(1,asset,undefined, true);
-            // assetData.getValue=(currencyHash,floatingPoint=true,asString=false)=>{
-            //     return this.assetProvider.getPrice(assetData.value,asset,currencyHash,floatingPoint,asString);
-            // };
-
-            assetData.waitForData=Promise.all([
-                Promise.resolve( assetData.info),
-                Promise.resolve(assetData.icon),
-                // Promise.resolve( assetData.price )           
-            ]).then(()=>{
-                assetData.ready=true;
-            });
-
-            // // check if promise
-            // const cm=(info)=>{
-            //     // assetData.value = assetData.value / 10 ** info.precision;
-            //     assetData.ready = true;      
-            // }
-
-            // if(assetData.info.then)assetData.info.then(info=>{
-            //     cm(info);
-            // });
-            // else cm(assetData.info);
             balance.push(assetData);
         }
         
         return balance;
-
-        
     }
 
 
-    async pinAsset(asset){
+    /**
+     * Pin an assets, price will be tracked and balance always available even if 0
+     * @param {string} assetHash
+     */
+    async pinAsset(assetHash){
         await this.check();
-        this.assetProvider.track(asset);
+        this.assetProvider.track(assetHash);
     }
 
-    async unpinAsset(asset){
+    /**
+     * Unpin an asset, if balance == 0, it will not be tracked anymore
+     * @param {string} assetHash
+     */
+    async unpinAsset(assetHash){
         await this.check();
-        this.assetProvider.untrack(asset);
+        this.assetProvider.untrack(assetHash);
     }
 
-    async getPinnedAssets(indexCurrency){
+    /**
+     * Get a list of all the pinned assets
+     * @returns 
+     */
+    async getPinnedAssets(){
         await this.check();
-        return this.assetProvider.getTrackedAssets(indexCurrency, false);
+        return this.assetProvider.getTrackedAssets(false);
     }
 
-    async getAvailableCurrencies(indexCurrency){
+
+    /**
+     * Get all the available assets. Includes unholdable assets, eg. fiat used only for pricing data
+     * @returns 
+     */
+    async getAvailableCurrencies(includeFiat=true){
         await this.check();
-        return this.assetProvider.getTrackedAssets(indexCurrency, true);
+        return this.assetProvider.getAllAssets(includeFiat);
     }
 
    
+    /**
+     * Api to convert amounts between assets and types
+     * @param {number} inAmount  the in amount (floating point when using int(), otherwise integer)
+     * @param {string} assetHash 
+     * @returns 
+     */
     v(inAmount, assetHash){
-        console.log("Test",inAmount, assetHash)
-        if (typeof inAmount == "object"){
-            if (typeof inAmount.value != "undefined"){
-                assetHash = inAmount.asset||inAmount.hash;
-                inAmount = inAmount.value;
-            } else if (typeof inAmount.outAmount !="undefined"){
-                assetHash = inAmount.outAsset;
+        if(typeof inAmount!="number") throw new Error("Invalid amount "+inAmount);
+        if(!assetHash||typeof assetHash!="string") throw new Error("Invalid asset "+assetHash);
+   
 
-                inAmount = inAmount.outAmount;
-            }else{
-                console.log("INvalid amount",inAmount);
-                throw new Error("Invalid amount");
-            }
-        }
-
-        if(!assetHash) {
-            console.log("Invalid asset",assetHash);
-            throw new Error("Invalid asset "+assetHash);
-        }
-        if(typeof inAmount!="number") {
-            console.log("Invalid amount",inAmount);
-            throw new Error("Invalid amount "+inAmount);
-        }
         return {
+            /**
+             * Returns the price of an int amount in the target asset in a way an human would write it
+             * @param {string} targetAssetHash  if unset means to use the base asset
+             * @returns 
+             */
             human: async (targetAssetHash)=>{
                 await this.check();
                 if (!targetAssetHash) targetAssetHash = assetHash;
@@ -1234,16 +1392,25 @@ export default class LiquidWallet {
                 amount = await this.assetProvider.floatToStringValue(amount, targetAssetHash);
                 return amount;
             },
+
+            /**
+             * Returns the price of an int amount in the target asset as a floating point number
+             * @param {number} targetAssetHash if unset means to use the base asset
+             * @returns 
+             */
             float: async (targetAssetHash)=>{
                 await this.check();
                 if (!targetAssetHash) targetAssetHash = assetHash;
-
                 let amount = inAmount;
-
                 amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
                 amount = await this.assetProvider.intToFloat(amount, targetAssetHash);
                 return amount;
             },
+            /**
+             * Returns the price of a floating point amount in the target asset as an integer
+             * @param {*} targetAssetHash if unset means to use the base asset
+             * @returns 
+             */
             int: async (targetAssetHash)=>{
                 await this.check();
                 if (!targetAssetHash) targetAssetHash = assetHash;
