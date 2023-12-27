@@ -369,7 +369,6 @@ export default class AssetProvider {
             const precision=response.precision||0
             const ticker=response.ticker||"???";
             const name=response.name||"???";
-            console.log("Esplora",response);
             info = { precision, ticker, name, hash:assetId};
          
             await this.cache.set("as:"+assetId,info);

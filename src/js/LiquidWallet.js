@@ -71,14 +71,12 @@ export default class LiquidWallet {
     }
 
     async elcAction(action, params){
-        console.log("elcAction",action,params);
-        console.trace();
+
         return this.elc.request(action,...params);
     }
 
     async elcActions(batch){
-        console.log("elcActions",batch);
-        console.trace();
+
         return this.elc.batchRequest(batch);
     }
 
@@ -1042,7 +1040,6 @@ export default class LiquidWallet {
 
         // Get the raw buffer of the transaction   
         const txBuffer =providedTxBuffer?providedTxBuffer:await this.getTransactionBuffer(tx_hash);
-        console.log(txBuffer);
         
         // Deserialize it to a liquidjs-lib transaction
         const txData = Liquid.Transaction.fromBuffer(txBuffer);
@@ -1066,7 +1063,7 @@ export default class LiquidWallet {
 
         // We are out of luck, we need to unblind the inputs and outputs
         if(!cachedOuts||!cachedIns){
-            console.log("Resolving", txData);
+            // console.log("Resolving", txData);
             // We just launch the unblinding of everything and wait
             await Promise.all([
                 await Promise.all(txData.outs.map(out => this._unblindOutput(addr,out, txData))),
@@ -1124,7 +1121,7 @@ export default class LiquidWallet {
         } catch (e) {
             if (!input.debug) input.debug = [];
             input.debug.push(e);
-            console.log("Input discarded", input, e, txData); // well it seems this wasn't the input we are looking for...
+            // console.log("Input discarded", input, e, txData); // well it seems this wasn't the input we are looking for...
         }
 
     }
@@ -1184,14 +1181,14 @@ export default class LiquidWallet {
 
                 out.ldata = await zkpGenerator.unblindUtxo(out);
                 out.ldata.value = parseInt(out.ldata.value.toString(), 10);                
-                console.log("Unblinded", out);
+                // console.log("Unblinded", out);
             }
 
             out.ldata.assetHash=Liquid.AssetHash.fromBytes(out.ldata.asset).hex;          
         }catch(e){
             if(!out.debug) out.debug=[];
             out.debug.push(e);
-            console.log("Output discarded",out,e);
+            // console.log("Output discarded",out,e);
         }
         return out;
     }
