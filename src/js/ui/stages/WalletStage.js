@@ -114,6 +114,7 @@ export default class WalletPage extends UIStage {
                     });
                 }
             }
+
             
             txElCnt.style.setProperty("--anim-delta", animDelta+"s");
             animDelta+=0.2;
@@ -148,6 +149,8 @@ export default class WalletPage extends UIStage {
             txHashEl.setValue(tx.tx_hash.substr(0, 16) + "...");
 
             lq.getTransaction(tx.tx_hash).then((txData) => {
+                txElCnt.setPriority(-txData.height)
+
                 if (!txData.info.valid) {
                     txDirectionEl.setValue("receipt_log");
                 } else {

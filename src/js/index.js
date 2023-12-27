@@ -34,6 +34,7 @@ async function main() {
     }); // refresh the ui when the wallet data changes    
 
     window.lq = lq; // debug api export, you can use this in the browser console 
+    window.lqui=ui; // debug api export, you can use this in the browser console
     window.setStage=(stage)=>{  // debug api export, you can use this in the browser console
         ui.setStage(stage);
     }

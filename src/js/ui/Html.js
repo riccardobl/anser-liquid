@@ -422,15 +422,16 @@ export default class Html{
 
     static $icon(parent,directSelector,classes=[],prepend=false){
         const iconCntEl=this.$(parent,directSelector,["iconCnt",...classes],"div",prepend);
-        let materialIconEl = iconCntEl.querySelector(".material-symbols-outlined");
+        let materialIconEl = iconCntEl.querySelector(":scope > .mic");
         if(!materialIconEl){
             materialIconEl = document.createElement("div");
             materialIconEl.classList.add("icon");
             materialIconEl.classList.add("material-symbols-outlined");
+            materialIconEl.classList.add("mic");
             materialIconEl.innerText="cached";
         }
 
-        let iconImgEl = iconCntEl.querySelector(".img");
+        let iconImgEl = iconCntEl.querySelector(":scope  > .img");
         if(!iconImgEl){
             iconImgEl = document.createElement("img");
             iconImgEl.classList.add("icon");
@@ -446,6 +447,7 @@ export default class Html{
             const imgEl=iconCntEl.querySelector(".img");
             if(imgEl){
                 iconCntEl.removeChild(imgEl);
+                materialIconEl.remove();
                 iconCntEl.appendChild(materialIconEl);
             }            
             materialIconEl.classList.remove("loading");
@@ -457,6 +459,7 @@ export default class Html{
             const materialIconEl=iconCntEl.querySelector(".material-symbols-outlined");
             if(materialIconEl){
                 iconCntEl.removeChild(materialIconEl);
+                iconImgEl.remove();
                 iconCntEl.appendChild(iconImgEl);
             }
             iconImgEl.classList.remove("loading");

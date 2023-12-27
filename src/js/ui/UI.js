@@ -121,8 +121,10 @@ export default class UI{
     }
     
     async setStage(stageName){
-        console.log("Load ", stageName);
         await this._reloadTheme();
+
+        const reload=this.stage && this.stage.getName()===stageName;
+        console.log(reload ? "Reload" : "Load ", stageName);
 
         const stages=await Promise.all(UI.STAGES);
         const modules = await  Promise.all(UI.MODULES);
@@ -140,33 +142,38 @@ export default class UI{
             console.error("Invalid stage", stageName, "use default stage",stage.getName());
         }
 
-        if(this.stage){
-            for(const module of modules){
-                if (module.isEnabledForStage(this.stage.getName())){
-                    module.onUnload(this.stage, this.stageContainerEl, this.walletEl,this.lq, this);     
-                }
-            }
-            this.stage.onUnload(this.stageContainerEl,this.lq, this);
-            this.stageContainerEl.classList.remove(this.stage.getName());
-            
-        }
+        
 
-        this.stageContainerEl.innerHTML="";
-        this.stageContainerEl.classList.add("stage");
-        this.stageContainerEl.classList.add(stage.getName());
+        if (!reload){
+            if (this.stage) {
+                for (const module of modules) {
+                    if (module.isEnabledForStage(this.stage.getName())) {
+                        module.onUnload(this.stage, this.stageContainerEl, this.walletEl, this.lq, this);
+                    }
+                }
+                this.stage.onUnload(this.stageContainerEl, this.lq, this);
+                this.stageContainerEl.classList.remove(this.stage.getName());
+
+            }
+
+            this.stageContainerEl.innerHTML="";
+            this.stageContainerEl.classList.add("stage");
+            this.stageContainerEl.classList.add(stage.getName());
+        }
         stage.onReload(this.stageContainerEl,this.lq, this); 
         for(const listener of this.stageChangeListeners){
             listener(stage);
         }
         this.stage=stage;   
 
+        if (!reload) {
 
         for(const module of modules){
             if (module.isEnabledForStage(stage.getName())){
                 module.onLoad(stage, this.stageContainerEl, this.walletEl,this.lq, this);     
             }
         }
-
+    }
     }
 }
 
