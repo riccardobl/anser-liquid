@@ -24,13 +24,16 @@ export default class SendStage extends UIStage {
         let DUMMY_ADDR = Constants.DUMMY_OUT_ADDRESS.testnet;
         let TO_ADDR = DUMMY_ADDR;
 
-        const cntEl = Html.$vlist(walletEl, "#sendCnt", ["fillw"]);
-        const assetInputEl=Html.$inputSelect(cntEl, "#asset");
-        Html.$vsep(cntEl, "#sep1");
+
+        const c01El = Html.$vlist(walletEl, "#c01", ["fillw"]);
+        const c02El = Html.$vlist(walletEl, "#c02", ["fillw"]).grow(20);
+
+
+        const assetInputEl = Html.$inputSelect(c01El, "#asset","Select Asset");
+        Html.$vsep(c01El, "#sep1");
         
 
-        Html.$text(cntEl, ".labelAddr").setValue("To: ");
-        const addrCntEl = Html.$hlist(cntEl, "#addCnt", ["fillw"]);
+        const addrCntEl = Html.$hlist(c01El, "#addCnt", ["fillw"]);
         const addrEl = Html.$inputText(addrCntEl, ".addr").setPlaceHolder("Address").grow(70);
         const pasteEl = Html.$icon(addrCntEl, ".paste", ["enforceSmallWidth"]).grow(5);
         pasteEl.setValue("content_paste");
@@ -39,7 +42,7 @@ export default class SendStage extends UIStage {
             addrEl.setValue(text);
         });
 
-        const warningRowEl=Html.$vlist(cntEl, "#warningNetwork", ["fillw", "warning"]);
+        const warningRowEl = Html.$vlist(c01El, "#warningNetwork", ["fillw", "warning"]);
         warningRowEl.setValue(`
         <span>
         Please ensure that the receiver address is on the <b>${await lq.getNetworkName()}</b> network. 
@@ -51,24 +54,24 @@ export default class SendStage extends UIStage {
 
 
 
-        Html.$text(cntEl, ".labelAmount").setValue("Amount: ");
-        const amountCntEl = Html.$hlist(cntEl, "#amountCnt", ["fillw"]);
+        Html.$text(c02El, ".labelAmount").setValue("Amount: ");
+        const amountCntEl = Html.$hlist(c02El, "#amountCnt", ["fillw"]);
 
         const amountNativeEl = Html.$inputNumber(amountCntEl, ".amount").setPlaceHolder("0.00").grow(70);
         const ticker1El=        Html.$text(amountCntEl, ".asset", ["center", "enforceSmallWidth"]).grow(5);
 
-        const amountSecondaryCntEl = Html.$hlist(cntEl, "#amountCntS", ["fillw"]);
+        const amountSecondaryCntEl = Html.$hlist(c02El, "#amountCntS", ["fillw"]);
 
         const amountSecondaryEl = Html.$inputNumber(amountSecondaryCntEl, ".amountSecondary").setPlaceHolder("0.00").grow(70);
        const ticker2El= Html.$text(amountSecondaryCntEl, ".assetSecondary", ["center","enforceSmallWidth"]).grow(5);
 
-        const availableBalanceEl=Html.$hlist(cntEl, "#available", ["fillw","sub"]);
+        const availableBalanceEl = Html.$hlist(c02El, "#available", ["fillw","sub"]);
         Html.$sep(availableBalanceEl, ".spacer").grow(100);
         Html.$text(availableBalanceEl, ".label").setValue("Available balance: ");
         const availableBalanceValueEl=Html.$text(availableBalanceEl, ".value");
         const useAllEl=Html.$button(availableBalanceEl, ".useAll", ["button","small"]).setValue("SEND ALL");
 
-        const feeRowEl=Html.$hlist(cntEl, "#fee", ["fillw", "sub"]);
+        const feeRowEl = Html.$hlist(c02El, "#fee", ["fillw", "sub"]);
         Html.$sep(feeRowEl, ".spacer").grow(100);
         Html.$text(feeRowEl, ".label").setValue("Fee: ");
         const feeValueEl=Html.$text(feeRowEl, ".value");
@@ -76,15 +79,15 @@ export default class SendStage extends UIStage {
         const feeValueSecondaryEl=Html.$text(feeRowEl, ".valueSecondary");
         
         
-        const errorRowEl = Html.$vlist(cntEl, "#error", ["fillw", "error"]);       
+        const errorRowEl = Html.$vlist(c02El, "#error", ["fillw", "error"]);       
         errorRowEl.hide();
 
-        const loadinRowEl=Html.$hlist(cntEl, "#loading", [ "center", "sub"]);
+        const loadinRowEl = Html.$hlist(c02El, "#loading", [ "center", "sub"]);
         Html.$icon(loadinRowEl, "#loadingIcon").setValue("hourglass_empty");
         const loadingTextEl = Html.$text(loadinRowEl, "#loadingText").setValue("Loading...");
         loadinRowEl.hide();
 
-        const confirmBtnEl = Html.$button(cntEl, "#confirmBtn", ["fillw", "button"]).setValue("Confirm and sign");
+        const confirmBtnEl = Html.$button(c02El, "#confirmBtn", ["fillw", "button"]).setValue("Confirm and sign");
         
         
         const _updateInvoice=async (signAndSend)=>{

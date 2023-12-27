@@ -9,7 +9,8 @@
 }
 
 #liquidwallet #container.receive.stage .invoiceQr {
-    max-width: min(min(40vh, 100%),512px);
-
+    width: min(min(40vh, 100%),512px);
+    max-width: 512px;
+margin:auto;
     margin-bottom: 2rem;
 }

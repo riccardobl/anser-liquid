@@ -20,12 +20,12 @@ export default class ReceiveStage extends UIStage {
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
 
         const c01El = Html.$vlist(stageCntEl, "#c01", ["fillw"]);
-        const c02El = Html.$vlist(stageCntEl, "#c02", ["fillw"]).grow(100);
+        const c02El = Html.$vlist(stageCntEl, "#c02", ["fillw"]).grow(2);
 
         // @@@@@@@@@@@@@@@@@@@@@@@@@
         // @@@@ ASSET SELECTION @@@@
         // @@@@@@@@@@@@@@@@@@@@@@@@@
-        const assetInputEl = Html.$inputSelect(c01El, "#asset");
+        const assetInputEl = Html.$inputSelect(c01El, "#asset","Select Asset");
         Html.$vsep(c01El, "#sep1");
 
         // @@@@@@@@@@@@
@@ -33,7 +33,7 @@ export default class ReceiveStage extends UIStage {
         // @@@@@@@@@@@@
         const qrContainerEl = Html.$hlist(c01El, "#invoice",["center"]);
 
-        const warningRowEl = Html.$vlist(c01El, "#warningNetwork", ["fillw", "warning"]);
+        const warningRowEl = Html.$vlist(c02El, "#warningNetwork", ["fillw", "warning"]);
         warningRowEl.setValue(`
         <span>
         Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network. 

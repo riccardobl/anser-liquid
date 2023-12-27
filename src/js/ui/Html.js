@@ -631,7 +631,7 @@ export default class Html{
     }
 
 
-    static $inputSelect(parent, directSelector, classes = [], multiSelect=false) {
+    static $inputSelect(parent, directSelector, title, classes = [], multiSelect=false) {
         const el = this.$(parent, directSelector, ["popupSelect", ...classes], "div");
         el.classList.add("clickable");
 
@@ -732,7 +732,7 @@ export default class Html{
             const popupOptionsEl = this.$vlist(popupContainerEl, "#" + el.$$$.popupId, ["popup", "popupSelect", "l$landscape"]);
             popupOptionsEl.classList.remove("loading");
             popupContainerEl.classList.add("popupOpen");
-            this.$title(popupOptionsEl, ".title", ["center"]).setValue("Select Asset");
+            this.$title(popupOptionsEl, ".title", ["center"]).setValue(title);
 
             if(multiSelect){
                 const confirmBtnEl = this.$button(popupOptionsEl, ".confirm", []).setValue("Confirm");

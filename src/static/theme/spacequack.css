@@ -1,24 +1,15 @@
 :root {
     --bgColor: #020b1a;
-    /* Deep Space Blue */
     --bgColor2: #021b30;
-    /* Darker Space Blue */
-    --bgColor3: #021b30;
-    /* Darker Space Blue */
+    --bgColor3: #021b30a8;
     --colorShadow: rgba(33, 46, 45, 0.575);
-    /* Dark Shadow */
     --fgColor: #8db0c4;
-    /* Star White */
     --fgColor2: #8db0c4;
-    /* Star White */
     --fgColor3: #8db0c4;
-    /* Star White */
     --bgColorShade: rgba(2, 10, 26, 1);
-    /* Deep Space Blue */
     --bgTextShade: rgba(107, 107, 107, 0.349);
-    /* Grey Text Shade */
     --error: #FF0000;
-    /* Red for Errors */
+            --warning: var(--fgColor);
 }
 #liquidwallet #container .asset .cover{
         filter: blur(20px) grayscale(0.4) brightness(0.6);

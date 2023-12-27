@@ -11,16 +11,16 @@ export default class OptionsStage extends UIStage {
         const listEl=Html.$vlist(containerEl,"#optionsList",["fillw"]);
         // const primaryAssetRowEl = Html.$hlist(listEl, "#primaryAssetRow", ["fillw"]);
         Html.$text(listEl, "#primaryAssetLabel").setValue("Primary currency: ");
-        const primaryAssetEl = Html.$inputSelect(listEl, "#primaryAsset");
+        const primaryAssetEl = Html.$inputSelect(listEl, "#primaryAsset", "Select Asset");
 
         Html.$vsep(listEl,"#sep1");
         // const secondaryAssetRowEl=Html.$hlist(listEl,"#secondaryAssetRow",["fillw"]);
         Html.$text(listEl, "#secondaryAssetLabel").setValue("Secondary currency: ");
-        const secondaryAssetEl = Html.$inputSelect(listEl, "#secondaryAsset");
+        const secondaryAssetEl = Html.$inputSelect(listEl, "#secondaryAsset", "Select Asset");
         Html.$vsep(listEl, "#sep2");
         // const themeRowEl=Html.$hlist(listEl,"#themeRow",["fillw"]);
         Html.$text(listEl, "#themeLabel").setValue("Theme: ");
-        const themeEl = Html.$inputSelect(listEl,"#theme");
+        const themeEl = Html.$inputSelect(listEl,"#theme","Select Theme");
         
         ui.getCurrentTheme().then((currentTheme)=>{
             themeEl.setPreferredValues([currentTheme]);
@@ -58,7 +58,7 @@ export default class OptionsStage extends UIStage {
         Html.$vsep(listEl, "#sep3");
 
         Html.$text(listEl, "#pinnedAssetsLabel").setValue("Pinned assets: ");
-        const inputSelEl=Html.$inputSelect(listEl,"#pinnedAssets",["fillw"],true);
+        const inputSelEl=Html.$inputSelect(listEl,"#pinnedAssets","Select Assets",["fillw"],true);
         
         const loadAssetOptions=async ()=>{
             inputSelEl.clearOptions();

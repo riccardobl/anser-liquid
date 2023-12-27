@@ -1,6 +1,6 @@
 :root {
-        --bgColor: #325763;
-    --bgColor3: rgb(36, 63, 71);
+    --bgColor: #325763;
+    --bgColor3: rgba(36, 63, 71, 0.774);
 
     --bgColor2: rgb(36, 63, 71);
     --colorShadow: rgba(33, 46, 45, 0.575);
@@ -10,10 +10,12 @@
     --bgColorShade: rgba(2, 107, 121, 1);
     --bgTextShade: rgba(107, 107, 107, 0.349);
     --error: #FF0000;
+        --warning: var(--fgColor);
 }
-#liquidwallet #container .asset .cover{
-        filter: blur(20px) grayscale(0.4) brightness(0.6);
-            opacity: 0.4;
+
+#liquidwallet #container .asset .cover {
+    filter: blur(20px) grayscale(0.4) brightness(0.6);
+    opacity: 0.4;
 }
 
 #liquidwallet #header .cover {

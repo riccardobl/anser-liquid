@@ -295,8 +295,8 @@ export default class WalletPage extends UIStage {
     }
 
     onReload(walletEl, lq, ui) {
-        const c0El = Html.$vlist(walletEl, "#c00", [ "fillw"]);
-        const c1El = Html.$vlist(walletEl, "#c01",["fillw"]);
+        const c0El = Html.$vlist(walletEl, "#c00", [ "fillw"]).grow(1);;
+        const c1El = Html.$vlist(walletEl, "#c01",["fillw"]).grow(3);
         const render = (filter) => {
            
             this.renderBalance(c0El, lq, ui);

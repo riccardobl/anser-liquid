@@ -11,6 +11,11 @@
     --bgColorShade: rgba(2, 107, 121, 1);
     --bgTextShade: rgba(107, 107, 107, 0.349);
     --error: #FF0000;
+    --warning:var(--bgColor3);
+}
+
+html{
+    /* font-size:102%; */
 }
 
 * {
@@ -274,9 +279,11 @@ body {
 *   An horizontal list
 */
 #liquidwallet #container .list.h {
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     flex-direction: row;
+    
+    
 }
 
 
@@ -321,6 +328,7 @@ body {
     min-width: 100%;
     justify-content: center;
     align-items: center;
+        justify-content: flex-start;
 }
 
 /**
@@ -407,7 +415,7 @@ body {
 
 }
 
-#liquidwallet #container .list.fillw>* {
+#liquidwallet #container .list.h.fillw>* {
     flex-shrink: 0;
     flex-grow: 1;
 }
@@ -542,7 +550,7 @@ input {
 }
 
 #liquidwallet #container .popupSelect h1 {
-    color: var(--bgColor2);
+    color: var(--fgColor2);
 }
 
 #liquidwallet #container .popupContainer.popupOpen>*:not(.popup) {
@@ -579,14 +587,14 @@ input {
     padding: 1.2rem;
     font-size: 0.8rem;
     text-align: center;
-    border: 1px dotted var(--bgColor3);
+    border: 1px dotted var(--warning);
     border-radius: 6px;
     margin: 1rem !important;
     margin-right: 1rem !important;
     margin-left: 1rem !important;
     margin-left: 2rem !important;
     margin-right: 2rem !important;
-    color: var(--bgColor3);
+    color: var(--warning);
 }
 
 #liquidwallet div.error {
