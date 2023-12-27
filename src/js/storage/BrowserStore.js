@@ -7,8 +7,8 @@ import Constants from "../Constants.js";
  */
 export default class BrowserStore {
 
-    static async best(prefix = "", limit = 100 * 1024 * 1024){
-        for (const storageMethod of Constants.STORAGE_METHODS){
+    static async best(prefix = "", limit = 100 * 1024 * 1024, byspeed=false){
+        for (const storageMethod of (byspeed ? Constants.STORAGE_METHODS_BY_SPEED:Constants.STORAGE_METHODS)){
             try{
                 const StorageMethod = await import("./"+storageMethod+".js").then((module)=>module.default);
                 if (StorageMethod.isSupported()){
@@ -22,6 +22,13 @@ export default class BrowserStore {
         const MemStore = await import("./MemStore.js").then((module)=>module.default);
         return new MemStore(prefix,limit);        
     }
+
+    static async fast(prefix = "", limit = 100 * 1024 * 1024){
+        return this.best(prefix,limit,true);
+    }
+
+
+    
 
     // default limit = 100 mb
     constructor(prefix,limit) {
