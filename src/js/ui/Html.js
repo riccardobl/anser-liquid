@@ -985,7 +985,7 @@ export default class Html{
                 }
                 el.$$$.slideActionScheduledTimeout=setTimeout(()=>{
                     el.$$$.slideActionScheduledTimeout=undefined;
-                    el.$$$.slideAction(Number(lastValue)/10);
+                    el.$$$.slideAction(lastValue);
                 },debounce);
             }
         });
