@@ -7,10 +7,12 @@ export default {
     DEBOUNCE_CALLBACK_TIME:200, // lower this value to make the app more responsive, but more resource intensive
     APP_ID:"lq", // The app id
     APP_VERSION:1, // bumping this invalidates all cache and storage
-    STORAGE_METHODS: ["IDBStore","LocalStore","MemStore"], // order matters, first is preferred
+    STORAGE_METHODS: ["LocalStore", "IDBStore","MemStore"], // order matters, first is preferred
+    STORAGE_METHODS_BY_SPEED: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is fastest 
+
     DISABLE_POINTER_EVENTS:false, // set to true to disable pointer for elements that are not interactive. 
                                   // This has the side effect of messing with the dom picker of debug tools, so should be off in development
-    LOCK_MODE:"landscape", // Set this to lock the app to a certain mode, useful for debugging
+    LOCK_MODE:undefined, // Set this to lock the app to a certain mode, useful for debugging
     EXT_TX_VIEWER:{ // external transaction viewers, currently to preserve privacy ransactions are not unblinded when shown in the external viewer
                     // In future I might consider implementing the double "view confidential" / "view unconfidential" button like most wallets do
                     // or unblind them client side.
@@ -21,5 +23,11 @@ export default {
         "testnet":"tlq1qqf5wd5h3r2tl6tlpkag34uyg9fdkh2v6gshntur7pdkqpxp8v0mk6ke5awh2vejugcrj6gf564av8xld7nmwc477eq78r2clt",
         "liquid":""
     },
+    DEFAULT_THEME:"seagoose",
+
+    PAYURL_PREFIX:{
+        "testnet":"liquidtestnet",
+        "liquid":"liquidnetwork"
+    }
    
 }
