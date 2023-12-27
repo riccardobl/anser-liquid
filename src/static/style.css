@@ -78,15 +78,16 @@ body {
     display: flex;
     flex-direction: column;
     /* justify-content: space-between; */
-justify-content: flex-start;
+    justify-content: flex-start;
     align-items: stretch;
-    
+
     height: fit-content;
-    min-height: 100%;;
-    
+    min-height: 100%;
+    ;
+
     width: 100%;
     text-shadow: 0px 0px 4px var(--bgTextShade);
-    
+
 }
 
 #liquidwallet .material-symbols-outlined {
@@ -110,7 +111,7 @@ justify-content: flex-start;
 }
 
 #liquidwallet .disabled {
-    pointer-events: none!important;
+    pointer-events: none !important;
     filter: grayscale(0.9);
 }
 
@@ -130,20 +131,20 @@ justify-content: flex-start;
     justify-content: space-between;
     align-items: center;
     font-size: 2rem !important;
-color: var(--fgColor3);
-font-weight: bold;
+    color: var(--fgColor3);
+    font-weight: bold;
 
 }
 
-#liquidwallet #header>*:first-child{
-    margin-right:2rem;
+#liquidwallet #header>*:first-child {
+    margin-right: 2rem;
 }
 
 /**
 *   The last icon
 */
 #liquidwallet #header>*:last-child {
-    margin-left: auto;   
+    margin-left: auto;
 }
 
 /**
@@ -154,10 +155,10 @@ font-weight: bold;
     flex-direction: column;
     padding: 0.2rem;
 
-    margin-top:2rem;
+    margin-top: 2rem;
 }
 
-#liquidwallet #container.h{
+#liquidwallet #container.h {
     flex-direction: row;
 
 }
@@ -170,7 +171,7 @@ font-weight: bold;
 
 #liquidwallet #container .iconCnt.big .icon {
     max-width: 3rem;
-    font-size:3rem;
+    font-size: 3rem;
 }
 
 /**
@@ -187,18 +188,18 @@ font-weight: bold;
     text-align: center;
     cursor: pointer;
     padding: 1rem;
-        text-align: center;
-        align-items: center;
-        justify-content: center;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
 }
 
-#liquidwallet #container button.small{
-    box-shadow:none;
-    border-radius:8px;
-    padding:0.4rem;
-    padding-left:1rem;
-    padding-right:1rem;
-    font-size:0.8rem;
+#liquidwallet #container button.small {
+    box-shadow: none;
+    border-radius: 8px;
+    padding: 0.4rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.8rem;
 }
 
 /**
@@ -283,15 +284,15 @@ font-weight: bold;
 /**
 *   A list with a scroller
 */
-#liquidwallet #container .list.outscroll{
+#liquidwallet #container .list.outscroll {
     flex-wrap: nowrap;
-        flex-shrink: 0;
+    flex-shrink: 0;
 }
 
 /**
 *   An item of a list with a scroller
 */
-#liquidwallet #container .list.outscroll > *{
+#liquidwallet #container .list.outscroll>* {
     flex-shrink: 0;
 }
 
@@ -306,9 +307,9 @@ font-weight: bold;
 *   An horizontal list with a scroller
 */
 
-#liquidwallet #container .list.h.outscroll{
-        overflow-x: auto;
-        overflow-y: hidden;
+#liquidwallet #container .list.h.outscroll {
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /**
@@ -318,16 +319,16 @@ font-weight: bold;
     max-width: 100%;
     /* width:100%; */
     min-width: 100%;
-        justify-content: center;
-            align-items: center;
+    justify-content: center;
+    align-items: center;
 }
 
 /**
 *   A vertical list with a scroller
 */
-#liquidwallet #container .list.v.outscroll{
-        overflow-y: auto;
-                overflow-y: hidden;
+#liquidwallet #container .list.v.outscroll {
+    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 
@@ -335,11 +336,11 @@ font-weight: bold;
 /**
 *   A main list of items
 */
-#liquidwallet #container .list.main{
-    padding-top:1rem;
-        padding-bottom: 1rem;
-    padding-left:0.6rem;
-    padding-right:0.6rem;
+#liquidwallet #container .list.main {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
 
 }
 
@@ -348,18 +349,16 @@ font-weight: bold;
 */
 #liquidwallet #container .list>* {
     /* display: flex; */
-        align-items: stretch;
+    align-items: stretch;
     /* padding:0; */
-    margin:0.2rem;
-    
+    margin: 0.2rem;
+
 }
 
 /**
 *   An item of a vertical list
 */
-#liquidwallet #container .list.v > * {
-   
-}
+#liquidwallet #container .list.v>* {}
 
 /**
 *   An item of a main list 
@@ -368,9 +367,9 @@ font-weight: bold;
 #liquidwallet #container .list.main>* {
     border-radius: 14px;
     box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
-    margin:0.3rem;
-    padding:0.6rem;
-    
+    margin: 0.3rem;
+    padding: 0.6rem;
+
 }
 
 
@@ -383,47 +382,47 @@ font-weight: bold;
 }
 
 #liquidwallet #container .list.v.left,
-#liquidwallet #container .list.v.left > * {
+#liquidwallet #container .list.v.left>* {
     align-items: flex-start;
 }
 
-.left{
+.left {
     text-align: left;
 }
 
-.center{
+.center {
     text-align: center;
     justify-content: center;
     align-items: center;
 }
 
-.right{
+.right {
     text-align: right;
 }
 
-.fillw{
-   min-width:100%;
+.fillw {
+    min-width: 100%;
     flex-wrap: nowrap;
     display: flex;
-        
+
 }
 
-#liquidwallet #container .list.fillw>*{
+#liquidwallet #container .list.fillw>* {
     flex-shrink: 0;
-    flex-grow:1;
+    flex-grow: 1;
 }
 
-#liquidwallet #container .list.h.fillw{
+#liquidwallet #container .list.h.fillw {
     /* flex-direction: row; */
-        
-        justify-content: stretch;
-        /* justify-content: stretch; */
+
+    justify-content: stretch;
+    /* justify-content: stretch; */
 }
 
-#liquidwallet #container .list.v.fillw{
+#liquidwallet #container .list.v.fillw {
     /* flex-direction: column; */
-        /* align-items: stretch; */
-        align-items: stretch;
+    /* align-items: stretch; */
+    align-items: stretch;
 
 }
 
@@ -432,7 +431,7 @@ font-weight: bold;
     filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
 }
 
- 
+
 select,
 input {
     padding: 1rem !important;
@@ -441,8 +440,8 @@ input {
     border-radius: 14px;
     text-align: center;
     font-weight: bold;
-    border:none;
-    margin:1rem;
+    border: none;
+    margin: 1rem;
     box-shadow: 0px -2px 2px rgba(0, 0, 0, 0.3);
 }
 
@@ -450,11 +449,12 @@ input {
 
 
 
-.sub,.small{
-    font-size:0.8rem;
+.sub,
+.small {
+    font-size: 0.8rem;
 }
 
-.sub{
+.sub {
     font-style: italic;
 }
 
@@ -462,14 +462,14 @@ input {
     font-size: 0.5rem;
 }
 
-.title{
+.title {
     font-weight: bold;
-    font-size:1.2rem;
+    font-size: 1.2rem;
 }
 
-.titleBig{
+.titleBig {
     font-weight: bold;
-        font-size: 5rem;
+    font-size: 5rem;
 }
 
 /**
@@ -484,105 +484,111 @@ input {
 #liquidwallet h1 {
     font-weight: bold;
     text-shadow: 0px -2px 1px var(--colorShadow);
-    font-size:1.6rem;
+    font-size: 1.6rem;
     text-align: center;
     width: 100%;
     text-transform: uppercase;
-    padding:2rem;
-    padding-bottom:1rem;
-    color:var(--bgColor3);
-    
+    padding: 2rem;
+    padding-bottom: 1rem;
+    color: var(--bgColor3);
+
 }
 
 
 
-#liquidwallet .select .selection{
-    width:100%;
+#liquidwallet .select .selection {
+    width: 100%;
     text-align: center;
 }
 
-#liquidwallet .select .expand{
-    font-size:3rem;
+#liquidwallet .select .expand {
+    font-size: 3rem;
     font-weight: bold;
-    padding:0;
+    padding: 0;
 }
- 
-#liquidwallet .popup{
-    width:90vw;
-    display: flex;    
+
+#liquidwallet .popup {
+    width: 90vw;
+    display: flex;
     background: var(--bgColor3);
-    height:min(80vh,50rem);
+    height: min(80vh, 50rem);
     overflow-y: auto;
-    z-index:99;
+    z-index: 99;
     flex-direction: column;
-    position:fixed;
-    bottom:0vh;
+    position: fixed;
+    bottom: 0vh;
     border-radius: 6px;
-    right:calc(5vw);
-    justify-content: flex-start!important;
-    align-items: stretch!important;
+    right: calc(5vw);
+    justify-content: flex-start !important;
+    align-items: stretch !important;
     backdrop-filter: blur(6px);
-    padding:1rem;
-    
+    padding: 1rem;
+
     filter: drop-shadow(6px 6px 6px var(--bgColor3));
 
 }
+
 #liquidwallet .popup.landscape {
-    right:10vw;
-    height:70vh;
-    bottom:10vh;
-    width:80vw;
+    right: 10vw;
+    height: 70vh;
+    bottom: 10vh;
+    width: 80vw;
 }
-#liquidwallet .popup > *{
+
+#liquidwallet .popup>* {
     flex-shrink: 0;
-    margin:0.5rem!important;
+    margin: 0.5rem !important;
 
 }
 
-#liquidwallet #container .popupSelect h1{
-    color:var(--bgColor2);
+#liquidwallet #container .popupSelect h1 {
+    color: var(--bgColor2);
 }
 
-#liquidwallet #container .popupContainer.popupOpen > *:not(.popup){
+#liquidwallet #container .popupContainer.popupOpen>*:not(.popup) {
     filter: blur(3px) grayscale(0.4);
 
 }
-#liquidwallet #container .popup.popupSelect  button{
-    width:auto;
-}
-#liquidwallet #container .popupSelect button{
-    justify-content: flex-start;
-    flex-direction: row;
-        align-items: center;
-        height:4rem;
-        width: 100%;
+
+#liquidwallet #container .popup.popupSelect button {
+    width: auto;
 }
 
-#liquidwallet #container .popupSelect button .iconCnt{
-    margin:0;
-    padding:0;
-    width:2rem;
-    margin-right:1rem;
+#liquidwallet #container .popupSelect button {
+    justify-content: flex-start;
+    flex-direction: row;
+    align-items: center;
+    height: 4rem;
+    width: 100%;
+}
+
+#liquidwallet #container .popupSelect button .iconCnt {
+    margin: 0;
+    padding: 0;
+    width: 2rem;
+    margin-right: 1rem;
     /* position: absolute;
     left:1rem; */
 }
-#liquidwallet #container .popupSelect button .secondaryLabel{
-    margin-left:auto;
+
+#liquidwallet #container .popupSelect button .secondaryLabel {
+    margin-left: auto;
 }
 
-#liquidwallet div.warning{
+#liquidwallet div.warning {
     padding: 1.2rem;
-        font-size: 0.8rem;
-        text-align: center;
-        border: 1px dotted var(--bgColor3);
-        border-radius: 6px;
-        margin: 1rem!important;
-        margin-right: 1rem!important;
-        margin-left: 1rem!important;
-        margin-left: 2rem!important;
-        margin-right: 2rem!important;
-        color: var(--bgColor3);
+    font-size: 0.8rem;
+    text-align: center;
+    border: 1px dotted var(--bgColor3);
+    border-radius: 6px;
+    margin: 1rem !important;
+    margin-right: 1rem !important;
+    margin-left: 1rem !important;
+    margin-left: 2rem !important;
+    margin-right: 2rem !important;
+    color: var(--bgColor3);
 }
+
 #liquidwallet div.error {
     padding: 1.2rem;
     font-size: 0.8rem;
@@ -597,29 +603,30 @@ input {
     color: var(--error);
 }
 
-#liquidwallet #header .cover{
-    width:100%;
-    height:100%;
-    position:absolute;
-    top:0;
-    left:0;
-            background-size: cover;
-            background-position: 50% 80%;
-            filter: blur(50px);
-            opacity: 0.8;
+#liquidwallet #header .cover {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-size: cover;
+    background-position: 50% 80%;
+    filter: blur(50px);
+    opacity: 0.8;
 }
 
 
-#liquidwallet > #logo{
+#liquidwallet>#logo {
     position: fixed;
-    width:100%;
-    height:100%;
-    top:0;
-    left:0;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
     background-color: var(--bgColorShade);
 }
-#liquidwallet>#logo .cover{
-display: block;
+
+#liquidwallet>#logo .cover {
+    display: block;
     width: min(80vw, 512px);
     height: min(80vw, 512px);
     position: absolute;
@@ -629,16 +636,16 @@ display: block;
     filter: drop-shadow(0px 0px 500px var(--bgColor3));
 
 
-            background-size: contain;
-            background-position:center;
-            background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-#liquidwallet .enforceSmallWidth{
-    width:5rem;
+#liquidwallet .enforceSmallWidth {
+    width: 5rem;
 }
 
-#liquidwallet .sep.v{
-    margin-top:2rem!important;
+#liquidwallet .sep.v {
+    margin-top: 2rem !important;
     min-width: 1px;
 }
