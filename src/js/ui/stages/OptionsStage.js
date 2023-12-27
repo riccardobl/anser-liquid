@@ -8,7 +8,7 @@ export default class OptionsStage extends UIStage {
 
 
     onReload(containerEl, lq, ui) {
-        const listEl=Html.$vlist(containerEl,"#optionsList",["fillw"]);
+        const listEl=Html.$vlist(containerEl,"#optionsList",["fillw"]).grow(100);
         // const primaryAssetRowEl = Html.$hlist(listEl, "#primaryAssetRow", ["fillw"]);
         Html.$text(listEl, "#primaryAssetLabel").setValue("Primary currency: ");
         const primaryAssetEl = Html.$inputSelect(listEl, "#primaryAsset", "Select Asset");
