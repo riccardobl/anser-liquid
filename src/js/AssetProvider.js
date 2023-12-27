@@ -39,28 +39,34 @@ export default class AssetProvider {
         this.specialSymbols={};
     }
 
-    async _getFiatPrice(fiatTicker){
-        await this._init();
-        while(this.fiatSyncing){
-            await new Promise(res=>setTimeout(res,100));
-        }
-        const fiatTickerUrlDescriber=fiatTicker.toLowerCase().replace(" ","_");
+    async _getFiatData(){
+        const fiatTickerUrlDescriber = this.fiatTickerUrl.toLowerCase().replace(" ", "_");
+
         let fiatData = await this.cache.get("fiat:" + fiatTickerUrlDescriber);
-        if (!fiatData||Date.now()-fiatData.timestamp>this.fiatTrackerTimeout) {
-            try{
-                this.fiatSyncing=true;
+        if (!fiatData || Date.now() - fiatData.timestamp > this.fiatTrackerTimeout) {
+            try {
+                this.fiatSyncing = true;
                 const data = await fetch(this.fiatTickerUrl).then(r => r.json());
-                const timestamp=Date.now();
+                const timestamp = Date.now();
                 fiatData = {
                     timestamp,
                     data
                 }
                 await this.cache.set("fiat:" + fiatTickerUrlDescriber, fiatData);
-                this.fiatSyncing=false;
-            }catch(e){
+                this.fiatSyncing = false;
+            } catch (e) {
                 console.log(e);
             }
         }
+        return fiatData;
+    }
+
+    async _getFiatPrice(fiatTicker){
+        await this._init();
+        while(this.fiatSyncing){
+            await new Promise(res=>setTimeout(res,100));
+        }
+        const fiatData = await this._getFiatData();
         let price = fiatData && fiatData.data && fiatData.data[fiatTicker] ? fiatData.data[fiatTicker]:0;
         if (price)price = price.last;
 
@@ -113,7 +119,32 @@ export default class AssetProvider {
 
     }
 
-    async getTrackedAssets(indexCurrency, includeFiat=true){
+    async getAllAssets(includeFiat=true){
+        await this._init();
+        const out=[];
+        const sideswapAsset=await this.sideSwap.getAllAssets();
+        for(const k in sideswapAsset){
+            out.push({
+                id:k,
+                hash:k,
+                assetHash:k,
+            });
+        }
+        if(includeFiat){
+            const fiatAssets = await this._getFiatData();
+            for(const k in fiatAssets.data){
+                out.push({
+                    hash:k,
+                    assetHash:k,
+                    id:k,
+                });
+            }
+        }
+        return out;
+    }
+
+
+    async getTrackedAssets(includeFiat=true){
         await this._init();
 
         const out=[];
@@ -125,13 +156,14 @@ export default class AssetProvider {
         for(const asset of tracked){
             const d={};
             // d.price=this.getPrice(1,asset,indexCurrency);            
-            d.info=this.getAssetInfo(asset);
-            d.icon=this.getAssetIcon(asset);
+            // d.info=this.getAssetInfo(asset);
+            // d.icon=this.getAssetIcon(asset);
             // d.getValue = (currencyHash, floatingPoint = true) => {
             //     return this.assetProvider.getPrice(assetData.value, asset, currencyHash, floatingPoint);
             // };
             d.id=asset;
-            d.hash=asset;
+            d.hash = asset;
+            d.assetHash = asset;
             out.push(d);
         }
         return out;
@@ -232,13 +264,21 @@ export default class AssetProvider {
         const precision = info.precision;
 
         if (this.specialSymbols[symbol]) symbol = this.specialSymbols[symbol];
-        
-        v = v.toFixed(precision);
-        v = Number(v) + "";
-        let decs;
-        [v, decs] = v.split(".");
-        if (!decs || decs.length < 2) decs = "00";
-        v = v + "." + decs;
+
+        const isFiat=this._isFiat(assetHash);
+        // if isFiat keep only 2 decimal, otherwise keep 6
+        if (isFiat) {
+            v = v.toFixed(2);
+        }else{
+            v = v.toFixed(6);
+        }
+
+
+        // v = Number(v) + "";
+        // let decs;
+        // [v, decs] = v.split(".");
+        // if (!decs || decs.length < 2) decs = "00";
+        // v = v + "." + decs;
         if (symbol) {
             v = v + " " + symbol;
         }
