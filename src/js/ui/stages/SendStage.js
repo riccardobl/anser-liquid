@@ -23,8 +23,8 @@ export default class SendStage extends UIStage {
         let DUMMY_ADDR = Constants.DUMMY_OUT_ADDRESS.testnet;
         let TO_ADDR = DUMMY_ADDR;
 
-        const c01El = Html.$vlist(walletEl, "#c01", ["fillw"]);
-        const c02El = Html.$vlist(walletEl, "#c02", ["fillw"]).grow(20);
+        const c01El = Html.$vlist(walletEl, ".c0", ["fillw"]);
+        const c02El = Html.$vlist(walletEl, ".c1", ["fillw"]).grow(20);
 
         const assetInputEl = Html.$inputSelect(c01El, "#asset", "Select Asset");
         Html.$vsep(c01El, "#sep1");

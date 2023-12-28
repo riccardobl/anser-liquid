@@ -28,7 +28,7 @@ body {
     font-family: "Lato", sans-serif;
     position: relative;
     overflow: hidden;
-    flex-shrink: 1;
+    flex-shrink: 0;
     word-wrap: break-word;
 }
 
@@ -165,6 +165,9 @@ body {
 *   An icon
 */
 
+#liquidwallet #container .iconCnt .icon {
+    flex-shrink: 1;
+}
 #liquidwallet #container .iconCnt.big .icon {
     max-width: 3rem;
     font-size: 3rem;
@@ -298,11 +301,6 @@ body {
 *   An horizontal list with a scroller
 */
 
-#liquidwallet #container .list.h.outscroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
 /**
 *   A vertical list
 */
@@ -313,14 +311,6 @@ body {
     justify-content: center;
     align-items: center;
     justify-content: flex-start;
-}
-
-/**
-*   A vertical list with a scroller
-*/
-#liquidwallet #container .list.v.outscroll {
-    overflow-y: auto;
-    overflow-y: hidden;
 }
 
 /**
@@ -673,4 +663,29 @@ input {
     text-shadow: 0px 0px 4px #000;
     font-size: 2rem;
     color: purple;
+}
+
+#liquidwallet .h .c0 {
+    width: min(40vw, 512px);
+}
+#liquidwallet #container .list.h.outscroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+}
+@media (orientation: landscape) {
+    #liquidwallet {
+        height: 100%;
+    }
+
+    #liquidwallet #container .list.v.outscroll {
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        max-height: 100%;
+    }
+}
+
+#container {
+    height: 100%;
 }

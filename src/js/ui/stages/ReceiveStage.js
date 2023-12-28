@@ -18,8 +18,8 @@ export default class ReceiveStage extends UIStage {
         let SECONDARY_CURRENCY = secondaryCurrency;
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
 
-        const c01El = Html.$vlist(stageCntEl, "#c01", ["fillw"]);
-        const c02El = Html.$vlist(stageCntEl, "#c02", ["fillw"]).grow(2);
+        const c01El = Html.$vlist(stageCntEl, ".c0", ["fillw"]);
+        const c02El = Html.$vlist(stageCntEl, ".c1", ["fillw"]).grow(2);
 
         // @@@@@@@@@@@@@@@@@@@@@@@@@
         // @@@@ ASSET SELECTION @@@@

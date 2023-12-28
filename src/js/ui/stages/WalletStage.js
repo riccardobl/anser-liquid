@@ -114,7 +114,7 @@ export default class WalletPage extends UIStage {
     }
 
     async renderHistoryPanel(parentEl, lq, filter, ui, limit = 100, page = 0) {
-        const historyEl = Html.$vlist(parentEl, "#history", ["main", "fillw"]);
+        const historyEl = Html.$vlist(parentEl, "#history", ["main", "fillw", "outscroll"]);
 
         const history = (await lq.getHistory()).slice(page * limit, page * limit + limit);
 
@@ -123,6 +123,7 @@ export default class WalletPage extends UIStage {
         for (const tx of history) {
             const id = "history" + (tx.tx_hash.substr(0, 8) + tx.tx_hash.substr(-8));
             const txElCnt = Html.$hlist(historyEl, "#" + id, ["left", "tx"]);
+            if (txElCnt.confirmed) continue; // never attempt to update confirmed txs
 
             if (Constants.EXT_TX_VIEWER) {
                 const extViewer = Constants.EXT_TX_VIEWER[lq.getNetworkName()];
@@ -153,11 +154,13 @@ export default class WalletPage extends UIStage {
                 txStatusEl.classList.remove("loading");
                 txElCnt.classList.add("confirmed");
                 txElCnt.setPriority(0);
+                txElCnt.confirmed = true;
             } else {
                 txStatusEl.setValue("cached");
                 txStatusEl.classList.add("loading");
                 txElCnt.classList.remove("confirmed");
                 txElCnt.setPriority(-1000);
+                txElCnt.confirmed = false;
             }
             txHashEl.setValue(tx.tx_hash.substr(0, 16) + "...");
 
@@ -334,8 +337,8 @@ export default class WalletPage extends UIStage {
     }
 
     onReload(walletEl, lq, ui) {
-        const c0El = Html.$vlist(walletEl, "#c00", ["fillw"]).grow(1);
-        const c1El = Html.$vlist(walletEl, "#c01", ["fillw"]).grow(3);
+        const c0El = Html.$vlist(walletEl, ".c0", ["fillw"]).grow(1);
+        const c1El = Html.$vlist(walletEl, ".c1", ["fillw"]).grow(3);
         const render = (filter) => {
             this.renderBalance(c0El, lq, ui);
             this.renderAssets(c0El, lq, filter, ui);
