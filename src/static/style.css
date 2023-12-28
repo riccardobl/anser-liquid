@@ -1,23 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap");
 
 :root {
-    --bgColor2: #D8F4EF;
+    --bgColor2: #d8f4ef;
     --colorShadow: rgba(120, 139, 138, 0.575);
-    --bgColor: #F0FDFA;
+    --bgColor: #f0fdfa;
     --fgColor: #212121;
-    --fgColor2: #D8F4EF;
+    --fgColor2: #d8f4ef;
     --fgColor3: #212121;
     --bgColor3: rgba(2, 107, 121, 0.568);
     --bgColorShade: rgba(2, 107, 121, 1);
     --bgTextShade: rgba(107, 107, 107, 0.349);
-    --error: #FF0000;
-    --warning:var(--bgColor3);
+    --error: #ff0000;
+    --warning: var(--bgColor3);
 }
 
-html{
+html {
     /* font-size:102%; */
 }
-body{
+body {
     max-height: 100vh;
 }
 * {
@@ -25,7 +25,7 @@ body{
     padding: 0;
     box-sizing: border-box;
     min-width: 0 !important;
-    font-family: 'Lato', sans-serif;
+    font-family: "Lato", sans-serif;
     position: relative;
     overflow: hidden;
     flex-shrink: 1;
@@ -33,7 +33,7 @@ body{
 }
 
 /* For Webkit browsers */
- ::-webkit-scrollbar {
+::-webkit-scrollbar {
     width: 5px;
     height: 5px;
     /* width of the entire scrollbar */
@@ -50,7 +50,7 @@ body{
     /* roundness of the scroll thumb */
 }
 
- ::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
     background: #555;
     /* color of the scroll thumb when hovering */
 }
@@ -71,7 +71,6 @@ html {
     min-width: 100%;
     padding: 0rem;
     overflow-y: auto;
-
 }
 
 body {
@@ -89,17 +88,13 @@ body {
 
     height: fit-content;
     min-height: 100%;
-    ;
-
     width: 100%;
     text-shadow: 0px 0px 4px var(--bgTextShade);
-
 }
 
 #liquidwallet .material-symbols-outlined {
     font-size: inherit;
 }
-
 
 /**
 *   An element that normally is not clickable
@@ -121,7 +116,6 @@ body {
     filter: grayscale(0.9);
 }
 
-
 /**
 *   The header
 */
@@ -139,17 +133,16 @@ body {
     font-size: 2rem !important;
     color: var(--fgColor3);
     font-weight: bold;
-
 }
 
-#liquidwallet #header>*:first-child {
+#liquidwallet #header > *:first-child {
     margin-right: 2rem;
 }
 
 /**
 *   The last icon
 */
-#liquidwallet #header>*:last-child {
+#liquidwallet #header > *:last-child {
     margin-left: auto;
 }
 
@@ -166,10 +159,7 @@ body {
 
 #liquidwallet #container.h {
     flex-direction: row;
-
 }
-
-
 
 /**
 *   An icon
@@ -239,8 +229,6 @@ body {
     font-size: 3rem;
 }
 
-
-
 /**
 *   A text that is too long
 */
@@ -273,7 +261,6 @@ body {
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
-
 }
 
 /**
@@ -283,11 +270,7 @@ body {
     justify-content: space-between;
     align-items: center;
     flex-direction: row;
-    
-    
 }
-
-
 
 /**
 *   A list with a scroller
@@ -300,7 +283,7 @@ body {
 /**
 *   An item of a list with a scroller
 */
-#liquidwallet #container .list.outscroll>* {
+#liquidwallet #container .list.outscroll > * {
     flex-shrink: 0;
 }
 
@@ -329,7 +312,7 @@ body {
     min-width: 100%;
     justify-content: center;
     align-items: center;
-        justify-content: flex-start;
+    justify-content: flex-start;
 }
 
 /**
@@ -340,8 +323,6 @@ body {
     overflow-y: hidden;
 }
 
-
-
 /**
 *   A main list of items
 */
@@ -350,48 +331,43 @@ body {
     padding-bottom: 1rem;
     padding-left: 0.6rem;
     padding-right: 0.6rem;
-
 }
 
 /**
 *   An item of a list
 */
-#liquidwallet #container .list>* {
+#liquidwallet #container .list > * {
     /* display: flex; */
     align-items: stretch;
     /* padding:0; */
     margin: 0.2rem;
-
 }
 
 /**
 *   An item of a vertical list
 */
-#liquidwallet #container .list.v>* {}
+#liquidwallet #container .list.v > * {
+}
 
 /**
 *   An item of a main list 
 *   (Adds some extra styling to make it standout)
 */
-#liquidwallet #container .list.main>* {
+#liquidwallet #container .list.main > * {
     border-radius: 14px;
     box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
     margin: 0.3rem;
     padding: 0.6rem;
-
 }
-
-
 
 /* Alignments */
 #liquidwallet #container .list.h.left,
-#liquidwallet #container .list.h.left>* {
+#liquidwallet #container .list.h.left > * {
     justify-content: flex-start;
-
 }
 
 #liquidwallet #container .list.v.left,
-#liquidwallet #container .list.v.left>* {
+#liquidwallet #container .list.v.left > * {
     align-items: flex-start;
 }
 
@@ -413,10 +389,9 @@ body {
     min-width: 100%;
     flex-wrap: nowrap;
     display: flex;
-
 }
 
-#liquidwallet #container .list.h.fillw>* {
+#liquidwallet #container .list.h.fillw > * {
     flex-shrink: 0;
     flex-grow: 1;
 }
@@ -432,14 +407,12 @@ body {
     /* flex-direction: column; */
     /* align-items: stretch; */
     align-items: stretch;
-
 }
 
 #liquidwallet #container .buttons {
     /* padding: 0.6rem; */
     filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
 }
-
 
 select,
 input {
@@ -453,10 +426,6 @@ input {
     margin: 1rem;
     box-shadow: 0px -2px 2px rgba(0, 0, 0, 0.3);
 }
-
-
-
-
 
 .sub,
 .small {
@@ -500,10 +469,7 @@ input {
     padding: 2rem;
     padding-bottom: 1rem;
     color: var(--bgColor3);
-
 }
-
-
 
 #liquidwallet .select .selection {
     width: 100%;
@@ -534,7 +500,6 @@ input {
     padding: 1rem;
 
     filter: drop-shadow(6px 6px 6px var(--bgColor3));
-
 }
 
 #liquidwallet .popup.landscape {
@@ -544,19 +509,17 @@ input {
     width: 80vw;
 }
 
-#liquidwallet .popup>* {
+#liquidwallet .popup > * {
     flex-shrink: 0;
     margin: 0.5rem !important;
-
 }
 
 #liquidwallet #container .popup h1 {
     color: var(--fgColor2);
 }
 
-#liquidwallet #container .popupContainer.popupOpen>*:not(.popup) {
+#liquidwallet #container .popupContainer.popupOpen > *:not(.popup) {
     filter: blur(3px) grayscale(0.4);
-
 }
 
 #liquidwallet #container .popup.popupSelect button {
@@ -624,8 +587,7 @@ input {
     opacity: 0.8;
 }
 
-
-#liquidwallet>#logo {
+#liquidwallet > #logo {
     position: fixed;
     width: 100%;
     height: 100%;
@@ -634,7 +596,7 @@ input {
     background-color: var(--bgColorShade);
 }
 
-#liquidwallet>#logo .cover {
+#liquidwallet > #logo .cover {
     display: block;
     width: min(80vw, 512px);
     height: min(80vw, 512px);
@@ -643,7 +605,6 @@ input {
     left: min(calc(50vw - min(40vw, 256px)));
     z-index: 99;
     filter: drop-shadow(0px 0px 500px var(--bgColor3));
-
 
     background-size: contain;
     background-position: center;
@@ -664,16 +625,13 @@ input {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-   
 }
-
- 
 
 .inputSlide .slider {
     flex-grow: 1;
     height: 0px;
-    padding:0;
-    margin:0;
+    padding: 0;
+    margin: 0;
     background: var(--bgColor3);
     border: none;
     outline: none;
@@ -692,29 +650,27 @@ input {
 
 .inputSlide .slider::-moz-range-thumb {
     width: 1.5rem;
-        height: 1.5rem;
+    height: 1.5rem;
     background: var(--fgColor2);
     border-radius: 50%;
     cursor: pointer;
 }
 
-
-#liquidwallet #sendOK{
-        align-items: center !important;
-            justify-content: center !important;
-            font-size: 42vh !important;
+#liquidwallet #sendOK {
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 42vh !important;
 }
 
-
-#liquidwallet #globalMessage{
-        position: fixed;
-        pointer-events: none;
-        z-index:99;
-            bottom: 0;
-            width:100%;
-            text-align: center;
- font-weight: bold;           
- text-shadow: 0px 0px 4px #000;
-            font-size: 2rem;
-            color: purple;
+#liquidwallet #globalMessage {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+    text-shadow: 0px 0px 4px #000;
+    font-size: 2rem;
+    color: purple;
 }

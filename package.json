@@ -1,23 +1,24 @@
 {
-  "dependencies": {
-    "@vulpemventures/secp256k1-zkp": "^3.1.0",
-    "buffer": "^6.0.3",
-    "liquidjs-lib": "^6.0.2-liquid.32",
-    "path-browserify": "^1.0.1",
-    "qrcode": "^1.5.3",
-    "stream-browserify": "^3.0.0",
-    "ws-electrumx-client": "^1.0.5"
-  },
-  "scripts": {
-    "build": "webpack",
-    "start": "webpack serve --open"
-  },
-  "type": "module",
-  "devDependencies": {
-    "copy-webpack-plugin": "^11.0.0",
-    "html-webpack-plugin": "^5.6.0",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1"
-  }
+    "dependencies": {
+        "@vulpemventures/secp256k1-zkp": "^3.1.0",
+        "buffer": "^6.0.3",
+        "liquidjs-lib": "^6.0.2-liquid.32",
+        "path-browserify": "^1.0.1",
+        "qrcode": "^1.5.3",
+        "stream-browserify": "^3.0.0",
+        "ws-electrumx-client": "^1.0.5"
+    },
+    "scripts": {
+        "build": "webpack",
+        "start": "webpack serve --open"
+    },
+    "type": "module",
+    "devDependencies": {
+        "copy-webpack-plugin": "^11.0.0",
+        "html-webpack-plugin": "^5.6.0",
+        "prettier": "3.1.1",
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4",
+        "webpack-dev-server": "^4.15.1"
+    }
 }

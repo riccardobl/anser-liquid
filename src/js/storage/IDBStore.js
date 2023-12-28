@@ -6,17 +6,15 @@ import Constants from "../Constants.js";
  */
 export default class IDBStore extends BrowserStore {
     static isSupported() {
-        return 'indexedDB' in window;
+        return "indexedDB" in window;
     }
     constructor(prefix, limit) {
-        
         super(prefix, limit);
-        
+
         const request = indexedDB.open(this.prefix, parseInt(Constants.APP_VERSION));
         request.onupgradeneeded = function (event) {
             const db = event.target.result;
             db.createObjectStore(prefix);
-            
         };
         this.dbPromise = new Promise((resolve, reject) => {
             request.onsuccess = function (event) {
@@ -37,14 +35,11 @@ export default class IDBStore extends BrowserStore {
         }
         let valueType;
         [value, valueType] = await this._serialize(value);
-        
-
 
         const db = await this.dbPromise;
-        const transaction = db.transaction(this.prefix, 'readwrite');     
+        const transaction = db.transaction(this.prefix, "readwrite");
         const store = transaction.objectStore(this.prefix);
         store.put({ value, valueType }, key);
-        
 
         await new Promise((resolve, reject) => {
             transaction.oncomplete = resolve;
@@ -56,7 +51,7 @@ export default class IDBStore extends BrowserStore {
         if (!key) throw new Error("Key is required");
 
         const db = await this.dbPromise;
-        const transaction = db.transaction(this.prefix);    
+        const transaction = db.transaction(this.prefix);
         const store = transaction.objectStore(this.prefix);
         const request = store.get(key);
         const result = await new Promise((resolve, reject) => {
@@ -74,7 +69,7 @@ export default class IDBStore extends BrowserStore {
         if (!key) throw new Error("Key is required");
 
         const db = await this.dbPromise;
-        const transaction = db.transaction(this.prefix, 'readwrite');
+        const transaction = db.transaction(this.prefix, "readwrite");
         const store = transaction.objectStore(this.prefix);
         store.delete(key);
         await new Promise((resolve, reject) => {
@@ -83,26 +78,24 @@ export default class IDBStore extends BrowserStore {
         });
     }
 
-
     async _serialize(value) {
         let valueType = typeof value;
-        if(value===undefined||value===null){
-            value="";
-            valueType="undefined";
-        }else if (value instanceof Map) {
+        if (value === undefined || value === null) {
+            value = "";
+            valueType = "undefined";
+        } else if (value instanceof Map) {
             value = Array.from(value.entries());
-            value=JSON.stringify(value);
+            value = JSON.stringify(value);
             valueType = "Map";
         } else if (value instanceof Blob) {
             valueType = "Blob";
-        }  else if (value instanceof Buffer) {
+        } else if (value instanceof Buffer) {
             valueType = value instanceof ArrayBuffer ? "ArrayBuffer" : "Buffer";
-            value = value.toString('hex');
+            value = value.toString("hex");
         } else if (value instanceof Uint8Array) {
             valueType = "Uint8Array";
             value = JSON.stringify(Array.from(value));
-
-        } else if (valueType =="object") {
+        } else if (valueType == "object") {
             // is array
             if (Array.isArray(value)) {
                 const serializedValue = [];
@@ -111,16 +104,15 @@ export default class IDBStore extends BrowserStore {
                 }
                 value = serializedValue;
                 valueType = "[]";
-            }else{
- 
-                const serializedValue={};
-                for(const [key,val] of Object.entries(value)){
-                    serializedValue[key]=await this._serialize(val,true);
+            } else {
+                const serializedValue = {};
+                for (const [key, val] of Object.entries(value)) {
+                    serializedValue[key] = await this._serialize(val, true);
                 }
-                value=serializedValue;
+                value = serializedValue;
                 valueType = "{}";
             }
-            
+
             value = JSON.stringify(value);
         }
 
@@ -128,52 +120,47 @@ export default class IDBStore extends BrowserStore {
     }
 
     async _deserialize(value, valueType, asDataUrl) {
-        if(valueType==="undefined"){
-            value=undefined;
-        }else if (valueType === "number") {
+        if (valueType === "undefined") {
+            value = undefined;
+        } else if (valueType === "number") {
             value = parseFloat(value);
-        }  else if (valueType === "Blob" && asDataUrl) {
+        } else if (valueType === "Blob" && asDataUrl) {
             value = URL.createObjectURL(value);
         } else if (valueType === "Map") {
             value = new Map(JSON.parse(value));
         } else if (valueType === "ArrayBuffer") {
-            value = new Uint8Array(Buffer.from(value, 'hex')).buffer;
+            value = new Uint8Array(Buffer.from(value, "hex")).buffer;
         } else if (valueType === "Buffer") {
-            value = Buffer.from(value, 'hex');
+            value = Buffer.from(value, "hex");
         } else if (valueType === "Uint8Array") {
             value = new Uint8Array(JSON.parse(value));
         } else if (valueType == "{}") {
             value = JSON.parse(value);
             // if (valueType === "{}") {
-                const deserializedValue={};
-                for(const [key,valType] of Object.entries(value)){
-                    const [val,type]=valType;
-                    deserializedValue[key]=await this._deserialize(val,type,true);
-                }
-                value=deserializedValue;
+            const deserializedValue = {};
+            for (const [key, valType] of Object.entries(value)) {
+                const [val, type] = valType;
+                deserializedValue[key] = await this._deserialize(val, type, true);
+            }
+            value = deserializedValue;
             // }
-        }else if (valueType == "[]") {
+        } else if (valueType == "[]") {
             value = JSON.parse(value);
             // if (valueType === "[]") {
-                const deserializedValue=[];
-                for(let i=0;i<value.length;i++){
-                    const [val,type]=value[i];
-                    deserializedValue[i]=await this._deserialize(val,type,true);
-                }
-                value=deserializedValue;
+            const deserializedValue = [];
+            for (let i = 0; i < value.length; i++) {
+                const [val, type] = value[i];
+                deserializedValue[i] = await this._deserialize(val, type, true);
+            }
+            value = deserializedValue;
             // }
         }
         return value;
     }
-        
-
 
     async _calcSize(value) {
         if (!value) return 0;
         const valueSerialized = await this._serialize(value, typeof value);
         return valueSerialized.length;
     }
-
-
-
 }

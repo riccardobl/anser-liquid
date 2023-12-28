@@ -17,13 +17,13 @@
     /* Black */
     --bgTextShade: rgba(107, 107, 107, 0.349);
     /* Grey Text Shade */
-    --error: #FF0000;
-                --warning: var(--fgColor);
+    --error: #ff0000;
+    --warning: var(--fgColor);
     /* Red for Errors */
 }
-#liquidwallet #container .asset .cover{
-        filter: blur(20px) grayscale(0.4) brightness(0.6);
-            opacity: 0.4;
+#liquidwallet #container .asset .cover {
+    filter: blur(20px) grayscale(0.4) brightness(0.6);
+    opacity: 0.4;
 }
 
 #liquidwallet #header .cover {

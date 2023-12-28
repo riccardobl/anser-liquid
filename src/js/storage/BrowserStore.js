@@ -1,4 +1,3 @@
-
 import Constants from "../Constants.js";
 /**
  * A browser storage class that supports several backend.
@@ -6,49 +5,47 @@ import Constants from "../Constants.js";
  * Supports all serializable objects, Map, Buffer, Uint8Array, ArrayBuffer, Blob, undefined, null and primitive types.
  */
 export default class BrowserStore {
-
-    static async best(prefix = "", limit = 100 * 1024 * 1024, byspeed=false){
-        for (const storageMethod of (byspeed ? Constants.STORAGE_METHODS_BY_SPEED:Constants.STORAGE_METHODS)){
-            try{
-                const StorageMethod = await import("./"+storageMethod+".js").then((module)=>module.default);
-                if (StorageMethod.isSupported()){
-                    return new StorageMethod(prefix,limit);
+    static async best(prefix = "", limit = 100 * 1024 * 1024, byspeed = false) {
+        for (const storageMethod of byspeed
+            ? Constants.STORAGE_METHODS_BY_SPEED
+            : Constants.STORAGE_METHODS) {
+            try {
+                const StorageMethod = await import("./" + storageMethod + ".js").then(
+                    (module) => module.default,
+                );
+                if (StorageMethod.isSupported()) {
+                    return new StorageMethod(prefix, limit);
                 }
-            }catch(e){
+            } catch (e) {
                 console.error(e);
             }
         }
         console.error("No storage methods available");
-        const MemStore = await import("./MemStore.js").then((module)=>module.default);
-        return new MemStore(prefix,limit);        
+        const MemStore = await import("./MemStore.js").then((module) => module.default);
+        return new MemStore(prefix, limit);
     }
 
-    static async fast(prefix = "", limit = 100 * 1024 * 1024){
-        return this.best(prefix,limit,true);
+    static async fast(prefix = "", limit = 100 * 1024 * 1024) {
+        return this.best(prefix, limit, true);
     }
-
-
-    
 
     // default limit = 100 mb
-    constructor(prefix,limit) {
+    constructor(prefix, limit) {
         this.limit = limit;
-        this.prefix=prefix;
+        this.prefix = prefix;
     }
 
     async _init() {
         while (this.starting) {
             console.log("Waiting...");
-            await new Promise(res => setTimeout(res, 100));
+            await new Promise((res) => setTimeout(res, 100));
         }
         if (this.ready) return;
         try {
-
-
             this.starting = true;
 
             this.accessTable = await this._retrieve("s:accessTable");
-            
+
             this.expirationTable = await this._retrieve("s:expirationTable");
             this.sizeTable = await this._retrieve("s:sizeTable");
             if (!this.accessTable) {
@@ -69,7 +66,6 @@ export default class BrowserStore {
             this.ready = true;
             this.starting = false;
         }
-
     }
 
     async _store(key, value) {
@@ -78,7 +74,6 @@ export default class BrowserStore {
 
     async _retrieve(key, asDataUrl = false) {
         throw new Error("Not implemented");
-
     }
 
     async _delete(key) {
@@ -87,10 +82,7 @@ export default class BrowserStore {
 
     async _calcSize(key, value) {
         throw new Error("Not implemented");
-
-
     }
-
 
     async getUsedMemory() {
         await this._init();
@@ -105,8 +97,8 @@ export default class BrowserStore {
         await this._init();
 
         if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
-        if(!value){
-            console.log("Setting "+key+" to null")
+        if (!value) {
+            console.log("Setting " + key + " to null");
             console.trace();
         }
 
@@ -117,7 +109,7 @@ export default class BrowserStore {
             this.sizeTable.delete(key);
         } else {
             const entrySize = await this._calcSize(key, value);
-            if (this.limit){
+            if (this.limit) {
                 while ((await this.getUsedMemory()) + entrySize > this.limit) {
                     await this.deleteOldestAccess();
                 }
@@ -137,57 +129,51 @@ export default class BrowserStore {
         // localStorage.setItem('sizeTable', JSON.stringify(Array.from(this.sizeTable.entries())));
     }
 
-
-
-    async get(key, asDataUrl = false, refreshCallback = undefined, waitForRefresh=undefined) {
+    async get(key, asDataUrl = false, refreshCallback = undefined, waitForRefresh = undefined) {
         await this._init();
 
         if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
 
         let value = await this._retrieve(key, asDataUrl);
 
-        if(value){
+        if (value) {
             this.accessTable.set(key, Date.now());
             this._store("s:accessTable", this.accessTable);
         }
 
-        const expire=this.expirationTable.get(key);
-        if (!value||expire && expire < Date.now()) {
-            if (refreshCallback){
-                let refreshed= refreshCallback();
-                refreshed=refreshed.then(async (data)=>{
-                    if (!data)return undefined;
-                    const [value,expire]=data;
-                    if(value){
-                        await this.set(key,value,expire);
-                    }else{
-                        await this.set(key,null);
+        const expire = this.expirationTable.get(key);
+        if (!value || (expire && expire < Date.now())) {
+            if (refreshCallback) {
+                let refreshed = refreshCallback();
+                refreshed = refreshed.then(async (data) => {
+                    if (!data) return undefined;
+                    const [value, expire] = data;
+                    if (value) {
+                        await this.set(key, value, expire);
+                    } else {
+                        await this.set(key, null);
                     }
                     return value;
                 });
-                if ((!value)||waitForRefresh){
-                    value=(await refreshed);
-                    value=await this._retrieve(key, asDataUrl);
+                if (!value || waitForRefresh) {
+                    value = await refreshed;
+                    value = await this._retrieve(key, asDataUrl);
                 }
-            }else{
+            } else {
                 if (!value) await this.set(key, null);
-                value=null;
+                value = null;
             }
         }
         // localStorage.setItem('accessTable', JSON.stringify(Array.from(this.accessTable.entries())));
         return value;
     }
 
-
-
-
-
     async deleteOldestAccess() {
         await this._init();
         let oldestKey = null;
         let oldestAccess = Infinity;
         for (let [key, access] of this.accessTable) {
-            if(key.startsWith("s:"))continue;
+            if (key.startsWith("s:")) continue;
             if (access < oldestAccess) {
                 oldestAccess = access;
                 oldestKey = key;
@@ -195,6 +181,4 @@ export default class BrowserStore {
         }
         await this.set(oldestKey, null);
     }
-
- 
 }

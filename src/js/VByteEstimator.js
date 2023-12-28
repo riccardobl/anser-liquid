@@ -1,23 +1,23 @@
-import { Pset, payments, Creator, networks, address, Updater, Transaction } from 'liquidjs-lib';
-import * as varuint from 'varuint-bitcoin';
+import { Pset, payments, Creator, networks, address, Updater, Transaction } from "liquidjs-lib";
+import * as varuint from "varuint-bitcoin";
 /**
  * Size estimator for transactions.
  * This is ported from https://github.com/louisinger/marina
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2020 Vulpem Ventures
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -70,7 +70,7 @@ function estimateVirtualSize(pset, withFeeOutput) {
     const inWitnessesSize = [];
     for (const input of pset.inputs) {
         const utxo = input.getUtxo();
-        if (!utxo) throw new Error('missing input utxo, cannot estimate pset virtual size');
+        if (!utxo) throw new Error("missing input utxo, cannot estimate pset virtual size");
         const type = address.getScriptType(utxo.script);
         const scriptSigSize = estimateScriptSigSize(type);
         let witnessSize = 1 + 1 + 1; // add no issuance proof + no token proof + no pegin
@@ -113,4 +113,4 @@ function estimateVirtualSize(pset, withFeeOutput) {
     return (weight + 3) / 4;
 }
 
-export default { estimateVirtualSize }
+export default { estimateVirtualSize };

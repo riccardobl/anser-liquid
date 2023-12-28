@@ -1,4 +1,3 @@
-
 import Constants from "./Constants.js";
 import fetch from "./utils/fetch-timeout.js";
 /**
@@ -11,47 +10,47 @@ export default class AssetProvider {
         cache,
         store,
         sideSwap,
-        esplora, 
-        baseAssetId, 
-        basePrecision, 
-        baseTicker, 
+        esplora,
+        baseAssetId,
+        basePrecision,
+        baseTicker,
         baseName,
         fiatTickerUrl = "https://blockchain.info/ticker",
         fiatTrackerTimeout = 60 * 60 * 1000,
-        staticIconsUrl="/static/icons.json",
-        specialSymbolsUrl="/static/specialSymbols.json"
-    ){
-        this.cache=cache;
-        this.store=store;
-        this.sideSwap=sideSwap;
-        this.esplora=esplora;
-        this.baseAssetId=baseAssetId;
-        this.basePrecision=basePrecision;
-        this.baseTicker=baseTicker;
-        this.baseName=baseName;
+        staticIconsUrl = "/static/icons.json",
+        specialSymbolsUrl = "/static/specialSymbols.json",
+    ) {
+        this.cache = cache;
+        this.store = store;
+        this.sideSwap = sideSwap;
+        this.esplora = esplora;
+        this.baseAssetId = baseAssetId;
+        this.basePrecision = basePrecision;
+        this.baseTicker = baseTicker;
+        this.baseName = baseName;
         this.fiatTickerUrl = fiatTickerUrl;
         this.fiatTrackerTimeout = fiatTrackerTimeout;
-        this.trackedAssets=[];
-        this.trackedFiatAssets=[];
-        this.staticIcons={};
+        this.trackedAssets = [];
+        this.trackedFiatAssets = [];
+        this.staticIcons = {};
         this.staticIconsUrl = staticIconsUrl;
         this.specialSymbolsUrl = specialSymbolsUrl;
-        this.specialSymbols={};
+        this.specialSymbols = {};
     }
 
-    async _getFiatData(){
+    async _getFiatData() {
         const fiatTickerUrlDescriber = this.fiatTickerUrl.toLowerCase().replace(" ", "_");
 
         let fiatData = await this.cache.get("fiat:" + fiatTickerUrlDescriber);
         if (!fiatData || Date.now() - fiatData.timestamp > this.fiatTrackerTimeout) {
             try {
                 this.fiatSyncing = true;
-                const data = await fetch(this.fiatTickerUrl).then(r => r.json());
+                const data = await fetch(this.fiatTickerUrl).then((r) => r.json());
                 const timestamp = Date.now();
                 fiatData = {
                     timestamp,
-                    data
-                }
+                    data,
+                };
                 await this.cache.set("fiat:" + fiatTickerUrlDescriber, fiatData);
                 this.fiatSyncing = false;
             } catch (e) {
@@ -61,107 +60,103 @@ export default class AssetProvider {
         return fiatData;
     }
 
-    async _getFiatPrice(fiatTicker){
+    async _getFiatPrice(fiatTicker) {
         await this._init();
-        while(this.fiatSyncing){
-            await new Promise(res=>setTimeout(res,100));
+        while (this.fiatSyncing) {
+            await new Promise((res) => setTimeout(res, 100));
         }
         const fiatData = await this._getFiatData();
-        let price = fiatData && fiatData.data && fiatData.data[fiatTicker] ? fiatData.data[fiatTicker]:0;
-        if (price)price = price.last;
+        let price = fiatData && fiatData.data && fiatData.data[fiatTicker] ? fiatData.data[fiatTicker] : 0;
+        if (price) price = price.last;
 
-        if(!price||isNaN(price))return 0;
-        price=parseFloat(price);
+        if (!price || isNaN(price)) return 0;
+        price = parseFloat(price);
         return price;
-    }        
+    }
 
-    _isFiat(asset){
+    _isFiat(asset) {
         return asset.length < 4;
     }
 
-    async _init(){
+    async _init() {
         while (this.starting) {
             console.log("Waiting...");
             console.trace();
-            await new Promise(res => setTimeout(res, 100));
+            await new Promise((res) => setTimeout(res, 100));
         }
         if (this.ready) return;
-        try{
+        try {
             this.starting = true;
             // restore tracked assets
             this.ready = true;
 
-            const trackedAssets=await this.store.get("trackedAssets");
-            if(trackedAssets){
-                for(const asset of trackedAssets){
-                    await this.track(asset,true);
+            const trackedAssets = await this.store.get("trackedAssets");
+            if (trackedAssets) {
+                for (const asset of trackedAssets) {
+                    await this.track(asset, true);
                 }
             }
 
-            const trackedFiatAssets=await this.store.get("trackedFiatAssets");
-            if(trackedFiatAssets){
-                for(const asset of trackedFiatAssets){
-                    await this.track(asset,true);
+            const trackedFiatAssets = await this.store.get("trackedFiatAssets");
+            if (trackedFiatAssets) {
+                for (const asset of trackedFiatAssets) {
+                    await this.track(asset, true);
                 }
             }
 
-            this.staticIcons=await fetch(this.staticIconsUrl).then(r=>r.json());
-            this.specialSymbols=await fetch(this.specialSymbolsUrl).then(r=>r.json());
-            
-        }catch(e){
+            this.staticIcons = await fetch(this.staticIconsUrl).then((r) => r.json());
+            this.specialSymbols = await fetch(this.specialSymbolsUrl).then((r) => r.json());
+        } catch (e) {
             console.error(e);
-        }finally{
-            this.ready=true;
-            this.starting=false;
+        } finally {
+            this.ready = true;
+            this.starting = false;
         }
 
-        this.starting=false;
-
+        this.starting = false;
     }
 
-    async getAllAssets(includeFiat=true){
+    async getAllAssets(includeFiat = true) {
         await this._init();
-        const out=[];
-        const sideswapAsset=await this.sideSwap.getAllAssets();
-        for(const k in sideswapAsset){
+        const out = [];
+        const sideswapAsset = await this.sideSwap.getAllAssets();
+        for (const k in sideswapAsset) {
             out.push({
-                id:k,
-                hash:k,
-                assetHash:k,
+                id: k,
+                hash: k,
+                assetHash: k,
             });
         }
-        if(includeFiat){
+        if (includeFiat) {
             const fiatAssets = await this._getFiatData();
-            for(const k in fiatAssets.data){
+            for (const k in fiatAssets.data) {
                 out.push({
-                    hash:k,
-                    assetHash:k,
-                    id:k,
+                    hash: k,
+                    assetHash: k,
+                    id: k,
                 });
             }
         }
         return out;
     }
 
-
-    async getTrackedAssets(includeFiat=true){
+    async getTrackedAssets(includeFiat = true) {
         await this._init();
 
-        const out=[];
-        const tracked = [this.baseAssetId,...this.trackedAssets];
-        
-        if (includeFiat)tracked.push(...this.trackedFiatAssets)
+        const out = [];
+        const tracked = [this.baseAssetId, ...this.trackedAssets];
 
+        if (includeFiat) tracked.push(...this.trackedFiatAssets);
 
-        for(const asset of tracked){
-            const d={};
-            // d.price=this.getPrice(1,asset,indexCurrency);            
+        for (const asset of tracked) {
+            const d = {};
+            // d.price=this.getPrice(1,asset,indexCurrency);
             // d.info=this.getAssetInfo(asset);
             // d.icon=this.getAssetIcon(asset);
             // d.getValue = (currencyHash, floatingPoint = true) => {
             //     return this.assetProvider.getPrice(assetData.value, asset, currencyHash, floatingPoint);
             // };
-            d.id=asset;
+            d.id = asset;
             d.hash = asset;
             d.assetHash = asset;
             out.push(d);
@@ -169,34 +164,37 @@ export default class AssetProvider {
         return out;
     }
 
-
-    async getAssetIcon(assetId){
+    async getAssetIcon(assetId) {
         await this._init();
         let icon = this.staticIcons[assetId];
-        if(!icon){
-            icon=await this.cache.get("icon:"+assetId,true,async ()=>{
-                const assets=await this.sideSwap.getAllAssets();
-                const asset=assets[assetId];
-                if (!asset) return undefined;
-                const iconB64 = asset.icon;
-                const iconArrayBuffer = Uint8Array.from(atob(iconB64), c => c.charCodeAt(0));
-                const iconBlob=new Blob([iconArrayBuffer],{type:"image/png"});
-                return [iconBlob,0];            
-            },true);
+        if (!icon) {
+            icon = await this.cache.get(
+                "icon:" + assetId,
+                true,
+                async () => {
+                    const assets = await this.sideSwap.getAllAssets();
+                    const asset = assets[assetId];
+                    if (!asset) return undefined;
+                    const iconB64 = asset.icon;
+                    const iconArrayBuffer = Uint8Array.from(atob(iconB64), (c) => c.charCodeAt(0));
+                    const iconBlob = new Blob([iconArrayBuffer], { type: "image/png" });
+                    return [iconBlob, 0];
+                },
+                true,
+            );
         }
         console.log("Not found icon,try static", this.staticIcons);
-        if(!icon){
+        if (!icon) {
             icon = this.staticIcons["unknown"];
         }
         return icon;
     }
 
-
-    async track(assetHash,noInit=false) {
-        if(!noInit)await this._init();
+    async track(assetHash, noInit = false) {
+        if (!noInit) await this._init();
         if (assetHash === this.baseAssetId) return;
-        if(this._isFiat(assetHash)){
-            if(this.trackedFiatAssets.indexOf(assetHash)<0){
+        if (this._isFiat(assetHash)) {
+            if (this.trackedFiatAssets.indexOf(assetHash) < 0) {
                 this.trackedFiatAssets.push(assetHash);
                 await this.store.set("trackedFiatAssets", this.trackedFiatAssets);
             }
@@ -204,7 +202,7 @@ export default class AssetProvider {
         }
 
         if (this.trackedAssets.indexOf(assetHash) >= 0) return;
-        
+
         this.trackedAssets.push(assetHash);
         await this.store.set("trackedAssets", this.trackedAssets);
 
@@ -217,22 +215,21 @@ export default class AssetProvider {
                     first = false;
                 }
             };
-            if(!this.trackerCallbacks)this.trackerCallbacks={};
-            this.trackerCallbacks[assetHash]=trackerCallback;
+            if (!this.trackerCallbacks) this.trackerCallbacks = {};
+            this.trackerCallbacks[assetHash] = trackerCallback;
             this.sideSwap.subscribeToAssetPriceUpdate(assetHash, trackerCallback);
         });
-
     }
 
     async untrack(assetHash) {
         if (assetHash === this.baseAssetId) return;
-        if(this._isFiat(assetHash))return;
+        if (this._isFiat(assetHash)) return;
         const index = this.trackedAssets.indexOf(assetHash);
         if (index < 0) return;
         this.trackedAssets.splice(index, 1);
         await this.store.set("trackedAssets", this.trackedAssets);
-        const trackerCallback=this.trackerCallbacks[assetHash];
-        if(trackerCallback){
+        const trackerCallback = this.trackerCallbacks[assetHash];
+        if (trackerCallback) {
             this.sideSwap.unsubscribeFromAssetPriceUpdate(assetHash, trackerCallback);
             delete this.trackerCallbacks[assetHash];
         }
@@ -241,38 +238,37 @@ export default class AssetProvider {
     async intToFloat(amount, assetHash) {
         if (typeof assetHash !== "string") throw new Error("Invalid asset hash " + assetHash);
         await this._init();
-        const info=await this.getAssetInfo(assetHash);
-        const precision=info.precision;
-        let price=amount;
-        price= amount / 10 ** precision;
+        const info = await this.getAssetInfo(assetHash);
+        const precision = info.precision;
+        let price = amount;
+        price = amount / 10 ** precision;
         return price;
     }
 
     async floatToInt(amount, assetHash) {
         if (typeof assetHash !== "string") throw new Error("Invalid asset hash " + assetHash);
         await this._init();
-        const info=await this.getAssetInfo(assetHash);
-        const precision=info.precision;
-        let price=amount;
-        price= Math.floor(amount * 10 ** precision);
+        const info = await this.getAssetInfo(assetHash);
+        const precision = info.precision;
+        let price = amount;
+        price = Math.floor(amount * 10 ** precision);
         return price;
     }
 
     async floatToStringValue(v, assetHash) {
         const info = await this.getAssetInfo(assetHash);
-        let symbol=info.ticker;
+        let symbol = info.ticker;
         const precision = info.precision;
 
         if (this.specialSymbols[symbol]) symbol = this.specialSymbols[symbol];
 
-        const isFiat=this._isFiat(assetHash);
+        const isFiat = this._isFiat(assetHash);
         // if isFiat keep only 2 decimal, otherwise keep 6
         if (isFiat) {
             v = v.toFixed(2);
-        }else{
+        } else {
             v = v.toFixed(5);
         }
-
 
         // v = Number(v) + "";
         // let decs;
@@ -286,13 +282,13 @@ export default class AssetProvider {
     }
 
     /*
-    * @param {Number} amount - amount of asset
-    * @param {String} asset - asset hash
-    * @param {String} targetAsset - asset hash
-    * @param {Boolean} floatingPoint - if true, returns floating point number, otherwise integer
-    * @param {Boolean} asString - if true, returns string, otherwise number
-    * @returns {Number|String} price
-    * */
+     * @param {Number} amount - amount of asset
+     * @param {String} asset - asset hash
+     * @param {String} targetAsset - asset hash
+     * @param {Boolean} floatingPoint - if true, returns floating point number, otherwise integer
+     * @param {Boolean} asString - if true, returns string, otherwise number
+     * @returns {Number|String} price
+     * */
     async getPrice(amount, asset, targetAsset) {
         if (typeof asset !== "string") throw new Error("Invalid asset hash " + asset);
         if (!targetAsset) targetAsset = this.baseAssetId;
@@ -301,77 +297,70 @@ export default class AssetProvider {
 
         await this._init();
 
-        if (asset===targetAsset) return amount;
-       
+        if (asset === targetAsset) return amount;
 
-        const priceOf=async (asset)=>{
-            if(asset===this.baseAssetId){
-                return 1*10**this.basePrecision;
+        const priceOf = async (asset) => {
+            if (asset === this.baseAssetId) {
+                return 1 * 10 ** this.basePrecision;
             }
             let fl;
-            if(this._isFiat(asset)){
-                fl = 1./await this._getFiatPrice(asset);
-            }else{
-                fl= 1./await this.cache.get("p:" + asset);
+            if (this._isFiat(asset)) {
+                fl = 1 / (await this._getFiatPrice(asset));
+            } else {
+                fl = 1 / (await this.cache.get("p:" + asset));
             }
-            if (fl < 0 || fl==Infinity || fl==NaN) return 0;
-            return fl*10**this.basePrecision;
+            if (fl < 0 || fl == Infinity || fl == NaN) return 0;
+            return fl * 10 ** this.basePrecision;
+        };
 
-        }
-    
         await this.track(asset);
         await this.track(targetAsset);
 
         const price1 = await this.intToFloat(await priceOf(asset), this.baseAssetId);
-        const price2 = await this.intToFloat(await priceOf(targetAsset),this.baseAssetId);
-        
-        const cnvRate=price1/price2;
+        const price2 = await this.intToFloat(await priceOf(targetAsset), this.baseAssetId);
+
+        const cnvRate = price1 / price2;
 
         amount = await this.intToFloat(amount, asset);
         const converted = amount * cnvRate;
-        console.log("CONVERSION ",amount+" "+asset+" = "+converted+" "+targetAsset,"Conversion rate "+cnvRate,
-        "Price of "+asset+" "+price1,
-        "Price of "+targetAsset+" "+price2);
+        console.log(
+            "CONVERSION ",
+            amount + " " + asset + " = " + converted + " " + targetAsset,
+            "Conversion rate " + cnvRate,
+            "Price of " + asset + " " + price1,
+            "Price of " + targetAsset + " " + price2,
+        );
 
-        
-        
         return this.floatToInt(converted, targetAsset);
-
-        
     }
 
-
-
-
-
-    async getAssetInfo(assetId){
+    async getAssetInfo(assetId) {
         await this._init();
         if (assetId === this.baseAssetId) {
             return {
                 precision: this.basePrecision,
                 ticker: this.baseTicker,
                 name: this.baseName,
-                hash: this.baseAssetId
-            }
+                hash: this.baseAssetId,
+            };
         }
-        if(this._isFiat(assetId)){
+        if (this._isFiat(assetId)) {
             return {
                 precision: 2,
                 ticker: assetId,
                 name: assetId,
-                hash: assetId
-            }
+                hash: assetId,
+            };
         }
-        let info=await this.cache.get("as:"+assetId);
-        if(!info){
-            
+        let info = await this.cache.get("as:" + assetId);
+        if (!info) {
             const response = await this.esplora.getAssetInfo(assetId);
-            const precision=response.precision||0
-            const ticker=response.ticker||"???";
-            const name=response.name||"???";
-            info = { precision, ticker, name, hash:assetId};
-         
-            await this.cache.set("as:"+assetId,info);
+            const precision = response.precision || 0;
+            const ticker = response.ticker || "???";
+            const name = response.name || "???";
+            info = { precision, ticker, name, hash: assetId };
+
+            await this.cache.set("as:" + assetId, info);
         }
         return info;
     }

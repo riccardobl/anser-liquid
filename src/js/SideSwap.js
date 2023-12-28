@@ -18,7 +18,7 @@ export default class SideSwap {
     async subscribeToAssetPriceUpdate(assetHash, callback) {
         if (!this.assetSubscriptions[assetHash]) this.assetSubscriptions[assetHash] = [];
         this.assetSubscriptions[assetHash].push(callback);
-        this.query('load_prices', { asset: assetHash });
+        this.query("load_prices", { asset: assetHash });
     }
 
     async unsubscribeFromAssetPriceUpdate(assetHash, callback) {
@@ -42,18 +42,15 @@ export default class SideSwap {
                 assets[id] = asset;
             }
             return [assets, Date.now() + 1000 * 60 * 60 * 24];
-        })
+        });
         return assets;
-
     }
-
-
 
     async query(method, params) {
         // check if closed
         if (this.sw && this.sw.readyState === WebSocket.CLOSED) this.sw = null;
         while (this.starting) {
-            console.log('Waiting for websocket to start')
+            console.log("Waiting for websocket to start");
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
         // init websocket
@@ -66,16 +63,16 @@ export default class SideSwap {
                 this.sw.onopen = () => {
                     this.starting = false;
                     resolve();
-                }
+                };
                 this.sw.onerror = (error) => {
                     console.error(error);
                     this.starting = false;
                     reject(error);
-                }
+                };
 
-                this.sw.onmessage = (event) => { // handle response
+                this.sw.onmessage = (event) => {
+                    // handle response
                     this.starting = false;
-
 
                     const response = JSON.parse(event.data);
                     const error = response.error;
@@ -92,7 +89,8 @@ export default class SideSwap {
                             delete this.pending[response.id];
                         }
                     }
-                    if (response.method == "load_prices") { // handle subscription                        
+                    if (response.method == "load_prices") {
+                        // handle subscription
                         const assetHash = response.result.asset;
                         if (this.assetSubscriptions[assetHash]) {
                             for (const cb of this.assetSubscriptions[assetHash]) {
@@ -102,11 +100,7 @@ export default class SideSwap {
                     }
                     resolve();
                 };
-
             });
-
-
-
         }
 
         return new Promise((resolve, reject) => {

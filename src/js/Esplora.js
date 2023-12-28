@@ -26,13 +26,10 @@ export default class Esplora {
         }
         const response = await fetch(url, {
             method: method,
-            body: method === "GET" ? undefined : JSON.stringify(params)
-
-        }).then(r => r.json());
+            body: method === "GET" ? undefined : JSON.stringify(params),
+        }).then((r) => r.json());
 
         return response;
-
-
     }
 
     async getFee(priority = 1) {
@@ -49,17 +46,16 @@ export default class Esplora {
         const selectedKey = keys[priority];
         const out = {
             blocks: Number(selectedKey),
-            feeRate: Number(response[selectedKey])
-        }
+            feeRate: Number(response[selectedKey]),
+        };
         if (!out.feeRate) {
             console.log("Can't estimate fee, use hardcoded value " + Constants.HARDCODED_FEE);
             out.feeRate = Constants.HARDCODED_FEE;
-
         }
         if (!out.blocks) {
             out.blocks = 1;
         }
-        
+
         return out;
     }
 
@@ -69,15 +65,13 @@ export default class Esplora {
 
     async getTxInfo(txId) {
         const info = await this.cache.get("txExtra:" + txId, false, async () => {
-            let info= await this.query("tx/" + txId);
-            if(info.status.confirmed){
-                return [info,0];
-            }else{
-                return [info, 60*1000];
+            let info = await this.query("tx/" + txId);
+            if (info.status.confirmed) {
+                return [info, 0];
+            } else {
+                return [info, 60 * 1000];
             }
         });
         return info;
     }
-
-
 }

@@ -8,12 +8,12 @@
     --fgColor3: #8db0c4;
     --bgColorShade: rgba(2, 10, 26, 1);
     --bgTextShade: rgba(107, 107, 107, 0.349);
-    --error: #FF0000;
-            --warning: var(--fgColor);
+    --error: #ff0000;
+    --warning: var(--fgColor);
 }
-#liquidwallet #container .asset .cover{
-        filter: blur(20px) grayscale(0.4) brightness(0.6);
-            opacity: 0.4;
+#liquidwallet #container .asset .cover {
+    filter: blur(20px) grayscale(0.4) brightness(0.6);
+    opacity: 0.4;
 }
 
 #liquidwallet #header .cover {

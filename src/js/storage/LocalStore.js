@@ -5,15 +5,12 @@ import BrowserStore from "./BrowserStore.js";
  */
 export default class LocalStore extends BrowserStore {
     static isSupported() {
-        return 'localStorage' in window;
+        return "localStorage" in window;
     }
 
-    constructor(prefix,limit) {
-        super(prefix,limit);     
+    constructor(prefix, limit) {
+        super(prefix, limit);
     }
-
-
-   
 
     async _serialize(value) {
         let valueType = typeof value;
@@ -22,7 +19,7 @@ export default class LocalStore extends BrowserStore {
             valueType = "undefined";
         } else if (value instanceof Map) {
             value = Array.from(value.entries());
-            value=JSON.stringify(value);
+            value = JSON.stringify(value);
             valueType = "Map";
         } else if (value instanceof Blob) {
             const blobType = value.type;
@@ -36,11 +33,10 @@ export default class LocalStore extends BrowserStore {
             value = JSON.stringify({ blobType, blobData });
         } else if (value instanceof Buffer) {
             valueType = value instanceof ArrayBuffer ? "ArrayBuffer" : "Buffer";
-            value = value.toString('hex');
+            value = value.toString("hex");
         } else if (value instanceof Uint8Array) {
             valueType = "Uint8Array";
             value = JSON.stringify(Array.from(value));
-
         } else if (valueType == "object") {
             if (Array.isArray(value)) {
                 const serializedValue = [];
@@ -73,7 +69,7 @@ export default class LocalStore extends BrowserStore {
             const blobType = value.blobType;
             const blobData = value.blobData;
             // Convert base64 to Blob
-            const byteCharacters = atob(blobData.split(',')[1]);
+            const byteCharacters = atob(blobData.split(",")[1]);
             const byteNumbers = new Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
                 byteNumbers[i] = byteCharacters.charCodeAt(i);
@@ -89,9 +85,9 @@ export default class LocalStore extends BrowserStore {
         } else if (valueType === "Map") {
             value = new Map(JSON.parse(value));
         } else if (valueType === "ArrayBuffer") {
-            value = new Uint8Array(Buffer.from(value, 'hex')).buffer;
+            value = new Uint8Array(Buffer.from(value, "hex")).buffer;
         } else if (valueType === "Buffer") {
-            value = Buffer.from(value, 'hex');
+            value = Buffer.from(value, "hex");
         } else if (valueType === "Uint8Array") {
             value = new Uint8Array(JSON.parse(value));
         } else if (valueType == "{}") {
@@ -114,17 +110,16 @@ export default class LocalStore extends BrowserStore {
         return value;
     }
 
-
-    async    _store(key,value){
-        if(!value)return;
-        if(!key)throw new Error("Key is required");
-        if(!this.typeTable){
-            this.typeTable=new Map();
+    async _store(key, value) {
+        if (!value) return;
+        if (!key) throw new Error("Key is required");
+        if (!this.typeTable) {
+            this.typeTable = new Map();
             const typeTable = localStorage.getItem(`${this.prefix}:s:typeTable`);
-            if(typeTable){
-                const entries=JSON.parse(typeTable);
-                for(const [key,value] of entries){
-                    this.typeTable.set(key,value);
+            if (typeTable) {
+                const entries = JSON.parse(typeTable);
+                for (const [key, value] of entries) {
+                    this.typeTable.set(key, value);
                 }
             }
         }
@@ -134,54 +129,50 @@ export default class LocalStore extends BrowserStore {
         }
 
         let valueType;
-        [value,valueType]=await this._serialize(value);
-        
+        [value, valueType] = await this._serialize(value);
 
         if (valueType) {
             this.typeTable.set(key, valueType);
-            localStorage.setItem(`${this.prefix}:s:typeTable`, JSON.stringify(Array.from(this.typeTable.entries())));
+            localStorage.setItem(
+                `${this.prefix}:s:typeTable`,
+                JSON.stringify(Array.from(this.typeTable.entries())),
+            );
         }
 
         localStorage.setItem(`${this.prefix}:${key}`, value);
     }
 
-    async _retrieve(key,asDataUrl=false){
+    async _retrieve(key, asDataUrl = false) {
         if (!key) throw new Error("Key is required");
 
-        if(!this.typeTable){
-            this.typeTable=new Map();
+        if (!this.typeTable) {
+            this.typeTable = new Map();
             const typeTable = localStorage.getItem(`${this.prefix}:s:typeTable`);
-            if(typeTable){
-                const entries=JSON.parse(typeTable);
-                for(const [key,value] of entries){
-                    this.typeTable.set(key,value);
+            if (typeTable) {
+                const entries = JSON.parse(typeTable);
+                for (const [key, value] of entries) {
+                    this.typeTable.set(key, value);
                 }
             }
         }
         let value = localStorage.getItem(`${this.prefix}:${key}`);
-        if(!value)return value;
+        if (!value) return value;
         const valueType = this.typeTable.get(key);
 
-        value = await this._deserialize(value, valueType, asDataUrl);       
+        value = await this._deserialize(value, valueType, asDataUrl);
         return value;
-        
     }
 
-    async _delete(key){
+    async _delete(key) {
         if (!key) throw new Error("Key is required");
 
         this.typeTable.delete(key);
         localStorage.removeItem(`${this.prefix}:${key}`);
-
     }
 
-
-    async _calcSize( value) {
-        if(!value)return 0;
-        const valueSerialized=await this._serialize(value,typeof value);
+    async _calcSize(value) {
+        if (!value) return 0;
+        const valueSerialized = await this._serialize(value, typeof value);
         return valueSerialized.length;
     }
-
-
-    
 }

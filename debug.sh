@@ -1,3 +1,3 @@
 #!/bin/bash
-npm i
+bash prepare.sh
 npm start

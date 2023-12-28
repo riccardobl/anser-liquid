@@ -23,9 +23,8 @@ export default class MemStore extends BrowserStore {
             throw new Error("Promise not allowed in db");
         }
 
-        let valueType;     
+        let valueType;
         [value, valueType] = await this._serialize(value);
-         
 
         this.store[key] = { value, valueType };
     }
@@ -48,26 +47,20 @@ export default class MemStore extends BrowserStore {
 
     async _serialize(value) {
         let valueType = typeof value;
-        
+
         return [value, valueType];
     }
 
     async _deserialize(value, valueType, asDataUrl) {
-
-         if (valueType === "Blob" && asDataUrl) {
+        if (valueType === "Blob" && asDataUrl) {
             value = URL.createObjectURL(value);
         }
         return value;
     }
-
-
 
     async _calcSize(value) {
         if (!value) return 0;
         const valueSerialized = await this._serialize(value, typeof value);
         return valueSerialized.length;
     }
-
-
-
 }

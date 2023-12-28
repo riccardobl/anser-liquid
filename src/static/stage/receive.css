@@ -1,16 +1,15 @@
-
-#liquidwallet #container.receive.stage .invoiceQr{
-    padding:1rem;
+#liquidwallet #container.receive.stage .invoiceQr {
+    padding: 1rem;
     background: var(--bgColor3);
-        border-radius: 15px;
+    border-radius: 15px;
 }
 
-#liquidwallet #container.receive.stage .invoice{
+#liquidwallet #container.receive.stage .invoice {
 }
 
 #liquidwallet #container.receive.stage .invoiceQr {
-    width: min(min(40vh, 100%),512px);
+    width: min(min(40vh, 100%), 512px);
     max-width: 512px;
-margin:auto;
+    margin: auto;
     margin-bottom: 2rem;
 }
