@@ -185,7 +185,8 @@ UI.registerModule("clarity");
 UI.registerModule("logo");
 UI.registerModule("globalmessage");
 
-UI.registerTheme("seagoose");
+UI.registerTheme("streamgoose");
 UI.registerTheme("deepoceanduck");
 UI.registerTheme("spacequack");
-UI.registerTheme("bitcoindark");
+UI.registerTheme("satoshilegacy");
+UI.registerTheme("minimalsats");
