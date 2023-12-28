@@ -1,6 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap");
 
 #liquidwallet {
+    position: relative;
+    margin: 0;
     --bgColor2: #d8f4ef;
     --colorShadow: rgba(120, 139, 138, 0.575);
     --bgColor: #f0fdfa;
@@ -25,6 +27,10 @@
     min-height: 100%;
     width: 100%;
     text-shadow: 0px 0px 4px var(--bgTextShade);
+
+    .iconCnt {
+        position: relative;
+    }
 
     @media (orientation: landscape) {
         height: 100%;
@@ -160,6 +166,7 @@
     }
 
     #header {
+        position: relative;
         width: 100%;
         background-color: var(--bgColor3);
         font-size: 2rem;
@@ -198,21 +205,6 @@
             align-items: center;
             justify-content: center;
             background-color: var(--bgColorShade);
-
-            .cover {
-                display: block;
-                width: min(80vw, 512px);
-                height: min(80vw, 512px);
-                position: absolute;
-                top: min(calc(50vh - min(40vw, 256px)));
-                left: min(calc(50vw - min(40vw, 256px)));
-                z-index: 99;
-                filter: drop-shadow(0px 0px 500px var(--bgColor3));
-
-                background-size: contain;
-                background-position: center;
-                background-repeat: no-repeat;
-            }
         }
 
         .cover {
@@ -220,11 +212,13 @@
             height: 100%;
             position: absolute;
             top: 0;
+            z-index: 99;
             left: 0;
             background-size: cover;
             background-position: 50% 80%;
             filter: blur(50px);
             opacity: 0.8;
+            pointer-events: none;
         }
     }
 
@@ -244,9 +238,9 @@
         display: flex;
         flex-direction: column;
         padding: 0.2rem;
-
-        margin-top: 2rem;
-
+        padding-top: 2rem;
+        margin: 0;
+        flex-shrink: 1;
         @media (orientation: landscape) {
             flex-direction: row;
 
@@ -483,6 +477,7 @@
                     overflow-x: auto;
                     overflow-y: hidden;
                     max-width: 100%;
+                    flex-shrink: 1;
                 }
 
                 &.fillw {
@@ -502,7 +497,6 @@
                 justify-content: center;
                 align-items: center;
                 justify-content: flex-start;
-
                 &.fillw {
                     /* flex-direction: column; */
                     /* align-items: stretch; */
@@ -513,7 +507,7 @@
                     &.v.outscroll {
                         overflow-x: hidden;
                         overflow-y: auto;
-
+                        flex-shrink: 1;
                         max-height: 100%;
                     }
                 }

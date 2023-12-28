@@ -105,6 +105,19 @@ export default class AbstractBrowserStore {
         // localStorage.setItem('sizeTable', JSON.stringify(Array.from(this.sizeTable.entries())));
     }
 
+    async clear() {
+        await this._init();
+
+        const keys = this.accessTable.keys();
+        console.log(keys);
+
+        for (const key of keys) {
+            if (key.startsWith("s:")) continue;
+            console.log("Clearing " + key);
+            await this.set(key, null);
+        }
+    }
+
     async get(key, asDataUrl = false, refreshCallback = undefined, waitForRefresh = undefined) {
         await this._init();
 

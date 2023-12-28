@@ -13,6 +13,7 @@ export default class Html {
         if (!classes) classes = [];
 
         if (!el.$$$) el.$$$ = {};
+        el.classList.add("item");
 
         el.$$$.landScapeClasses = [];
         el.$$$.portraitClasses = [];

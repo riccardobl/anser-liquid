@@ -1435,4 +1435,8 @@ export default class LiquidWallet {
     assets() {
         return this.assetProvider;
     }
+
+    async clearCache() {
+        await this.cache.clear();
+    }
 }

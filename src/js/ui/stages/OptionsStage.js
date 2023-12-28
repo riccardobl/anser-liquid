@@ -6,7 +6,7 @@ export default class OptionsStage extends UIStage {
     }
 
     onReload(containerEl, lq, ui) {
-        const listEl = Html.$vlist(containerEl, "#optionsList", ["fillw"]).grow(100);
+        const listEl = Html.$vlist(containerEl, "#optionsList", ["fillw", "outscroll"]).grow(100);
         // const primaryAssetRowEl = Html.$hlist(listEl, "#primaryAssetRow", ["fillw"]);
         Html.$text(listEl, "#primaryAssetLabel").setValue("Primary currency: ");
         const primaryAssetEl = Html.$inputSelect(listEl, "#primaryAsset", "Select Asset");
@@ -56,6 +56,15 @@ export default class OptionsStage extends UIStage {
 
         Html.$text(listEl, "#pinnedAssetsLabel").setValue("Pinned assets: ");
         const inputSelEl = Html.$inputSelect(listEl, "#pinnedAssets", "Select Assets", ["fillw"], true);
+
+        Html.$vsep(listEl, "#sep4");
+        Html.$button(listEl, "#clearCache")
+            .setValue("Clear Cache")
+            .setAction(async () => {
+                await lq.clearCache();
+                alert("Cache cleared");
+                window.location.reload();
+            });
 
         const loadAssetOptions = async () => {
             inputSelEl.clearOptions();
