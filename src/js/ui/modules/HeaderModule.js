@@ -14,7 +14,7 @@ export default class HeaderModule extends UIModule {
         const headerEl = Html.$hlist(walletEl, "#header").setPriority(-30);
         headerEl.setCover("static/icons/lwheader.png");
         // Html.$icon(headerEl, "#logo").setSrc("static/icons/lw.png")
-        Html.$text(headerEl, "#title").setValue("TBD Liquid Wallet");
+        Html.$text(headerEl, "#title").setValue("Satostream");
         if (stage.getName() != "wallet") {
             Html.$icon(headerEl, "#optionsBtn")
                 .setValue("arrow_back")

@@ -1,0 +1,61 @@
+html {
+    /* font-size:102%; */
+}
+
+body {
+    max-height: 100vh;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    min-width: 0 !important;
+    font-family: "Lato", sans-serif;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    word-wrap: break-word;
+}
+
+/* For Webkit browsers */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    /* width of the entire scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    /* color of the tracking area */
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bgColor3);
+    /* color of the scroll thumb */
+    border-radius: 10px;
+    /* roundness of the scroll thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+    /* color of the scroll thumb when hovering */
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    /* "auto" or "thin"  */
+    scrollbar-color: var(--bgColor3) #f1f1f1;
+    /* scroll thumb and track */
+}
+
+body,
+html {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    padding: 0rem;
+    overflow-y: auto;
+}

@@ -1,5 +1,6 @@
 @import url("../animations.css");
-:root {
+
+#liquidwallet {
     --bgColor: #000000;
     /* Black */
     --bgColor2: #1a1a1a;

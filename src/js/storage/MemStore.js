@@ -1,10 +1,10 @@
-import BrowserStore from "./BrowserStore.js";
+import AbstractBrowserStore from "./AbstractBrowserStore.js";
 /**
  * Store in memory, when everything else fails.
  * Obviously, this is not persistent.
  * Also does no serialization, so it is pretty fast.
  */
-export default class MemStore extends BrowserStore {
+export default class MemStore extends AbstractBrowserStore {
     static isSupported() {
         return true;
     }

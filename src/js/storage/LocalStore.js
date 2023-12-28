@@ -1,9 +1,9 @@
-import BrowserStore from "./BrowserStore.js";
+import AbstractBrowserStore from "./AbstractBrowserStore.js";
 /**
  * A backend to store to localStorage.
  * Should be faster but has smaller storage limit.
  */
-export default class LocalStore extends BrowserStore {
+export default class LocalStore extends AbstractBrowserStore {
     static isSupported() {
         return "localStorage" in window;
     }

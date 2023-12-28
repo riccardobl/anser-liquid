@@ -1,3 +1,4 @@
+import "../less/style.less";
 import LiquidWallet from "./LiquidWallet.js";
 import UI from "./ui/UI.js";
 import Html from "./ui/Html.js";

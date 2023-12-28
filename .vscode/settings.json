@@ -6,6 +6,9 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "dist":true
+        "dist": true
+    },
+    "less.compile": {
+        "out": false
     }
 }

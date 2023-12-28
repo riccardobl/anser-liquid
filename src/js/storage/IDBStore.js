@@ -1,10 +1,10 @@
-import BrowserStore from "./BrowserStore.js";
+import AbstractBrowserStore from "./AbstractBrowserStore.js";
 import Constants from "../Constants.js";
 /**
  * A backend to store to IndexedDB.
  * Should be slower but has larger storage limit.
  */
-export default class IDBStore extends BrowserStore {
+export default class IDBStore extends AbstractBrowserStore {
     static isSupported() {
         return "indexedDB" in window;
     }
