@@ -270,7 +270,7 @@ export default class AssetProvider {
         if (isFiat) {
             v = v.toFixed(2);
         }else{
-            v = v.toFixed(6);
+            v = v.toFixed(5);
         }
 
 
