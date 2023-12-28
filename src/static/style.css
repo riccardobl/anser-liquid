@@ -478,7 +478,7 @@ input {
 
 .titleBig {
     font-weight: bold;
-    font-size: 5rem;
+    font-size: 4rem;
 }
 
 /**
@@ -706,10 +706,15 @@ input {
 }
 
 
-#liquidwallet #header .globalMessage{
-        position: absolute;
+#liquidwallet #globalMessage{
+        position: fixed;
+        pointer-events: none;
+        z-index:99;
             bottom: 0;
-            font-size: 1rem;
+            width:100%;
+            text-align: center;
+ font-weight: bold;           
+ text-shadow: 0px 0px 4px #000;
+            font-size: 2rem;
             color: purple;
-            text-wrap: nowrap;
 }

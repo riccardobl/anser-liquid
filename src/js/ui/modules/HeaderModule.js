@@ -26,10 +26,7 @@ export default class HeaderModule extends UIModule {
             });
         }
 
-        if(Constants.GLOBAL_MESSAGE){
-            const globalMessageEl = Html.$hlist(headerEl, ".globalMessage", ["fillw"]);
-            globalMessageEl.setValue(Constants.GLOBAL_MESSAGE);
-        }
+      
     }
 
 }
