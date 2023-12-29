@@ -184,11 +184,6 @@
 }
 
 @keyframes coinflipAndBlurOut {
-    0% {
-        transform: rotateY(0deg);
-        filter: blur(100px);
-        opacity: 0;
-    }
     10% {
         transform: rotateY(0deg);
         filter: blur(0px);

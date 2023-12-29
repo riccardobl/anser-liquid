@@ -11,10 +11,13 @@ export default class HeaderModule extends UIModule {
     }
 
     onLoad(stage, stageContainerEl, walletEl, lq, ui) {
+        const documentTitleEl = document.head.querySelector("title");
+        documentTitleEl.textContent = Constants.APP_NAME;
+
         const headerEl = Html.$hlist(walletEl, "#header").setPriority(-30);
         headerEl.setCover("static/icons/lwheader.png");
         // Html.$icon(headerEl, "#logo").setSrc("static/icons/lw.png")
-        Html.$text(headerEl, "#title").setValue("Satostream");
+        Html.$text(headerEl, "#title").setValue(Constants.APP_NAME);
         if (stage.getName() != "wallet") {
             Html.$icon(headerEl, "#optionsBtn")
                 .setValue("arrow_back")
