@@ -153,22 +153,22 @@ export default class WalletPage extends UIStage {
                 txStatusEl.setValue("done");
                 txStatusEl.classList.remove("loading");
                 txElCnt.classList.add("confirmed");
-                txElCnt.setPriority(0);
                 txElCnt.confirmed = true;
             } else {
                 txStatusEl.setValue("cached");
                 txStatusEl.classList.add("loading");
                 txElCnt.classList.remove("confirmed");
-                txElCnt.setPriority(-1000);
                 txElCnt.confirmed = false;
             }
             txHashEl.setValue(tx.tx_hash.substr(0, 16) + "...");
 
             lq.getTransaction(tx.tx_hash).then((txData) => {
-                txElCnt.setPriority(-txData.height);
+                blockTimeEl.setValue(new Date(txData.timestamp).toLocaleString());
+                txElCnt.setPriority(Math.floor(-(txData.timestamp / 1000)));
 
                 if (!txData.info.valid) {
                     txDirectionEl.setValue("receipt_log");
+                    txElCnt.hide();
                 } else {
                     if (txData.info.isIncoming) {
                         txDirectionEl.setValue("arrow_downward");
@@ -220,11 +220,6 @@ export default class WalletPage extends UIStage {
                         });
                     // }
                 }
-
-                txData.extraInfo.blockTime().then((timestamp) => {
-                    const date = new Date(timestamp * 1000);
-                    blockTimeEl.setValue(date.toLocaleString());
-                });
             });
         }
         historyEl.commitUpdate();

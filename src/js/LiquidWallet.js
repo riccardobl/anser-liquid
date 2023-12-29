@@ -379,13 +379,67 @@ export default class LiquidWallet {
 
     /**
      * Get the height in blocks of the blockchain
-     * @param {number} tx_hash
+     * @param {string} tx_hash
      * @returns
      */
     async getTransactionHeight(tx_hash) {
         await this.check();
         const height = await this.store.get("tx:" + tx_hash + ":height");
         return height ? height : -1;
+    }
+
+    /**
+     * Get the block header at the given height
+     * @param {number} height
+     */
+    async getBlockHeaderData(height) {
+        height = Number(height);
+        if (height < 0) return undefined;
+        const hex = await this.cache.get(
+            "bhx:" + height,
+            false,
+            async () => {
+                const hex = await this.elcAction("blockchain.block.header", [height]);
+                if (!hex) return [undefined, 0];
+                return [hex, 0];
+            },
+            true,
+        );
+        if (!hex) {
+            console.error("Block not found!", height);
+            return undefined;
+        } else {
+            const buffer = Buffer.from(hex, "hex");
+            let offset = 0;
+
+            const version = buffer.readUInt32LE(offset);
+            offset += 4;
+
+            const prev_blockhash = buffer.subarray(offset, offset + 32).toString("hex");
+            offset += 32;
+
+            const merkle_root = buffer.subarray(offset, offset + 32).toString("hex");
+            offset += 32;
+
+            const time = buffer.readUInt32LE(offset);
+            offset += 4;
+
+            const bits = buffer.readUInt32LE(offset);
+            offset += 4;
+
+            const nonce = buffer.readUInt32LE(offset);
+
+            const blockData = {
+                version,
+                prev_blockhash,
+                merkle_root,
+                time,
+                bits,
+                nonce,
+                timestamp: time * 1000,
+            };
+            return blockData;
+        }
     }
 
     /**
@@ -847,16 +901,7 @@ export default class LiquidWallet {
             const txHex = await this.elcAction("blockchain.transaction.get", [tx_hash, false]);
             txBuffer = Buffer.from(txHex, "hex");
         }
-
-        // const height = await this.getTransactionHeight(tx_hash);
-        // const confirmed=height>-1;
-
-        // if (confirmed) {
         await this.cache.set("txbf:" + tx_hash, txBuffer); // we always cache the buffer for ever
-        // } else {
-        //     await this.cache.set("txbf:" + tx_hash, txBuffer, 60 * 1000);
-        // }
-
         return txBuffer;
     }
 
@@ -1065,6 +1110,12 @@ export default class LiquidWallet {
         txData.tx_hash = tx_hash;
         txData.height = tx_hash ? (await this.getTransactionHeight(tx_hash)) || -1 : -1; // if the tx is in our history, we know the height, otherwise we consider it unconfirmed (height=-1)
         txData.confirmed = txData.height > 0; // if height > 0, the tx is confirmed
+        if (txData.confirmed) {
+            const blockData = await this.getBlockHeaderData(txData.height);
+            txData.timestamp = blockData.timestamp;
+        } else {
+            txData.timestamp = Date.now();
+        }
 
         // get the wallet address
         const addr = await this.getAddress();
@@ -1101,15 +1152,6 @@ export default class LiquidWallet {
         // We parse the txData to infer the meatadata
         txData.info = await this.getTransactionInfo(txData);
 
-        // Some extra info from the esplora api.
-        // TODO: this will be progressively removed and inferred locally
-        if (tx_hash) {
-            txData.extraInfo = this.esplora.getTxInfo(tx_hash);
-            txData.extraInfo.blockTime = async () => {
-                if (!txData.extraInfo) return undefined;
-                return (await txData.extraInfo).status.block_time;
-            };
-        }
         // it was a long journey, but we are finally here
         return txData;
     }

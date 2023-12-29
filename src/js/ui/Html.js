@@ -417,6 +417,7 @@ export default class Html {
 
     static $icon(parent, directSelector, classes = [], prepend = false) {
         const iconCntEl = this.$(parent, directSelector, ["iconCnt", ...classes], "div", prepend);
+        iconCntEl.classList.remove("loading");
         let materialIconEl = iconCntEl.querySelector(":scope > .mic");
         let isNew = true;
         if (!materialIconEl) {
