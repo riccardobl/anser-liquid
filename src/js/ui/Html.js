@@ -392,7 +392,8 @@ export default class Html {
         let isDown = false;
         let startX, startY;
         let scrollLeft, scrollTop;
-        let velX, velY;
+        let velX = 0,
+            velY = 0;
         let momentumID;
 
         function beginMomentumTracking() {
@@ -405,16 +406,22 @@ export default class Html {
         }
 
         function momentumLoop() {
-            el.scrollLeft += velX;
-            el.scrollTop += velY;
-            velX *= 0.95;
-            velY *= 0.95;
+            if (el.scrollWidth > el.clientWidth) {
+                el.scrollLeft += velX;
+                velX *= 0.95;
+            }
+            if (el.scrollHeight > el.clientHeight) {
+                el.scrollTop += velY;
+                velY *= 0.95;
+            }
             if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) {
                 momentumID = requestAnimationFrame(momentumLoop);
             }
         }
 
         el.addEventListener("mousedown", (e) => {
+            el.classList.add("no-snap");
+
             isDown = true;
             startX = e.pageX - el.offsetLeft;
             startY = e.pageY - el.offsetTop;
@@ -428,6 +435,8 @@ export default class Html {
         });
 
         el.addEventListener("mouseup", () => {
+            el.classList.remove("no-snap");
+
             isDown = false;
             beginMomentumTracking();
         });
@@ -441,10 +450,14 @@ export default class Html {
             const walkY = (y - startY) * 3;
             let prevScrollLeft = el.scrollLeft;
             let prevScrollTop = el.scrollTop;
-            el.scrollLeft = scrollLeft - walkX;
-            el.scrollTop = scrollTop - walkY;
-            velX = el.scrollLeft - prevScrollLeft;
-            velY = el.scrollTop - prevScrollTop;
+            if (el.scrollWidth > el.clientWidth) {
+                el.scrollLeft = scrollLeft - walkX;
+                velX = el.scrollLeft - prevScrollLeft;
+            }
+            if (el.scrollHeight > el.clientHeight) {
+                el.scrollTop = scrollTop - walkY;
+                velY = el.scrollTop - prevScrollTop;
+            }
         });
 
         el.addEventListener("wheel", () => {

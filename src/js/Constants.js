@@ -34,5 +34,5 @@ export default {
         liquid: "liquidnetwork",
     },
 
-    GLOBAL_MESSAGE: "This software is under development. Please use it only on testnet!",
+    GLOBAL_MESSAGE: undefined,
 };

@@ -166,8 +166,12 @@ export default class WalletPage extends UIStage {
                 txElCnt.classList.remove("confirmed");
                 txElCnt.confirmed = false;
             }
-            txHashEl.setValue(tx.tx_hash.substr(0, 16) + "...");
-
+            txHashEl.setValue(
+                tx.tx_hash.substring(
+                    0,
+                    Math.floor(window.innerWidth / parseFloat(getComputedStyle(txHashEl).fontSize) / 3),
+                ) + "...",
+            );
             lq.getTransaction(tx.tx_hash).then((txData) => {
                 blockTimeEl.setValue(new Date(txData.timestamp).toLocaleString());
                 txElCnt.setPriority(Math.floor(-(txData.timestamp / 1000)));
