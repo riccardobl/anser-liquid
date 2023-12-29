@@ -94,7 +94,7 @@ export default class UI {
 
     async _reloadTheme() {
         let themePath = await this.getCurrentTheme();
-        themePath = "/static/theme/" + themePath + ".css";
+        themePath = "static/theme/" + themePath + ".css";
         let cssEl = document.head.querySelector("link#liquidwalletTheme");
         if (!cssEl) {
             cssEl = document.createElement("link");
