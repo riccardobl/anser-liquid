@@ -200,6 +200,7 @@ export default class Html {
                 }
             }
             el.classList.add("loading");
+            this.enableMomentumScroll(el);
         }
         this._enhance(el, classes);
         el.setCover = (coverUrl) => {
@@ -387,27 +388,67 @@ export default class Html {
         return el;
     }
 
-    static makeDragScrollable(el) {
+    static enableMomentumScroll(el) {
         let isDown = false;
-        let startX;
-        let scrollLeft;
+        let startX, startY;
+        let scrollLeft, scrollTop;
+        let velX, velY;
+        let momentumID;
+
+        function beginMomentumTracking() {
+            cancelMomentumTracking();
+            momentumID = requestAnimationFrame(momentumLoop);
+        }
+
+        function cancelMomentumTracking() {
+            cancelAnimationFrame(momentumID);
+        }
+
+        function momentumLoop() {
+            el.scrollLeft += velX;
+            el.scrollTop += velY;
+            velX *= 0.95;
+            velY *= 0.95;
+            if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) {
+                momentumID = requestAnimationFrame(momentumLoop);
+            }
+        }
+
         el.addEventListener("mousedown", (e) => {
             isDown = true;
             startX = e.pageX - el.offsetLeft;
+            startY = e.pageY - el.offsetTop;
             scrollLeft = el.scrollLeft;
+            scrollTop = el.scrollTop;
+            cancelMomentumTracking();
         });
+
         el.addEventListener("mouseleave", () => {
             isDown = false;
         });
+
         el.addEventListener("mouseup", () => {
             isDown = false;
+            beginMomentumTracking();
         });
+
         el.addEventListener("mousemove", (e) => {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - el.offsetLeft;
-            const walk = (x - startX) * 3; //scroll-fast
-            el.scrollLeft = scrollLeft - walk;
+            const y = e.pageY - el.offsetTop;
+            const walkX = (x - startX) * 3;
+            const walkY = (y - startY) * 3;
+            let prevScrollLeft = el.scrollLeft;
+            let prevScrollTop = el.scrollTop;
+            el.scrollLeft = scrollLeft - walkX;
+            el.scrollTop = scrollTop - walkY;
+            velX = el.scrollLeft - prevScrollLeft;
+            velY = el.scrollTop - prevScrollTop;
+        });
+
+        el.addEventListener("wheel", () => {
+            cancelMomentumTracking();
         });
     }
 
