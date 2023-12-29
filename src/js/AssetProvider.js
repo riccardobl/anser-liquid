@@ -17,8 +17,8 @@ export default class AssetProvider {
         baseName,
         fiatTickerUrl = "https://blockchain.info/ticker",
         fiatTrackerTimeout = 60 * 60 * 1000,
-        staticIconsUrl = "/static/icons.json",
-        specialSymbolsUrl = "/static/specialSymbols.json",
+        staticIconsUrl = "static/icons.json",
+        specialSymbolsUrl = "static/specialSymbols.json",
     ) {
         this.cache = cache;
         this.store = store;

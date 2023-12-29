@@ -35,7 +35,7 @@ export default class UI {
 
     static THEMES = {};
     static registerTheme(themeName) {
-        const fullPath = "/static/theme/" + themeName + ".css";
+        const fullPath = "static/theme/" + themeName + ".css";
         UI.THEMES[themeName] = fullPath;
     }
 
@@ -94,7 +94,8 @@ export default class UI {
 
     async _reloadTheme() {
         let themePath = await this.getCurrentTheme();
-        themePath = "static/theme/" + themePath + ".css";
+        themePath = UI.THEMES[themePath];
+        if (!themePath) themePath = UI.THEMES[Constants.DEFAULT_THEME];
         let cssEl = document.head.querySelector("link#liquidwalletTheme");
         if (!cssEl) {
             cssEl = document.createElement("link");
