@@ -22,6 +22,7 @@ export default class SendStage extends UIStage {
 
         let DUMMY_ADDR = Constants.DUMMY_OUT_ADDRESS.testnet;
         let TO_ADDR = DUMMY_ADDR;
+        let FEE = 0;
 
         const c01El = Html.$vlist(walletEl, ".c0", ["fillw", "outscroll"]);
         const c02El = Html.$vlist(walletEl, ".c1", ["fillw", "outscroll"]).grow(20);
@@ -111,7 +112,10 @@ export default class SendStage extends UIStage {
                     .then((value) => {
                         availableBalanceValueEl.setValue(value);
                     });
-                lq.v(asset.value, asset.asset)
+
+                let sendAllValue =
+                    asset.asset === lq.getBaseAsset() ? asset.value - (FEE ? FEE * 2 : 0) : asset.value;
+                lq.v(sendAllValue, asset.asset)
                     .float(ASSET_HASH)
                     .then((value) => {
                         useAllEl.setAction(() => {
@@ -126,6 +130,7 @@ export default class SendStage extends UIStage {
                 const feeRate = await lq.estimateFeeRate(PRIORITY);
                 const tx = await lq.prepareTransaction(INPUT_AMOUNT, ASSET_HASH, TO_ADDR, feeRate.feeRate);
                 console.log(tx);
+                FEE = tx.fee;
                 errorRowEl.hide();
                 feeValueEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human());
                 feeValueSecondaryEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human(SECONDARY_CURRENCY));
