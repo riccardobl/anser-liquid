@@ -202,7 +202,23 @@ export default class Html {
             el.classList.add("loading");
         }
         this._enhance(el, classes);
-
+        el.setCover = (coverUrl) => {
+            let coverEl = el.querySelector(".cover");
+            if (coverUrl) {
+                if (!coverEl) {
+                    coverEl = document.createElement("div");
+                    coverEl.classList.add("cover");
+                    el.appendChild(coverEl);
+                }
+                el.classList.add("withCover");
+                coverEl.style.backgroundImage = `url(${coverUrl})`;
+            } else {
+                el.classList.remove("withCover");
+                if (coverEl) {
+                    coverEl.remove();
+                }
+            }
+        };
         return el;
     }
     static elById(parentEl, id, classes = [], type = "div") {
@@ -321,7 +337,6 @@ export default class Html {
         };
         if (!el.$$$) el.$$$ = {};
         el.$$$.isList = true;
-        this._addCover(el);
         return el;
     }
 
@@ -396,22 +411,9 @@ export default class Html {
         });
     }
 
-    static _addCover(el) {
-        let coverEl = el.querySelector(".cover");
-        if (!coverEl) {
-            coverEl = document.createElement("div");
-            coverEl.classList.add("cover");
-            el.appendChild(coverEl);
-        }
-        el.setCover = (coverUrl) => {
-            coverEl.style.backgroundImage = `url(${coverUrl})`;
-        };
-    }
-
     static $cnt(parent, directSelector, classes = []) {
         const el = this.$(parent, directSelector, classes, "div");
         el.classList.add("cnt");
-        this._addCover(el);
         return el;
     }
 
