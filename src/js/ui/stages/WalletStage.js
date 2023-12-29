@@ -8,6 +8,11 @@ export default class WalletPage extends UIStage {
     }
 
     async renderAssets(parentEl, lq, filter, ui) {
+        const network = await lq.getNetworkName();
+        const store = await ui.storage();
+        const primaryCurrency = (await store.get(`primaryCurrency${network}`)) || lq.getBaseAsset();
+        const secondaryCurrency = (await store.get(`secondaryCurrency${network}`)) || "USD";
+
         const assetsEl = Html.$list(parentEl, "#assets", ["main", "p$h", "l$v", "fillw"]);
         Html.enableOutScroll(assetsEl);
         assetsEl.setPriority(-10);
@@ -51,7 +56,7 @@ export default class WalletPage extends UIStage {
                     });
 
                 lq.v(balance.value, balance.asset)
-                    .human(lq.getBaseAsset())
+                    .human(primaryCurrency)
                     .then((price) => {
                         if (price) {
                             balancePrimaryEl.setValue(price);
@@ -63,7 +68,7 @@ export default class WalletPage extends UIStage {
                     });
 
                 lq.v(balance.value, balance.asset)
-                    .human("USD")
+                    .human(secondaryCurrency)
                     .then((price) => {
                         if (price) {
                             balanceSecondaryEl.setValue(price);
@@ -243,6 +248,11 @@ export default class WalletPage extends UIStage {
     }
 
     async renderBalance(parentEl, lq, ui) {
+        const network = await lq.getNetworkName();
+        const store = await ui.storage();
+        const primaryCurrency = (await store.get(`primaryCurrency${network}`)) || lq.getBaseAsset();
+        const secondaryCurrency = (await store.get(`secondaryCurrency${network}`)) || "USD";
+
         const balanceSumCntEl = Html.$vlist(parentEl, "#balanceSumCnt", ["center"]);
         const balanceSumEl = Html.$text(balanceSumCntEl, ".balanceSum", ["titleBig", "center"]);
         const balanceSumSecondaryEl = Html.$hlist(balanceSumCntEl, ".balanceSumAltCnt", ["title", "center"]);
@@ -250,33 +260,29 @@ export default class WalletPage extends UIStage {
 
         let sumPrimary = 0;
         let sumSecondary = 0;
-        let primarySymbol = "";
-        let secondarySymbol = "";
+
         lq.getBalance().then((assets) => {
             for (const asset of assets) {
                 lq.v(asset.value, asset.asset)
-                    .human(lq.getBaseAsset())
+                    .float(primaryCurrency)
                     .then(async (value) => {
-                        [value, primarySymbol] = value.split(" ");
-                        sumPrimary += Number(value);
-                        balanceSumEl.setValue(
-                            await lq
-                                .v(
-                                    await lq.v(sumPrimary, lq.getBaseAsset()).int(lq.getBaseAsset()),
-                                    lq.getBaseAsset(),
-                                )
-                                .human(lq.getBaseAsset()),
-                        );
+                        sumPrimary += value;
+                        const v = await lq
+                            .v(await lq.v(sumPrimary, primaryCurrency).int(primaryCurrency), primaryCurrency)
+                            .human(primaryCurrency);
+                        balanceSumEl.setValue(v < 0 || v > Infinity ? "0" : v);
                     });
                 lq.v(asset.value, asset.asset)
-                    .human("USD")
+                    .float(secondaryCurrency)
                     .then(async (value) => {
-                        [value, secondarySymbol] = value.split(" ");
                         sumSecondary += Number(value);
-
-                        balanceSumSecondaryEl.setValue(
-                            await lq.v(await lq.v(sumSecondary, "USD").int("USD"), "USD").human("USD"),
-                        );
+                        const v = await lq
+                            .v(
+                                await lq.v(sumSecondary, secondaryCurrency).int(secondaryCurrency),
+                                secondaryCurrency,
+                            )
+                            .human(secondaryCurrency);
+                        balanceSumSecondaryEl.setValue(v < 0 || v > Infinity ? "0" : v);
                     });
             }
         });
