@@ -116,7 +116,7 @@ export default class WalletPage extends UIStage {
     async renderHistoryPanel(parentEl, lq, filter, ui, limit = 100, page = 0) {
         const historyEl = Html.$vlist(parentEl, "#history", ["main", "fillw", "outscroll"]);
 
-        const history = (await lq.getHistory()).slice(page * limit, page * limit + limit);
+        const history = await lq.getHistory(); //.slice(page * limit, page * limit + limit); TODO: pagination
 
         historyEl.initUpdate();
         let animDelta = 0;
@@ -135,7 +135,7 @@ export default class WalletPage extends UIStage {
             }
 
             txElCnt.style.setProperty("--anim-delta", animDelta + "s");
-            animDelta += 0.2;
+            // animDelta += 0.2;
 
             const txDirectionEl = Html.$icon(txElCnt, ".txdirection", ["big"]);
             const txAssetIconEl = Html.$icon(txDirectionEl, ".txasset");

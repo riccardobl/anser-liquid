@@ -123,11 +123,18 @@ export default class AbstractBrowserStore {
 
         if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
 
-        let value = await this._retrieve(key, asDataUrl);
+        let value;
+        let exists = this.accessTable.has(key) && this.sizeTable.has(key); // corrupted data
+        if (!exists) {
+            await this.set(key, undefined);
+            value = undefined;
+        } else {
+            value = await this._retrieve(key, asDataUrl);
+        }
 
         if (value) {
             this.accessTable.set(key, Date.now());
-            this._store("s:accessTable", this.accessTable);
+            await this._store("s:accessTable", this.accessTable);
         }
 
         const expire = this.expirationTable.get(key);
@@ -164,6 +171,7 @@ export default class AbstractBrowserStore {
         for (let [key, access] of this.accessTable) {
             if (key.startsWith("s:")) continue;
             if (access < oldestAccess) {
+                alert("Deleting " + key);
                 oldestAccess = access;
                 oldestKey = key;
             }

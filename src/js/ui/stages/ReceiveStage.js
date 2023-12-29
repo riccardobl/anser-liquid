@@ -32,16 +32,6 @@ export default class ReceiveStage extends UIStage {
         // @@@@@@@@@@@@
         const qrContainerEl = Html.$hlist(c01El, "#invoice", ["center"]);
 
-        const warningRowEl = Html.$vlist(c02El, "#warningNetwork", ["fillw", "warning"]);
-        warningRowEl.setValue(
-            `
-        <span>
-        Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network. 
-        </span>
-                `,
-            true,
-        );
-
         // @@@@ @@@@@@@@@@@@@@@@@@@@@ @@@@
         // @@@@ ADDRESS @ COPY_BUTTON @@@@
         // @@@@ @@@@@@@@@@@@@@@@@@@@@ @@@@
@@ -65,9 +55,10 @@ export default class ReceiveStage extends UIStage {
         // @@@@@@@@@@@@@@@@@@@@@@@
         // @@ AMOUNT @ CURRENCY @@
         // @@@@@@@@@@@@@@@@@@@@@@@
-        Html.$vsep(c02El, "#sep2");
+        // Html.$vsep(c02El, "#sep2");
         // Html.$text(c02El, ".label").setValue("Amount: ");
 
+        Html.$text(c02El, ".label").setValue("Settings: ");
         const amountPrimaryRow = Html.$hlist(c02El, "#amountCnt", ["fillw"]);
         const amountPrimaryEl = Html.$inputNumber(amountPrimaryRow, ".amountInput")
             .grow(50)
@@ -80,6 +71,15 @@ export default class ReceiveStage extends UIStage {
             .setPlaceHolder("0.00");
         const tickerEl2 = Html.$text(amountSecondaryRow, ".asset", ["center", "enforceSmallWidth"]).grow(5);
 
+        const warningRowEl = Html.$vlist(c02El, "#warningNetwork", ["fillw", "warning"]);
+        warningRowEl.setValue(
+            `
+        <span>
+        Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network. 
+        </span>
+                `,
+            true,
+        );
         const _updateInvoice = async () => {
             if (!ASSET_HASH || !ASSET_INFO) return; // if unset do nothing
             const { addr, qr } = await lq.receive(INPUT_AMOUNT, ASSET_HASH); // create invoice

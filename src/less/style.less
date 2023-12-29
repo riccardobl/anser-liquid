@@ -28,6 +28,7 @@
     width: 100%;
     text-shadow: 0px 0px 4px var(--bgTextShade);
 
+    align-items: center;
     .iconCnt {
         position: relative;
     }
@@ -136,7 +137,7 @@
 
     .sub,
     .small {
-        font-size: 0.8rem;
+        font-size: 0.9rem;
     }
 
     .sub {
@@ -144,7 +145,7 @@
     }
 
     .smaller {
-        font-size: 0.5rem;
+        font-size: 0.8rem;
     }
 
     .title {
@@ -161,7 +162,7 @@
         text-align: center;
         font-weight: bold;
         border: none;
-        margin: 1rem;
+        height: 4rem;
         box-shadow: 0px -2px 2px rgba(0, 0, 0, 0.3);
     }
 
@@ -234,6 +235,7 @@
     }
 
     #container {
+        width: 100%;
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -241,11 +243,16 @@
         padding-top: 2rem;
         margin: 0;
         flex-shrink: 1;
+        justify-content: center;
         @media (orientation: landscape) {
             flex-direction: row;
 
-            .c0 {
+            & > :first-child {
                 width: min(40vw, 512px);
+            }
+            & > :not(.popup) {
+                flex-shrink: 1;
+                width: 100%;
             }
         }
 
@@ -264,16 +271,14 @@
         }
 
         .warning {
-            padding: 1.2rem;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
+
+            padding: 1rem;
             text-align: center;
             border: 1px dotted var(--warning);
             border-radius: 6px;
             margin: 1rem !important;
-            margin-right: 1rem !important;
-            margin-left: 1rem !important;
-            margin-left: 2rem !important;
-            margin-right: 2rem !important;
+
             color: var(--warning);
         }
 
@@ -519,3 +524,4 @@
 @import "./stages/send.less";
 @import "./stages/receive.less";
 @import "./stages/wallet.less";
+@import "./stages/options.less";

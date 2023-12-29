@@ -1112,7 +1112,11 @@ export default class LiquidWallet {
         txData.confirmed = txData.height > 0; // if height > 0, the tx is confirmed
         if (txData.confirmed) {
             const blockData = await this.getBlockHeaderData(txData.height);
-            txData.timestamp = blockData.timestamp;
+            if (!blockData) {
+                txData.timestamp = Date.now();
+            } else {
+                txData.timestamp = blockData.timestamp;
+            }
         } else {
             txData.timestamp = Date.now();
         }

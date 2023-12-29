@@ -25,20 +25,9 @@ export default class SendStage extends UIStage {
         let FEE = 0;
 
         const c01El = Html.$vlist(walletEl, ".c0", ["fillw", "outscroll"]);
-        const c02El = Html.$vlist(walletEl, ".c1", ["fillw", "outscroll"]).grow(20);
+        const c02El = c01El;
 
         const assetInputEl = Html.$inputSelect(c01El, "#asset", "Select Asset");
-        Html.$vsep(c01El, "#sep1");
-
-        const addrCntEl = Html.$hlist(c01El, "#addCnt", ["fillw"]);
-        const addrEl = Html.$inputText(addrCntEl, ".addr").setPlaceHolder("Address").grow(70);
-        const pasteEl = Html.$icon(addrCntEl, ".paste", ["enforceSmallWidth"]).grow(5);
-        pasteEl.setValue("content_paste");
-        pasteEl.setAction(async () => {
-            const text = await navigator.clipboard.readText();
-            addrEl.setValue(text);
-        });
-
         const warningRowEl = Html.$vlist(c01El, "#warningNetwork", ["fillw", "warning"]);
         warningRowEl.setValue(
             `
@@ -48,6 +37,15 @@ export default class SendStage extends UIStage {
                 `,
             true,
         );
+
+        const addrCntEl = Html.$hlist(c01El, "#addCnt", ["fillw"]);
+        const addrEl = Html.$inputText(addrCntEl, ".addr").setPlaceHolder("Address").grow(70);
+        const pasteEl = Html.$icon(addrCntEl, ".paste", ["enforceSmallWidth"]).grow(5);
+        pasteEl.setValue("content_paste");
+        pasteEl.setAction(async () => {
+            const text = await navigator.clipboard.readText();
+            addrEl.setValue(text);
+        });
 
         // errorRowEl.hide();
 
@@ -88,21 +86,30 @@ export default class SendStage extends UIStage {
         const errorRowEl = Html.$vlist(c02El, "#error", ["fillw", "error"]);
         errorRowEl.hide();
 
-        const loadinRowEl = Html.$hlist(c02El, "#loading", ["center", "sub"]);
-        Html.$icon(loadinRowEl, "#loadingIcon").setValue("hourglass_empty");
-        const loadingTextEl = Html.$text(loadinRowEl, "#loadingText").setValue("Loading...");
-        loadinRowEl.hide();
+        // const loadinRowEl = Html.$hlist(c02El, "#loading", ["center", "sub"]);
+        // Html.$icon(loadinRowEl, "#loadingIcon").setValue("hourglass_empty");
+        // const loadingTextEl = Html.$text(loadinRowEl, "#loadingText").setValue("Loading...");
+        // loadinRowEl.hide();
 
         const confirmBtnEl = Html.$button(c02El, "#confirmBtn", ["fillw", "button"]).setValue(
             "Confirm and sign",
         );
 
+        const loading = (v) => {
+            if (!v) {
+                confirmBtnEl.enable();
+                confirmBtnEl.setValue("Confirm and sign");
+            } else {
+                confirmBtnEl.disable();
+                confirmBtnEl.setValue(v);
+            }
+        };
+
         const _updateInvoice = async (signAndSend) => {
-            confirmBtnEl.disable();
-            loadingTextEl.setValue(!signAndSend ? "Loading..." : "Preparing transaction...");
+            loading(!signAndSend ? "Loading..." : "Preparing transaction...");
+            // loadingTextEl.setValue(!signAndSend ? "Loading..." : "Preparing transaction...");
 
             errorRowEl.hide();
-            loadinRowEl.show();
             const balance = await lq.getBalance((hash) => {
                 return hash === ASSET_HASH;
             });
@@ -137,9 +144,11 @@ export default class SendStage extends UIStage {
                 if (signAndSend) {
                     if (TO_ADDR !== DUMMY_ADDR) {
                         console.log("Verify");
-                        loadingTextEl.setValue("Verifying...");
+                        loading("Verifying...");
+                        // loadingTextEl.setValue("Verifying...");
                         await tx.verify();
-                        loadingTextEl.setValue("Signing...");
+                        console.log("Signing...");
+                        // loadingTextEl.setValue("Signing...");
                         console.log("Broadcast");
                         const txid = await tx.broadcast();
                         const sendOkPopupEl = Html.$newPopup(walletEl, "#sendOK", "Transaction broadcasted");
@@ -150,17 +159,16 @@ export default class SendStage extends UIStage {
                         }, 4000);
                         sendOkPopupEl.show();
                     } else {
-                        loadinRowEl.hide();
+                        loading(false);
+
                         errorRowEl.show();
                         errorRowEl.setValue("Please enter a valid address");
                     }
                 } else {
-                    confirmBtnEl.enable();
-                    loadinRowEl.hide();
+                    loading(false);
                 }
             } catch (e) {
-                loadinRowEl.hide();
-                confirmBtnEl.enable();
+                loading(false);
 
                 console.error(e);
                 errorRowEl.show();
