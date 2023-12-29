@@ -46,7 +46,7 @@
         background-size: 300% 300%;
     }
 }
-
+#liquidwallet #container .iconCnt.loading .icon.material-symbols-outlined,
 #liquidwallet #container .icon.material-symbols-outlined.loading {
     animation: rotate 2s linear infinite;
 }

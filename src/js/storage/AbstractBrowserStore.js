@@ -133,7 +133,7 @@ export default class AbstractBrowserStore {
         const expire = this.expirationTable.get(key);
         if (!value || (expire && expire < Date.now())) {
             if (refreshCallback) {
-                let refreshed = refreshCallback();
+                let refreshed = Promise.resolve(refreshCallback());
                 refreshed = refreshed.then(async (data) => {
                     if (!data) return undefined;
                     const [value, expire] = data;
