@@ -113,7 +113,8 @@ export default class WalletPage extends UIStage {
         assetsEl.commitUpdate();
     }
 
-    async renderHistoryPanel(parentEl, lq, filter, ui, limit = 100, page = 0) {
+    async renderHistoryPanel(parentEl, lq, filter, ui, forceRefresh = false, limit = 100, page = 0) {
+        filter = this.filter;
         const historyEl = Html.$vlist(parentEl, "#history", ["main", "fillw", "outscroll"]);
 
         const history = await lq.getHistory(); //.slice(page * limit, page * limit + limit); TODO: pagination
@@ -123,7 +124,7 @@ export default class WalletPage extends UIStage {
         for (const tx of history) {
             const id = "history" + (tx.tx_hash.substr(0, 8) + tx.tx_hash.substr(-8));
             const txElCnt = Html.$hlist(historyEl, "#" + id, ["left", "tx"]);
-            if (txElCnt.confirmed) continue; // never attempt to update confirmed txs
+            if (!forceRefresh && txElCnt.confirmed) continue; // never attempt to update confirmed txs
 
             if (Constants.EXT_TX_VIEWER) {
                 const extViewer = Constants.EXT_TX_VIEWER[lq.getNetworkName()];
@@ -200,16 +201,32 @@ export default class WalletPage extends UIStage {
                     lq.assets()
                         .getAssetInfo(txData.info.outAsset)
                         .then((info) => {
+                            console.log("Info ", filter);
                             if (filter) {
+                                console.log(
+                                    "Filtering",
+                                    info.ticker,
+                                    info.name,
+                                    tx.tx_hash,
+                                    info.hash,
+                                    filter(info.hash, true),
+                                    filter(info.ticker),
+                                    filter(info.name),
+                                    filter(tx.tx_hash, true),
+                                );
+
                                 if (
                                     !filter(info.hash, true) &&
                                     !filter(info.ticker) &&
                                     !filter(info.name) &&
                                     !filter(tx.tx_hash, true)
                                 ) {
-                                    txElCnt.remove();
+                                    txElCnt.hide();
                                     return;
+                                } else {
+                                    txElCnt.show();
                                 }
+                            } else {
                             }
                             txSymbolEl.setValue(info.ticker);
                         });
@@ -335,14 +352,15 @@ export default class WalletPage extends UIStage {
         const c0El = Html.$vlist(walletEl, ".c0", ["fillw"]).grow(1);
         const c1El = Html.$vlist(walletEl, ".c1", ["fillw"]).grow(3);
         const render = (filter) => {
+            if (filter) this.filter = filter;
             this.renderBalance(c0El, lq, ui);
             this.renderAssets(c0El, lq, filter, ui);
 
             this.renderSendReceive(c0El, lq, filter, ui);
-            this.renderHistoryPanel(c1El, lq, filter, ui);
+            this.renderHistoryPanel(c1El, lq, filter, ui, !!filter);
         };
         this.renderSearchBar(c1El, lq, render, ui);
-        render("");
+        render();
 
         if (walletEl.historyReloadCallbackTimer) {
             clearTimeout(walletEl.historyReloadCallbackTimer);
