@@ -166,10 +166,11 @@ export default class WalletPage extends UIStage {
                 txElCnt.classList.remove("confirmed");
                 txElCnt.confirmed = false;
             }
+            const txElCntWidth = txElCnt.getBoundingClientRect().width;
             txHashEl.setValue(
                 tx.tx_hash.substring(
                     0,
-                    Math.floor(window.innerWidth / parseFloat(getComputedStyle(txHashEl).fontSize) / 3),
+                    Math.floor(txElCntWidth / parseFloat(getComputedStyle(txHashEl).fontSize) / 2),
                 ) + "...",
             );
             lq.getTransaction(tx.tx_hash).then((txData) => {
