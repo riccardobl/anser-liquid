@@ -141,7 +141,7 @@ module.exports = [
                 },
             ],
         },
-        mode: process.env.NODE_ENV === "production" ? "production" : "development",
+        mode: process.env.BUILD_MODE === "production" ? "production" : "development",
     },
 
     {
