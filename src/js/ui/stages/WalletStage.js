@@ -95,7 +95,7 @@ export default class WalletPage extends UIStage {
                             tickerEl.setValue(info.ticker);
                             nameEl.setValue(info.name);
                         } catch (e) {
-                            console.error(e);
+                            console.log(e);
                         }
                     });
 
@@ -108,7 +108,7 @@ export default class WalletPage extends UIStage {
                             iconEl.setSrc(icon);
                             assetEl.setCover(icon);
                         } catch (e) {
-                            console.error(e);
+                            console.log(e);
                         }
                     });
                 return Promise.all([loadInfoPromise, loadIconPromise]);

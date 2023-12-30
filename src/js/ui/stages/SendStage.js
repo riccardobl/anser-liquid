@@ -170,7 +170,7 @@ export default class SendStage extends UIStage {
             } catch (e) {
                 loading(false);
 
-                console.error(e);
+                console.log(e);
                 errorRowEl.show();
                 errorRowEl.setValue(e.message);
             }

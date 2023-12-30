@@ -401,7 +401,7 @@ export default class LiquidWallet {
             true,
         );
         if (!hex) {
-            console.error("Block not found!", height);
+            console.log("Block not found!", height);
             return undefined;
         } else {
             const buffer = Buffer.from(hex, "hex");
@@ -976,7 +976,7 @@ export default class LiquidWallet {
                     // Now lets collect the input amount
                     for (const inp of txData.ins) {
                         if (!inp.ldata) {
-                            console.error("Blinded input of outgoing tx ?? UNEXPECTED");
+                            console.log("Blinded input of outgoing tx ?? UNEXPECTED");
                             continue; // somehow this input can't be unblinded, so we skip it.
                         }
                         if (inp.owner.equals(addr.outputScript)) {
@@ -1004,7 +1004,7 @@ export default class LiquidWallet {
 
                     // We don't support multiasset transactions
                     if (Object.keys(outXasset).length > 1) {
-                        console.error("Multiasset transaction ?? UNEXPECTED", outXasset);
+                        console.log("Multiasset transaction ?? UNEXPECTED", outXasset);
                         throw new Error("Multiasset transaction not supported");
                     }
 
@@ -1013,7 +1013,7 @@ export default class LiquidWallet {
 
                     // We didn't manage to parse the tx or it was invalid
                     if (!out) {
-                        console.error("Invalid transaction ?? UNEXPECTED", outXasset);
+                        console.log("Invalid transaction ?? UNEXPECTED", outXasset);
                         throw new Error("Invalid transaction");
                     }
 
@@ -1049,7 +1049,7 @@ export default class LiquidWallet {
                     // We don't support multiasset transactions
                     // TODO: maybe we need to handle self transactions here?
                     if (Object.keys(inXAsset).length > 1) {
-                        console.error("Multiasset transaction ?? UNEXPECTED", inXAsset);
+                        console.log("Multiasset transaction ?? UNEXPECTED", inXAsset);
                         throw new Error("Multiasset transaction not supported");
                     }
 
@@ -1066,7 +1066,7 @@ export default class LiquidWallet {
                 else info.valid = false;
                 // info.valid = !!(info.inAsset || info.outAsset);
             } catch (e) {
-                console.error("Error while parsing transaction", txData, e);
+                console.log("Error while parsing transaction", txData, e);
                 // we won't throw, but we will mark the tx as invalid
                 info.valid = false;
                 if (!info.debug) {
@@ -1324,7 +1324,7 @@ export default class LiquidWallet {
 
                 outputs.push(out);
             } catch (err) {
-                console.error("Failed to resolve", utxo, err);
+                console.log("Failed to resolve", utxo, err);
             }
         }
         return outputs;
