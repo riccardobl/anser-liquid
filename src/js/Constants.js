@@ -2,7 +2,7 @@
  * Constants. Should never change at runtime
  */
 export default {
-    APP_NAME: "Anser Wallet",
+    APP_NAME: "Anser Liquid",
     FEE_GUARD: 2000, // everything above this value is rejected (should be manually increased to account for fee changes)
     HARDCODED_FEE: 0.27, // used when the fee api fails
     DEBOUNCE_CALLBACK_TIME: 500, // lower this value to make the app more responsive, but more resource intensive

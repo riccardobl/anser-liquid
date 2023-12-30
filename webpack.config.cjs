@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const WorkboxPlugin = require("workbox-webpack-plugin");
 
 module.exports = [
     // lib bundle
@@ -73,6 +74,11 @@ module.exports = [
 
     // ui bundle
     {
+        // stats: {
+        // warningsFilter: warning => {
+        //     return warning.startsWith("GenerateSW has been called multiple times")
+        // },
+        // },
         performance: {
             hints: false,
         },
@@ -106,6 +112,26 @@ module.exports = [
             new MiniCssExtractPlugin({
                 filename: "ui.css",
             }),
+            new CopyWebpackPlugin({
+                patterns: [
+                    {
+                        from: path.resolve(__dirname, "src", "assets", "app"),
+                        to: path.resolve(__dirname, "dist", "app"),
+                        globOptions: {
+                            ignore: ["**/index.html"],
+                        },
+                    },
+                ],
+            }),
+            ...(!process.env.WEBPACK_DEV_SERVER
+                ? [
+                      new WorkboxPlugin.GenerateSW({
+                          maximumFileSizeToCacheInBytes: 5000000, // 5MB
+                          clientsClaim: true,
+                          skipWaiting: true,
+                      }),
+                  ]
+                : []),
         ],
         module: {
             rules: [
@@ -133,13 +159,6 @@ module.exports = [
         plugins: [
             new CopyWebpackPlugin({
                 patterns: [
-                    {
-                        from: path.resolve(__dirname, "src", "assets", "app"),
-                        to: path.resolve(__dirname, "dist", "app"),
-                        globOptions: {
-                            ignore: ["**/index.html"],
-                        },
-                    },
                     {
                         from: path.resolve(__dirname, "src", "assets"),
                         to: path.resolve(__dirname, "dist"),
