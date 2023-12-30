@@ -125,11 +125,6 @@ export default class UI {
     }
 
     async setStage(stageName) {
-        // ensure smooth transition
-        this.stageContainerEl.classList.remove("fadeIn");
-        this.stageContainerEl.classList.add("fadeOut");
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
         await this._reloadTheme();
 
         const reload = this.stage && this.stage.getName() === stageName;
@@ -152,6 +147,11 @@ export default class UI {
         }
 
         if (!reload) {
+            // scroll stageContainerEl to top smoothly
+            this.stageContainerEl.classList.remove("fadeIn");
+            this.stageContainerEl.classList.add("fadeOut");
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
             if (this.stage) {
                 for (const module of modules) {
                     if (module.isEnabledForStage(this.stage.getName())) {
@@ -184,6 +184,10 @@ export default class UI {
 
         this.stageContainerEl.classList.remove("fadeOut");
         this.stageContainerEl.classList.add("fadeIn");
+
+        if (!reload) {
+            this.walletEl.querySelectorAll("*").forEach((el) => el.scrollTo({ top: 0, behavior: "smooth" }));
+        }
     }
 
     captureOutputs() {

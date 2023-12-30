@@ -1,3 +1,4 @@
+import LinkOpener from "../../utils/LinkOpener.js";
 import Html from "../Html.js";
 import UIStage from "../UIStage.js";
 export default class OptionsStage extends UIStage {
@@ -52,12 +53,39 @@ export default class OptionsStage extends UIStage {
                 optionEl2.setIconSrc(icon);
             }
         });
-        Html.$vsep(listEl, "#sep3");
+
+        Html.$vsep(listEl, "#sep4");
 
         Html.$text(listEl, "#pinnedAssetsLabel").setValue("Pinned assets: ");
         const inputSelEl = Html.$inputSelect(listEl, "#pinnedAssets", "Select Assets", ["fillw"], true);
 
-        Html.$vsep(listEl, "#sep4");
+        Html.$vsep(listEl, "#sep3");
+
+        Html.$text(listEl, "#sponsor").setValue("Do you like the app?");
+
+        const sponsorRowEl = Html.$hlist(listEl, "#sponsorRow", ["fillw"]);
+        Html.$button(sponsorRowEl, "#zapButton")
+            .setValue("Zap")
+            .setAction(() => {
+                LinkOpener.navigate("https://getalby.com/p/rblb");
+            })
+            .setIconValue("flash_on");
+
+        Html.$button(sponsorRowEl, "#sponsorButton")
+            .setValue("Sponsor")
+            .setAction(() => {
+                LinkOpener.navigate("https://github.com/sponsors/riccardobl");
+            })
+            .setIconValue("favorite");
+
+        Html.$vsep(listEl, "#sep5");
+
+        Html.$button(listEl, "#reportIssue")
+            .setValue("Report an issue")
+            .setAction(() => {
+                LinkOpener.navigate("https://github.com/riccardobl/anser-liquid/issues/new");
+            });
+
         Html.$button(listEl, "#clearCache")
             .setValue("Clear Cache")
             .setAction(async () => {
