@@ -3,7 +3,7 @@
     "short_name": "AnserWallet",
     "description": "An alby companion to manage liquid assets",
     "start_url": "/app",
-    "display": "minimal-ui",
+    "display": "standalone",
     "background_color": "#d8f4ef",
     "theme_color": "#026b79",
     "icons": [
