@@ -103,7 +103,7 @@ export default class WalletPage extends UIStage {
                     .assets()
                     .getAssetIcon(balance.asset)
                     .then((icon) => {
-                        console.info("Loading icon", icon, balance);
+                        console.log("Loading icon", icon, balance);
                         try {
                             iconEl.setSrc(icon);
                             assetEl.setCover(icon);

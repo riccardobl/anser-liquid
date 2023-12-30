@@ -125,6 +125,11 @@ export default class UI {
     }
 
     async setStage(stageName) {
+        // ensure smooth transition
+        this.stageContainerEl.classList.remove("fadeIn");
+        this.stageContainerEl.classList.add("fadeOut");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         await this._reloadTheme();
 
         const reload = this.stage && this.stage.getName() === stageName;
@@ -174,6 +179,63 @@ export default class UI {
                 }
             }
         }
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        this.stageContainerEl.classList.remove("fadeOut");
+        this.stageContainerEl.classList.add("fadeIn");
+    }
+
+    captureOutputs() {
+        if (this.infoOut || this.errorOut) throw new Error("Already capturing outputs");
+        this.infoOut = console.info;
+        this.errorOut = console.error;
+
+        console.info = (...args) => {
+            this.info(...args);
+            this.infoOut(...args);
+        };
+
+        console.error = (...args) => {
+            this.error(...args);
+            this.errorOut(...args);
+        };
+    }
+
+    error(...args) {
+        this.showAlert("error", this.walletEl, ...args);
+    }
+
+    fatal(...args) {
+        this.showAlert("fatal", this.walletEl, ...args);
+    }
+
+    info(...args) {
+        this.showAlert("alert", this.walletEl, ...args);
+    }
+
+    showAlert(type, containerElement, ...args) {
+        let alertContainerEl = containerElement.querySelector(".alertContainer");
+        if (!alertContainerEl) {
+            alertContainerEl = document.createElement("div");
+            alertContainerEl.className = "alertContainer";
+            containerElement.appendChild(alertContainerEl);
+        }
+
+        const alertBox = document.createElement("div");
+        alertBox.className = `alert ${type}`;
+        alertBox.textContent = args.join(" ").trim();
+
+        alertContainerEl.appendChild(alertBox);
+        // scroll to bottom
+        alertContainerEl.scrollTop = alertContainerEl.scrollHeight;
+
+        let time = 5000;
+        if (type === "error") time = 10000;
+        if (type === "fatal") time = 60000;
+        setTimeout(() => {
+            alertContainerEl.removeChild(alertBox);
+        }, time);
     }
 }
 

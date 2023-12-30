@@ -1,4 +1,3 @@
-import Alert from "./Alert.js";
 import { ElectrumWS } from "ws-electrumx-client";
 import Liquid, { address } from "liquidjs-lib";
 import ZkpLib from "@vulpemventures/secp256k1-zkp";
@@ -211,7 +210,7 @@ export default class LiquidWallet {
         );
 
         // print some info
-        console.info(`!!! LiquidWallet initialized
+        console.log(`!!! LiquidWallet initialized
         network: ${this.networkName}
         electrumWs: ${electrumWs}
         esploraHttps: ${esploraHttps}
@@ -245,30 +244,26 @@ export default class LiquidWallet {
     // Performs the initialization if needed
     async check() {
         if (typeof window.liquid === "undefined") {
-            Alert.fatal("Liquid is not available.");
-            return false;
+            throw new Error("Liquid is not available.");
         }
         if (typeof window.liquid.isEnabled === "undefined") {
-            Alert.fatal("Liquid is not supported.");
-            return false;
+            throw new Error("Liquid is not supported.");
         }
         const enabled = await window.liquid.isEnabled();
         if (!enabled) {
             try {
                 await window.liquid.enable();
                 if (!(await window.liquid.isEnabled())) {
-                    Alert.fatal("Liquid is not enabled.");
-                    return false;
+                    throw new Error("Liquid is not enabled.");
                 } else {
                     if (!window.liquid.on) {
-                        Alert.error("Callbacks not supported!");
+                        throw new Error("Callbacks not supported!");
                     } else {
                         window.liquid.on("accountChanged", this._reloadAccount);
                     }
                 }
             } catch (err) {
-                Alert.fatal(err);
-                return false;
+                throw new Error("Liquid is not enabled. " + err);
             }
         }
         if (!this.zkpLib) {
@@ -695,7 +690,7 @@ export default class LiquidWallet {
         [pset, psetUpdater] = newPset(inputs, outputs);
 
         // print some useful info
-        console.info(`Preparing transaction
+        console.log(`Preparing transaction
         estimated fee VByte: ${estimatedFeeVByte}
         estimated size: ${estimatedSize}
         estimated total fee: ${totalFee}

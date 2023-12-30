@@ -14,36 +14,43 @@ import Html from "./ui/Html.js";
  */
 
 async function main() {
-    // Get the wallet element
-    const walletEl = document.body.querySelector("#liquidwallet");
-    if (!walletEl) alert("No wallet element found");
+    try {
+        // Get the wallet element
+        const walletEl = document.body.querySelector("#liquidwallet");
+        if (!walletEl) alert("No wallet element found");
 
-    // A container that is vertical in portrait and horizontal in landscape
-    const containerEl = Html.$list(walletEl, "#container", ["p$v", "l$h", "fillw"]);
-    containerEl.classList.add("popupContainer");
+        // A container that is vertical in portrait and horizontal in landscape
+        const containerEl = Html.$list(walletEl, "#container", ["p$v", "l$h", "fillw"]);
+        containerEl.classList.add("popupContainer");
 
-    // Create and start the wallet
-    const lq = new LiquidWallet();
-    await lq.start();
+        // Create and start the wallet
+        const lq = new LiquidWallet();
+        await lq.start();
 
-    // export the window.liquid apis
-    // actually, this is not needed here, just showing how to do it
-    lq.exportApi(window);
+        // export the window.liquid apis
+        // actually, this is not needed here, just showing how to do it
+        lq.exportApi(window);
 
-    // create the UI
-    const ui = new UI(containerEl, walletEl, lq);
-    ui.useBrowserHistory(); // allow ui to control the browser history (this is used to support the back button)
-    ui.setStage("wallet"); // set the initial stage
-    lq.addRefreshCallback(() => {
-        ui.reload();
-    }); // refresh the ui when the wallet data changes
-
-    window.lq = lq; // debug api export, you can use this in the browser console
-    window.lqui = ui; // debug api export, you can use this in the browser console
-    window.setStage = (stage) => {
-        // debug api export, you can use this in the browser console
-        ui.setStage(stage);
-    };
+        // create the UI
+        const ui = new UI(containerEl, walletEl, lq);
+        ui.captureOutputs();
+        try {
+            ui.useBrowserHistory(); // allow ui to control the browser history (this is used to support the back button)
+            ui.setStage("wallet"); // set the initial stage
+            lq.addRefreshCallback(() => {
+                try {
+                    ui.reload();
+                } catch (e) {
+                    console.error(e);
+                }
+            }); // refresh the ui when the wallet data changes
+        } catch (e) {
+            console.error(e);
+        }
+    } catch (e) {
+        console.error(e);
+        alert(e);
+    }
 }
 
 window.addEventListener("load", main);
