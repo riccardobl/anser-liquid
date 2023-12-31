@@ -154,7 +154,9 @@
             border-radius: 20px;
             margin-left: 1rem;
             margin-right: 1rem;
-
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            height: 2rem;
             background: var(--elementsBackground);
             border: none;
             outline: none;
@@ -168,6 +170,7 @@
             background: var(--elementsForeground);
             border-radius: 50%;
             cursor: pointer;
+            box-shadow: 0px 0px 4px var(--heavyShade);
         }
 
         .slider::-webkit-slider-thumb {
@@ -177,10 +180,12 @@
             height: 1.5rem;
             background: var(--elementsForeground);
             border-radius: 50%;
+            box-shadow: 0px 0px 4px var(--heavyShade);
             cursor: pointer;
         }
         .slider::-moz-range-thumb,
         .slider::-webkit-slider-thumb {
+            box-shadow: 0px 0px 4px var(--heavyShade);
             // other styles...
             z-index: 2; // make sure the thumb is above the track
         }
@@ -206,6 +211,12 @@
     .titleBig {
         font-weight: bold;
         font-size: 4rem;
+    }
+
+    @media (max-width: 600px) {
+        .titleBig {
+            font-size: 3.5rem;
+        }
     }
 
     .sub,
@@ -493,12 +504,18 @@
             }
         }
 
+        .popupSelect {
+            display: flex;
+            justify-content: stretch;
+        }
+
         .popupSelect button {
             justify-content: flex-start;
             flex-direction: row;
             align-items: center;
             height: 4rem;
-            width: 100%;
+            flex-grow: 1;
+            // width: 100%;
 
             .secondaryLabel {
                 margin-left: auto;
@@ -530,6 +547,11 @@
             align-items: stretch !important;
             backdrop-filter: blur(6px);
             padding: 1rem;
+            &.popupSelect {
+                button {
+                    flex-grow: 0;
+                }
+            }
 
             filter: drop-shadow(6px 6px 6px var(--elementsBackground));
 
