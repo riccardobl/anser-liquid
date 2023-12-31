@@ -1,27 +1,21 @@
 @import url("../animations.css");
 
-#liquidwallet {
-    --bgColor: #000000;
-    /* Black */
-    --bgColor2: #1a1a1a;
-    /* Dark Grey */
-    --bgColor3: #1a1a1ac4;
-    /* Dark Grey */
-    --colorShadow: rgba(33, 33, 33, 0.575);
-    /* Dark Shadow */
-    --fgColor: #f7931a;
-    /* Bitcoin Orange */
-    --fgColor2: #f7931a;
-    /* Bitcoin Orange */
-    --fgColor3: #ffffff;
-    /* White */
-    --bgColorShade: rgba(0, 0, 0, 1);
-    /* Black */
-    --bgTextShade: rgba(107, 107, 107, 0.349);
-    /* Grey Text Shade */
+:root {
+    --primaryBackground: #000000;
+    --secondaryBackground: #1a1a1a;
+    --elementsBackground: #1a1a1ac4;
+    --highlightedBackground: #212121;
+
+    --foreground: #f7931a;
+    --elementsForeground: #f7931a;
+    --headerForeground: #ffffff;
+
+    --shade: rgba(33, 33, 33, 0.575);
+    --heavyShade: rgba(0, 0, 0, 1);
+    --textShade: rgba(107, 107, 107, 0.349);
+
     --error: #ff0000;
-    --warning: var(--fgColor);
-    /* Red for Errors */
+    --warning: var(--foreground);
 }
 #liquidwallet #container .asset .cover {
     filter: blur(20px) grayscale(0.4) brightness(0.6);

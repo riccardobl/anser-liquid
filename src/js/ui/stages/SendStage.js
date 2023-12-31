@@ -12,6 +12,7 @@ import {
     $img,
     $icon,
     $button,
+    $newPopup,
     $inputText,
     $inputNumber,
     $inputSelect,
@@ -143,8 +144,14 @@ export default class SendStage extends UIStage {
                         console.log("Signing...");
                         console.log("Broadcast");
                         const txid = await tx.broadcast();
-                        const sendOkPopupEl = Html.$newPopup(walletEl, "#sendOK", "Transaction broadcasted");
-                        Html.$icon(sendOkPopupEl, ".icon", ["sendok"]).setValue("done");
+                        if (!txid) throw new Error("Transaction not broadcasted");
+                        const sendOkPopupEl = $newPopup(
+                            walletEl,
+                            "Transaction broadcasted",
+                            ["sendOK"],
+                            "sendOK",
+                        );
+                        $icon(sendOkPopupEl, ["sendok", "icon"]).setValue("done");
                         setTimeout(() => {
                             sendOkPopupEl.hide();
                             ui.setStage("wallet");

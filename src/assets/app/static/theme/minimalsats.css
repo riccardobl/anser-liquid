@@ -1,13 +1,17 @@
-#liquidwallet {
-    --bgColor: #f5f5f5;
-    --bgColor2: #e0e0e0;
-    --bgColor3: #cfcfcf3a;
-    --colorShadow: rgba(0, 0, 0, 0.1);
-    --fgColor: #212121;
-    --fgColor2: #212121;
-    --fgColor3: #212121;
-    --bgColorShade: rgba(245, 245, 245, 0.9);
-    --bgTextShade: rgba(107, 107, 107, 0.7);
+:root {
+    --primaryBackground: #f5f5f5;
+    --secondaryBackground: #e0e0e0;
+    --elementsBackground: #cfcfcf3a;
+
+    --foreground: #212121;
+    --elementsForeground: #212121;
+    --headerForeground: #212121;
+    --highlightedBackground: #cfcfcf9c;
+
+    --shade: rgba(0, 0, 0, 0.1);
+    --heavyShade: rgba(245, 245, 245, 0.9);
+    --textShade: rgba(107, 107, 107, 0.7);
+
     --error: #ff0000;
     --warning: #ff9800;
 }

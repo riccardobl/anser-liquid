@@ -1,16 +1,20 @@
 @import url("../animations.css");
-#liquidwallet {
-    --bgColor: #020b1a;
-    --bgColor2: #021b30;
-    --bgColor3: #021b30a8;
-    --colorShadow: rgba(33, 46, 45, 0.575);
-    --fgColor: #8db0c4;
-    --fgColor2: #8db0c4;
-    --fgColor3: #8db0c4;
-    --bgColorShade: rgba(2, 10, 26, 1);
-    --bgTextShade: rgba(107, 107, 107, 0.349);
+:root {
+    --primaryBackground: #020b1a;
+    --secondaryBackground: #021b30;
+    --elementsBackground: #021b30a8;
+    --highlightedBackground: #01070ec5;
+
+    --foreground: #8db0c4;
+    --elementsForeground: #8db0c4;
+    --headerForeground: #8db0c4;
+
+    --shade: rgba(33, 46, 45, 0.575);
+    --heavyShade: rgba(2, 10, 26, 1);
+    --textShade: rgba(107, 107, 107, 0.349);
+
     --error: #ff0000;
-    --warning: var(--fgColor);
+    --warning: var(--foreground);
 }
 #liquidwallet #container .asset .cover {
     filter: blur(20px) grayscale(0.4) brightness(0.6);

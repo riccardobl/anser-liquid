@@ -1004,6 +1004,7 @@ class Html {
         el.classList.add("inputSlide");
         el.classList.add("clickable");
         const sliderEl = this.$(el, "slider", ["slider"], "input");
+        sliderEl.classList.add("clickable");
         const max = 100;
         sliderEl.type = "range";
         sliderEl.min = 0;
@@ -1053,7 +1054,7 @@ class Html {
         return el;
     }
 
-    static $newPopup(parentEl, title, classes = []) {
+    static $newPopup(parentEl, title, classes = [], id) {
         let popupContainerEl = parentEl;
         while (popupContainerEl && !popupContainerEl.classList.contains("popupContainer")) {
             popupContainerEl = popupContainerEl.parentElement;
@@ -1062,7 +1063,7 @@ class Html {
                 break;
             }
         }
-        const el = this.$vlist(popupContainerEl, ["popup", "l$landscape", ...classes]);
+        const el = this.$vlist(popupContainerEl, ["popup", "l$landscape", ...classes], id);
         el.classList.add("clickable");
         this.$title(el, ["center"], "title").setValue(title);
         el.hide();
@@ -1085,3 +1086,4 @@ export const $inputText = Html.$inputText.bind(Html);
 export const $inputNumber = Html.$inputNumber.bind(Html);
 export const $inputSelect = Html.$inputSelect.bind(Html);
 export const $inputSlide = Html.$inputSlide.bind(Html);
+export const $newPopup = Html.$newPopup.bind(Html);

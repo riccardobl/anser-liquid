@@ -395,7 +395,7 @@ export default class WalletPage extends UIStage {
             this.renderHistoryPanel(c1El, lq, undefined, ui);
             walletEl.historyReloadCallbackTimer = setTimeout(historyReloadCallback, 10000);
         };
-        // setTimeout(historyReloadCallback, 10000);
+        setTimeout(historyReloadCallback, 10000);
     }
 
     onUnload(walletEl, lq, ui) {

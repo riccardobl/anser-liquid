@@ -1,20 +1,29 @@
 // @import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap");
+
+:root {
+    --primaryBackground: #f0fdfa;
+    --secondaryBackground: #d8f4ef;
+    --elementsBackground: rgba(2, 107, 121, 0.568);
+    --highlightedBackground: rgba(2, 107, 121, 0.568);
+
+    --foreground: #212121;
+    --elementsForeground: #d8f4ef;
+    --headerForeground: #212121;
+
+    --shade: rgba(120, 139, 138, 0.575);
+    --textShade: rgba(107, 107, 107, 0.349);
+    --heavyShade: rgba(2, 107, 121, 1);
+
+    --error: #ff0000;
+    --warning: var(--elementsBackground);
+}
+
 #liquidwallet {
     position: relative;
     margin: 0;
-    --bgColor2: #d8f4ef;
-    --colorShadow: rgba(120, 139, 138, 0.575);
-    --bgColor: #f0fdfa;
-    --fgColor: #212121;
-    --fgColor2: #d8f4ef;
-    --fgColor3: #212121;
-    --bgColor3: rgba(2, 107, 121, 0.568);
-    --bgColorShade: rgba(2, 107, 121, 1);
-    --bgTextShade: rgba(107, 107, 107, 0.349);
-    --error: #ff0000;
-    --warning: var(--bgColor3);
-    background: var(--bgColor);
-    color: var(--fgColor);
+
+    background: var(--primaryBackground);
+    color: var(--foreground);
     font-size: 1.1rem;
 
     display: flex;
@@ -25,7 +34,7 @@
     height: fit-content;
     min-height: 100%;
     width: 100%;
-    text-shadow: 0px 0px 4px var(--bgTextShade);
+    text-shadow: 0px 0px 4px var(--textShade);
     overflow: auto;
     height: 100%;
     align-items: center;
@@ -38,10 +47,10 @@
         font-size: 1rem;
         padding: 1rem;
         border-radius: 10px;
-        color: var(--fgColor);
+        color: var(--foreground);
         opacity: 0.9;
         transition: opacity 0.5s ease;
-        background-color: var(--bgColor3);
+        background-color: var(--elementsBackground);
         margin-top: 0.3rem;
         text-align: center;
     }
@@ -58,12 +67,12 @@
         flex-direction: column;
     }
     .alert.error {
-        color: var(--fgColor2);
+        color: var(--elementsForeground);
         background-color: var(--error);
     }
 
     .alert.fatal {
-        color: var(--fgColor2);
+        color: var(--elementsForeground);
         background-color: var(--error);
     }
     .fadeOut {
@@ -146,7 +155,7 @@
             margin-left: 1rem;
             margin-right: 1rem;
 
-            background: var(--bgColor3);
+            background: var(--elementsBackground);
             border: none;
             outline: none;
             -webkit-appearance: none;
@@ -156,7 +165,7 @@
         .slider::-moz-range-thumb {
             width: 1.5rem;
             height: 1.5rem;
-            background: var(--fgColor2);
+            background: var(--elementsForeground);
             border-radius: 50%;
             cursor: pointer;
         }
@@ -166,7 +175,7 @@
             appearance: none;
             width: 1.5rem;
             height: 1.5rem;
-            background: var(--fgColor2);
+            background: var(--elementsForeground);
             border-radius: 50%;
             cursor: pointer;
         }
@@ -221,7 +230,7 @@
 
     .input input {
         all: unset;
-        caret-color: var(--fgColor2);
+        caret-color: var(--elementsForeground);
         font-style: italic;
         text-align: center;
         font-weight: bold;
@@ -230,7 +239,7 @@
         padding: 0;
         margin: 0;
         font-size: 0.8rem;
-        color: var(--fgColor2);
+        color: var(--elementsForeground);
         text-decoration: dotted underline;
         width: 100%;
         height: 100%;
@@ -239,8 +248,8 @@
     select,
     .input {
         // padding: 1rem !important;
-        background-color: var(--bgColor3);
-        color: var(--fgColor2);
+        background-color: var(--elementsBackground);
+        color: var(--elementsForeground);
         border-radius: 14px;
         border: none;
         box-shadow: 0px -2px 2px rgba(0, 0, 0, 0.3);
@@ -261,7 +270,7 @@
         z-index: 99;
         align-items: center;
         justify-content: center;
-        background-color: var(--bgColorShade);
+        background-color: var(--heavyShade);
         .cover {
             width: min(90vw, 256px);
             height: min(90vw, 256px);
@@ -282,7 +291,7 @@
         top: 0;
         left: 0;
         width: 100%;
-        background-color: var(--bgColor3);
+        background-color: var(--elementsBackground);
         font-size: 2rem;
         padding: 1rem;
         padding-right: 1rem;
@@ -292,7 +301,7 @@
         justify-content: space-between;
         align-items: center;
         font-size: 2rem !important;
-        color: var(--fgColor3);
+        color: var(--headerForeground);
         font-weight: bold;
 
         * {
@@ -407,14 +416,14 @@
 
         h1 {
             font-weight: bold;
-            text-shadow: 0px -2px 1px var(--colorShadow);
+            text-shadow: 0px -2px 1px var(--shade);
             font-size: 1.6rem;
             text-align: center;
             width: 100%;
             text-transform: uppercase;
             padding: 2rem;
             padding-bottom: 1rem;
-            color: var(--fgColor2);
+            color: var(--foreground);
         }
 
         .buttons {
@@ -436,8 +445,8 @@
             box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
             border-radius: 14px;
             border: none;
-            background-color: var(--bgColor3);
-            color: var(--fgColor2);
+            background-color: var(--elementsBackground);
+            color: var(--elementsForeground);
             font-weight: bold;
             font-size: 1rem;
             text-align: center;
@@ -508,7 +517,7 @@
         .popup {
             width: 90vw;
             display: flex;
-            background: var(--bgColor3);
+            background: var(--highlightedBackground);
             height: min(80vh, 50rem);
             overflow-y: auto;
             z-index: 99;
@@ -522,7 +531,7 @@
             backdrop-filter: blur(6px);
             padding: 1rem;
 
-            filter: drop-shadow(6px 6px 6px var(--bgColor3));
+            filter: drop-shadow(6px 6px 6px var(--elementsBackground));
 
             & > * {
                 flex-shrink: 0;
@@ -530,7 +539,7 @@
             }
 
             h1 {
-                color: var(--fgColor2);
+                color: var(--elementsForeground);
             }
 
             @media (orientation: landscape) {
