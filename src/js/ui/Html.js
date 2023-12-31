@@ -748,8 +748,8 @@ class Html {
 
                 valueString = valueString.slice(0, -2);
 
-                Html.$text(btnEl, ["label"], "label").setValue(valueString);
-                Html.$text(btnEl, ["secondaryLabel"], "secondaryLabel").setValue("");
+                this.$text(btnEl, ["label"], "label").setValue(valueString);
+                this.$text(btnEl, ["secondaryLabel"], "secondaryLabel").setValue("");
             }
             if (multiSelect) {
                 el.$$$.selectActions[value](el.$$$.selectedOptions);
@@ -773,8 +773,8 @@ class Html {
                     }
                 }
                 valueString = valueString.slice(0, -2);
-                Html.$text(btnEl, ["label"], "label").setValue(valueString);
-                Html.$text(btnEl, ["secondaryLabel"], "secondaryLabel").setValue("");
+                this.$text(btnEl, ["label"], "label").setValue(valueString);
+                this.$text(btnEl, ["secondaryLabel"], "secondaryLabel").setValue("");
             } else {
                 if (el.$$$.selected === value && !forceRefresh) return;
                 el.$$$.selected = value;
@@ -822,14 +822,12 @@ class Html {
                     el.$$$.selectOptions[key].copyTo(btnEl);
                     if (!el.$$$.selectedOptions) el.$$$.selectedOptions = {};
 
-                    let toggleEl;
                     if (multiSelect) {
-                        toggleEl = this.$icon(btnEl, ["toggle"], "toggle", true);
+                        const toggleEl = this.$icon(btnEl, ["toggle"], "toggle", true);
 
                         if (!el.$$$.selectedOptions[key]) {
                             toggleEl.setValue("check_box_outline_blank");
                         } else {
-                            console.log("selected ", key);
                             toggleEl.setValue("check_box");
                         }
                     }
@@ -843,7 +841,7 @@ class Html {
                         }
                         if (multiSelect) {
                             optionEl.copyTo(btnEl);
-
+                            const toggleEl = this.$icon(btnEl, ["toggle"], "toggle", true);
                             if (!el.$$$.selectedOptions[key]) {
                                 toggleEl.setValue("check_box_outline_blank");
                             } else {
@@ -923,8 +921,8 @@ class Html {
                 toggleEl.setPriority(-20);
                 toggleEl.setValue(selected ? "check_box" : "check_box_outline_blank");
             }
-            const label1El = Html.$text(optionEl, ["label"], "label").setValue(label);
-            const label2El = Html.$text(optionEl, ["secondaryLabel"], "secondaryLabel").setValue("");
+            const label1El = this.$text(optionEl, ["label"], "label").setValue(label);
+            const label2El = this.$text(optionEl, ["secondaryLabel"], "secondaryLabel").setValue("");
             optionEl.setValue = (v, html = false) => {
                 label1El.setValue(v, html);
             };
