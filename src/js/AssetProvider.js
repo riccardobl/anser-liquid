@@ -265,11 +265,18 @@ export default class AssetProvider {
 
         const isFiat = this._isFiat(assetHash);
         // if isFiat keep only 2 decimal, otherwise keep 6
+        let clippedV = v;
         if (isFiat) {
-            v = v.toFixed(2);
+            clippedV = clippedV.toFixed(2);
         } else {
-            v = v.toFixed(5);
+            clippedV = clippedV.toFixed(6);
         }
+
+        if (Number(clippedV) == 0 && Number(v) != 0) {
+            clippedV = "0.000001";
+            clippedV = "< " + clippedV;
+        }
+        v = clippedV;
 
         // v = Number(v) + "";
         // let decs;
