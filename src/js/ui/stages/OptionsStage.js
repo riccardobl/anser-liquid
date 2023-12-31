@@ -1,27 +1,77 @@
 import LinkOpener from "../../utils/LinkOpener.js";
-import Html from "../Html.js";
+import {
+    $vlist,
+    $hlist,
+    $text,
+    $title,
+    $list,
+    $vsep,
+    $hsep,
+    $img,
+    $icon,
+    $button,
+    $inputText,
+    $inputNumber,
+    $inputSelect,
+    $inputSlide,
+} from "../Html.js";
 import UIStage from "../UIStage.js";
+
 export default class OptionsStage extends UIStage {
     constructor() {
         super("options");
     }
 
     onReload(containerEl, lq, ui) {
-        const listEl = Html.$vlist(containerEl, "#optionsList", ["fillw", "outscroll"]).grow(100);
-        // const primaryAssetRowEl = Html.$hlist(listEl, "#primaryAssetRow", ["fillw"]);
-        Html.$text(listEl, "#primaryAssetLabel").setValue("Primary currency: ");
-        const primaryAssetEl = Html.$inputSelect(listEl, "#primaryAsset", "Select Asset");
+        containerEl.resetState();
+        const optionsEl = $vlist(containerEl).makeScrollable().fill();
+        $text(optionsEl).setValue("Primary currency: ");
+        const primaryAssetSelector = $inputSelect(optionsEl, "Select Asset");
+        $vsep(optionsEl);
+        $text(optionsEl).setValue("Secondary currency: ");
+        const secondaryAssetSelector = $inputSelect(optionsEl, "Select Asset");
+        $vsep(optionsEl);
+        $text(optionsEl).setValue("Theme: ");
+        const themeSelector = $inputSelect(optionsEl, "Select Theme");
+        $vsep(optionsEl);
+        $text(optionsEl).setValue("Pinned assets: ");
+        const pinnedAssetsSelector = $inputSelect(optionsEl, "Select Assets", [], true);
+        $vsep(optionsEl);
+        $text(optionsEl).setValue("Do you like the app?");
+        const sponsorRowEl = $hlist(optionsEl).fill();
 
-        Html.$vsep(listEl, "#sep1");
-        // const secondaryAssetRowEl=Html.$hlist(listEl,"#secondaryAssetRow",["fillw"]);
-        Html.$text(listEl, "#secondaryAssetLabel").setValue("Secondary currency: ");
-        const secondaryAssetEl = Html.$inputSelect(listEl, "#secondaryAsset", "Select Asset");
-        Html.$vsep(listEl, "#sep2");
-        // const themeRowEl=Html.$hlist(listEl,"#themeRow",["fillw"]);
-        Html.$text(listEl, "#themeLabel").setValue("Theme: ");
-        const themeEl = Html.$inputSelect(listEl, "#theme", "Select Theme");
+        $button(sponsorRowEl)
+            .setValue("Zap")
+            .setAction(() => {
+                LinkOpener.navigate("https://getalby.com/p/rblb");
+            })
+            .setIconValue("flash_on");
+
+        $button(sponsorRowEl)
+            .setValue("Sponsor")
+            .setAction(() => {
+                LinkOpener.navigate("https://github.com/sponsors/riccardobl");
+            })
+            .setIconValue("favorite");
+
+        $vsep(optionsEl);
+
+        $button(optionsEl)
+            .setValue("Report an issue")
+            .setAction(() => {
+                LinkOpener.navigate("https://github.com/riccardobl/anser-liquid/issues/new");
+            });
+
+        $button(optionsEl)
+            .setValue("Clear Cache")
+            .setAction(async () => {
+                await lq.clearCache();
+                alert("Cache cleared");
+                window.location.reload();
+            });
 
         ui.getCurrentTheme().then((currentTheme) => {
+            const themeEl = themeSelector;
             themeEl.setPreferredValues([currentTheme]);
             for (const theme of ui.listThemes()) {
                 themeEl.addOption(theme, theme, () => {
@@ -34,71 +84,31 @@ export default class OptionsStage extends UIStage {
             const network = await lq.getNetworkName();
             const primaryCurrency = (await store.get(`primaryCurrency${network}`)) || lq.getBaseAsset();
             const secondaryCurrency = (await store.get(`secondaryCurrency${network}`)) || "USD";
-            primaryAssetEl.setPreferredValues([primaryCurrency]);
-            secondaryAssetEl.setPreferredValues([secondaryCurrency]);
+
+            primaryAssetSelector.setPreferredValues([primaryCurrency]);
+            secondaryAssetSelector.setPreferredValues([secondaryCurrency]);
 
             const currencies = await lq.getAvailableCurrencies();
             for (const currency of currencies) {
                 const info = await lq.assets().getAssetInfo(currency.hash);
                 const icon = await lq.assets().getAssetIcon(currency.hash);
-                const optionEl = primaryAssetEl.addOption(currency.hash, info.ticker, async () => {
+                const optionEl = primaryAssetSelector.addOption(currency.hash, info.ticker, async () => {
                     const store = await ui.storage();
                     store.set(`primaryCurrency${network}`, currency.hash);
                 });
                 optionEl.setIconSrc(icon);
-                const optionEl2 = secondaryAssetEl.addOption(currency.hash, info.ticker, async () => {
+                const optionEl2 = secondaryAssetSelector.addOption(currency.hash, info.ticker, async () => {
                     const store = await ui.storage();
                     store.set(`secondaryCurrency${network}`, currency.hash);
                 });
                 optionEl2.setIconSrc(icon);
             }
         });
-
-        Html.$vsep(listEl, "#sep4");
-
-        Html.$text(listEl, "#pinnedAssetsLabel").setValue("Pinned assets: ");
-        const inputSelEl = Html.$inputSelect(listEl, "#pinnedAssets", "Select Assets", ["fillw"], true);
-
-        Html.$vsep(listEl, "#sep3");
-
-        Html.$text(listEl, "#sponsor").setValue("Do you like the app?");
-
-        const sponsorRowEl = Html.$hlist(listEl, "#sponsorRow", ["fillw"]);
-        Html.$button(sponsorRowEl, "#zapButton")
-            .setValue("Zap")
-            .setAction(() => {
-                LinkOpener.navigate("https://getalby.com/p/rblb");
-            })
-            .setIconValue("flash_on");
-
-        Html.$button(sponsorRowEl, "#sponsorButton")
-            .setValue("Sponsor")
-            .setAction(() => {
-                LinkOpener.navigate("https://github.com/sponsors/riccardobl");
-            })
-            .setIconValue("favorite");
-
-        Html.$vsep(listEl, "#sep5");
-
-        Html.$button(listEl, "#reportIssue")
-            .setValue("Report an issue")
-            .setAction(() => {
-                LinkOpener.navigate("https://github.com/riccardobl/anser-liquid/issues/new");
-            });
-
-        Html.$button(listEl, "#clearCache")
-            .setValue("Clear Cache")
-            .setAction(async () => {
-                await lq.clearCache();
-                alert("Cache cleared");
-                window.location.reload();
-            });
-
         const loadAssetOptions = async () => {
+            const inputSelEl = pinnedAssetsSelector;
             inputSelEl.clearOptions();
             const pinned = await lq.getPinnedAssets();
             const available = await lq.getAvailableCurrencies(false);
-            console.log(available);
             for (const asset of available) {
                 Promise.all([
                     lq.assets().getAssetInfo(asset.hash),
@@ -119,14 +129,9 @@ export default class OptionsStage extends UIStage {
                         },
                         pinned.includes(asset.hash),
                     );
-                    // alert("A");
                     optionEl.setIconSrc(icon);
-                    // alert("b");
                 });
             }
-
-            console.log(pinned.map((a) => a.hash));
-
             inputSelEl.setPreferredValues(pinned.map((a) => a.hash));
         };
 

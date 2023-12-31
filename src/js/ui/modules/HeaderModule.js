@@ -14,7 +14,7 @@ export default class HeaderModule extends UIModule {
         const documentTitleEl = document.head.querySelector("title");
         documentTitleEl.textContent = Constants.APP_NAME;
 
-        const headerEl = Html.$hlist(walletEl, "#header").setPriority(-30);
+        const headerEl = Html.$hlist(walletEl, [], "header").setPriority(-30);
         headerEl.setCover("static/icons/lwheader.png");
         // Html.$icon(headerEl, "#logo").setSrc("static/icons/lw.png")
         Html.$text(headerEl, "#title").setValue(Constants.APP_NAME);

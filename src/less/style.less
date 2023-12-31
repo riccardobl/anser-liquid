@@ -140,13 +140,17 @@
 
         .slider {
             flex-grow: 1;
-            height: 0px;
             padding: 0;
             margin: 0;
+            border-radius: 20px;
+            margin-left: 1rem;
+            margin-right: 1rem;
+
             background: var(--bgColor3);
             border: none;
             outline: none;
             -webkit-appearance: none;
+            overflow: visible;
         }
 
         .slider::-moz-range-thumb {
@@ -165,6 +169,11 @@
             background: var(--fgColor2);
             border-radius: 50%;
             cursor: pointer;
+        }
+        .slider::-moz-range-thumb,
+        .slider::-webkit-slider-thumb {
+            // other styles...
+            z-index: 2; // make sure the thumb is above the track
         }
     }
 
@@ -210,17 +219,37 @@
         font-size: 1.2rem;
     }
 
+    .input input {
+        all: unset;
+        caret-color: var(--fgColor2);
+        font-style: italic;
+        text-align: center;
+        font-weight: bold;
+        border: 0;
+        background: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--fgColor2);
+        text-decoration: dotted underline;
+        width: 100%;
+        height: 100%;
+    }
+
     select,
-    input {
-        padding: 1rem !important;
+    .input {
+        // padding: 1rem !important;
         background-color: var(--bgColor3);
         color: var(--fgColor2);
         border-radius: 14px;
-        text-align: center;
-        font-weight: bold;
         border: none;
-        height: 4rem;
         box-shadow: 0px -2px 2px rgba(0, 0, 0, 0.3);
+    }
+    .input {
+        height: 3rem;
+        cursor: text;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
     #logo {
         display: flex;
@@ -385,7 +414,7 @@
             text-transform: uppercase;
             padding: 2rem;
             padding-bottom: 1rem;
-            color: var(--bgColor3);
+            color: var(--fgColor2);
         }
 
         .buttons {
@@ -556,11 +585,14 @@
                 &.outscroll {
                     overflow-x: auto;
                     overflow-y: hidden;
+                    overflow-y: clip;
                     max-width: 100%;
                     flex-shrink: 1;
                 }
 
-                &.fillw {
+                &.fill {
+                    /* flex-direction: column; */
+                    /* align-items: stretch; */
                     justify-content: stretch;
 
                     & > * {
@@ -577,15 +609,25 @@
                 justify-content: center;
                 align-items: center;
                 justify-content: flex-start;
-                &.fillw {
+                &.fill {
                     /* flex-direction: column; */
                     /* align-items: stretch; */
                     align-items: stretch;
+                    & > * {
+                        flex-shrink: 0;
+                        // flex-grow: 1;
+                    }
                 }
 
+                // .fill {
+                //     flex-shrink: 0;
+                //     flex-grow: 1;
+
+                // }
                 @media (orientation: landscape) {
                     &.v.outscroll {
                         overflow-x: hidden;
+                        overflow-x: clip;
                         overflow-y: auto;
                         flex-shrink: 1;
                         max-height: 100%;

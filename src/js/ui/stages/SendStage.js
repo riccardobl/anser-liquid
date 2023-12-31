@@ -1,12 +1,30 @@
 import Html from "../Html.js";
 import UIStage from "../UIStage.js";
 import Constants from "../../Constants.js";
+import {
+    $vlist,
+    $hlist,
+    $text,
+    $title,
+    $list,
+    $vsep,
+    $hsep,
+    $img,
+    $icon,
+    $button,
+    $inputText,
+    $inputNumber,
+    $inputSelect,
+    $inputSlide,
+} from "../Html.js";
 
 export default class SendStage extends UIStage {
     constructor() {
         super("send");
     }
     async renderSend(walletEl, lq, ui) {
+        walletEl.resetState();
+
         const network = await lq.getNetworkName();
         const store = await ui.storage();
         const primaryCurrency = (await store.get(`primaryCurrency${network}`)) || lq.getBaseAsset();
@@ -24,12 +42,10 @@ export default class SendStage extends UIStage {
         let TO_ADDR = DUMMY_ADDR;
         let FEE = 0;
 
-        const c01El = Html.$vlist(walletEl, ".c0", ["fillw", "outscroll"]);
-        const c02El = c01El;
+        const c01El = $vlist(walletEl).makeScrollable().fill();
 
-        const assetInputEl = Html.$inputSelect(c01El, "#asset", "Select Asset");
-        const warningRowEl = Html.$vlist(c01El, "#warningNetwork", ["fillw", "warning"]);
-        warningRowEl.setValue(
+        const assetInputEl = $inputSelect(c01El, "Select Asset");
+        $text(c01El, ["warning"]).setValue(
             `
         <span>
         Please ensure that the receiver address is on the <b>${await lq.getNetworkName()}</b> network. 
@@ -38,62 +54,42 @@ export default class SendStage extends UIStage {
             true,
         );
 
-        const addrCntEl = Html.$hlist(c01El, "#addCnt", ["fillw"]);
-        const addrEl = Html.$inputText(addrCntEl, ".addr").setPlaceHolder("Address").grow(70);
-        const pasteEl = Html.$icon(addrCntEl, ".paste", ["enforceSmallWidth"]).grow(5);
-        pasteEl.setValue("content_paste");
-        pasteEl.setAction(async () => {
-            const text = await navigator.clipboard.readText();
-            addrEl.setValue(text);
-        });
+        const addrEl = $inputText(c01El).setPlaceHolder("Address");
+        $icon(addrEl)
+            .setValue("content_paste")
+            .setAction(async () => {
+                const text = await navigator.clipboard.readText();
+                addrEl.setValue(text);
+            });
 
-        // errorRowEl.hide();
+        $title(c01El).setValue("Amount");
 
-        Html.$text(c02El, ".labelAmount").setValue("Amount: ");
-        const amountCntEl = Html.$hlist(c02El, "#amountCnt", ["fillw"]);
+        const amountNativeEl = $inputNumber(c01El).setPlaceHolder("0.00");
+        const ticker1El = $text(amountNativeEl);
 
-        const amountNativeEl = Html.$inputNumber(amountCntEl, ".amount").setPlaceHolder("0.00").grow(70);
-        const ticker1El = Html.$text(amountCntEl, ".asset", ["center", "enforceSmallWidth"]).grow(5);
+        const amountSecondaryEl = $inputNumber(c01El).setPlaceHolder("0.00");
+        const ticker2El = $text(amountSecondaryEl);
 
-        const amountSecondaryCntEl = Html.$hlist(c02El, "#amountCntS", ["fillw"]);
+        const availableBalanceEl = $hlist(c01El, ["sub"]).fill();
+        $hsep(availableBalanceEl).grow(100);
+        $text(availableBalanceEl).setValue("Available balance: ");
+        const availableBalanceValueEl = $text(availableBalanceEl);
+        const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
 
-        const amountSecondaryEl = Html.$inputNumber(amountSecondaryCntEl, ".amountSecondary")
-            .setPlaceHolder("0.00")
-            .grow(70);
-        const ticker2El = Html.$text(amountSecondaryCntEl, ".assetSecondary", [
-            "center",
-            "enforceSmallWidth",
-        ]).grow(5);
+        $title(c01El).setValue("Priority");
+        const prioritySlideEl = $inputSlide(c01El);
 
-        const availableBalanceEl = Html.$hlist(c02El, "#available", ["fillw", "sub"]);
-        Html.$sep(availableBalanceEl, ".spacer").grow(100);
-        Html.$text(availableBalanceEl, ".label").setValue("Available balance: ");
-        const availableBalanceValueEl = Html.$text(availableBalanceEl, ".value");
-        const useAllEl = Html.$button(availableBalanceEl, ".useAll", ["button", "small"]).setValue(
-            "SEND ALL",
-        );
+        const feeRowEl = $hlist(c01El, ["sub"]);
+        $hsep(feeRowEl).grow(100);
+        $text(feeRowEl).setValue("Fee: ");
+        const feeValueEl = $text(feeRowEl);
+        $hsep(feeRowEl).setValue("/");
+        const feeValueSecondaryEl = $text(feeRowEl);
 
-        Html.$text(c02El, ".labelPriority").setValue("Priority: ");
-        const prioritySlideEl = Html.$inputSlide(c02El, "#priority", ["fillw"]);
-
-        const feeRowEl = Html.$hlist(c02El, "#fee", ["fillw", "sub"]);
-        Html.$sep(feeRowEl, ".spacer").grow(100);
-        Html.$text(feeRowEl, ".label").setValue("Fee: ");
-        const feeValueEl = Html.$text(feeRowEl, ".value");
-        Html.$sep(feeRowEl, ".spacer2").setValue("/");
-        const feeValueSecondaryEl = Html.$text(feeRowEl, ".valueSecondary");
-
-        const errorRowEl = Html.$vlist(c02El, "#error", ["fillw", "error"]);
+        const errorRowEl = $vlist(c01El, ["error"]);
         errorRowEl.hide();
 
-        // const loadinRowEl = Html.$hlist(c02El, "#loading", ["center", "sub"]);
-        // Html.$icon(loadinRowEl, "#loadingIcon").setValue("hourglass_empty");
-        // const loadingTextEl = Html.$text(loadinRowEl, "#loadingText").setValue("Loading...");
-        // loadinRowEl.hide();
-
-        const confirmBtnEl = Html.$button(c02El, "#confirmBtn", ["fillw", "button"]).setValue(
-            "Confirm and sign",
-        );
+        const confirmBtnEl = Html.$button(c01El).setValue("Confirm and sign");
 
         const loading = (v) => {
             if (!v) {
@@ -107,7 +103,6 @@ export default class SendStage extends UIStage {
 
         const _updateInvoice = async (signAndSend) => {
             loading(!signAndSend ? "Loading..." : "Preparing transaction...");
-            // loadingTextEl.setValue(!signAndSend ? "Loading..." : "Preparing transaction...");
 
             errorRowEl.hide();
             const balance = await lq.getBalance((hash) => {
@@ -136,7 +131,6 @@ export default class SendStage extends UIStage {
             try {
                 const feeRate = await lq.estimateFeeRate(PRIORITY);
                 const tx = await lq.prepareTransaction(INPUT_AMOUNT, ASSET_HASH, TO_ADDR, feeRate.feeRate);
-                console.log(tx);
                 FEE = tx.fee;
                 errorRowEl.hide();
                 feeValueEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human());
@@ -145,10 +139,8 @@ export default class SendStage extends UIStage {
                     if (TO_ADDR !== DUMMY_ADDR) {
                         console.log("Verify");
                         loading("Verifying...");
-                        // loadingTextEl.setValue("Verifying...");
                         await tx.verify();
                         console.log("Signing...");
-                        // loadingTextEl.setValue("Signing...");
                         console.log("Broadcast");
                         const txid = await tx.broadcast();
                         const sendOkPopupEl = Html.$newPopup(walletEl, "#sendOK", "Transaction broadcasted");
@@ -160,7 +152,6 @@ export default class SendStage extends UIStage {
                         sendOkPopupEl.show();
                     } else {
                         loading(false);
-
                         errorRowEl.show();
                         errorRowEl.setValue("Please enter a valid address");
                     }
@@ -169,7 +160,6 @@ export default class SendStage extends UIStage {
                 }
             } catch (e) {
                 loading(false);
-
                 console.log(e);
                 errorRowEl.show();
                 errorRowEl.setValue(e.message);

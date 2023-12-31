@@ -8,13 +8,13 @@ import Constants from "../Constants.js";
  * retained mode UIs getting rid of the complexity of creation vs update, while also
  * not using any big framework.
  */
-export default class Html {
+class Html {
     static _enhance(el, classes = []) {
         if (!classes) classes = [];
 
         if (!el.$$$) el.$$$ = {};
-        el.classList.add("item");
 
+        // handle landscape and portrait classes
         el.$$$.landScapeClasses = [];
         el.$$$.portraitClasses = [];
         for (const className of classes) {
@@ -29,9 +29,14 @@ export default class Html {
                 el.classList.add(className);
             }
         }
-
         if (el.$$$.landScapeClasses.length > 0 || el.$$$.portraitClasses.length > 0) {
-            const classPickOnResize = () => {
+            if (el.$$$._classPickOnResize) {
+                window.removeEventListener("resize", el.$$$._classPickOnResize);
+            }
+            if (el.$$$._classPickObserver) {
+                el.$$$._classPickObserver.disconnect();
+            }
+            el.$$$._classPickOnResize = () => {
                 let isPortrait = false;
                 if (Constants.LOCK_MODE) {
                     isPortrait = Constants.LOCK_MODE == "portrait";
@@ -54,37 +59,67 @@ export default class Html {
                     }
                 }
             };
-            el.$$$._classPickOnResize = classPickOnResize;
-            window.addEventListener("resize", classPickOnResize);
-            classPickOnResize();
-            // remove callback when element is removed from dom
-            const observer = new MutationObserver(() => {
+            window.addEventListener("resize", el.$$$._classPickOnResize);
+            el.$$$._classPickOnResize();
+
+            el.$$$._classPickObserver = new MutationObserver(() => {
                 if (!document.body.contains(el)) {
-                    window.removeEventListener("resize", classPickOnResize);
-                    observer.disconnect();
+                    window.removeEventListener("resize", el.$$$._classPickOnResize);
+                    el.$$$._classPickObserver.disconnect();
                 }
             });
-            observer.observe(document.body, {
+
+            el.$$$._classPickObserver.observe(document.body, {
                 childList: true,
                 subtree: true,
             });
         }
 
-        //
-
         if (Constants.DISABLE_POINTER_EVENTS) {
             el.classList.add("disablePointerEvents");
         }
+
+        el.fill = (v = true) => {
+            if (v) {
+                el.classList.add("fill");
+            } else {
+                el.classList.remove("fill");
+            }
+            return el;
+        };
+
+        el.addClass = (cls, mode = "all") => {
+            if (mode == "landscape") {
+                el.$$$.landScapeClasses.push(cls);
+            } else if (mode == "portrait") {
+                el.$$$.portraitClasses.push(cls);
+            } else {
+                el.classList.add(cls);
+            }
+            el.triggerRefresh();
+            return el;
+        };
+
+        el.removeClass = (cls) => {
+            el.$$$.landScapeClasses = el.$$$.landScapeClasses.filter((c) => c != cls);
+            el.$$$.portraitClasses = el.$$$.portraitClasses.filter((c) => c != cls);
+            el.classList.remove(cls);
+            el.triggerRefresh();
+            return el;
+        };
 
         el.setPriority = (priority) => {
             el.style.order = priority;
             el.triggerRefresh();
             return el;
         };
+
         el.grow = (value) => {
             el.style.flexGrow = value;
+            el.triggerRefresh();
             return el;
         };
+
         el.shrink = (value) => {
             el.style.flexShrink = value;
             el.triggerRefresh();
@@ -134,16 +169,28 @@ export default class Html {
             return el;
         };
 
+        el.reset = () => {
+            el.resetState();
+            el.innerHTML = "";
+            return el;
+        };
+
+        el.resetState = () => {
+            el.$$$.itemCount = {};
+            return el;
+        };
+
         el.setOnRefresh = (callback) => {
-            el.$$$.onChangeCallback = callback;
+            el.$$$.onRefreshCallback = callback;
             el.triggerRefresh();
             return el;
         };
 
         el.triggerRefresh = () => {
-            if (el.$$$.onChangeCallback) {
-                el.$$$.onChangeCallback();
+            if (el.$$$.onRefreshCallback) {
+                el.$$$.onRefreshCallback();
             }
+            return el;
         };
 
         el.hide = () => {
@@ -151,7 +198,10 @@ export default class Html {
                 el.$$$.previousStyleDisplay = el.style.display ? el.style.display : "flex";
             }
             el.style.display = "none";
+            el.triggerRefresh();
+            return el;
         };
+
         el.show = () => {
             if (el.$$$.previousStyleDisplay) {
                 el.style.display = el.$$$.previousStyleDisplay;
@@ -159,50 +209,34 @@ export default class Html {
                 el.style.display = "flex";
             }
             el.$$$.previousStyleDisplay = undefined;
+            el.triggerRefresh();
+            return el;
         };
 
         el.isHidden = () => {
             return el.style.display == "none";
         };
-    }
 
-    /**
-     * Destroy an element
-     */
-    static $0(parentEl, directSelector) {
-        const el = parentEl.querySelector(directSelector);
-        if (el) {
-            el.remove();
-        }
-    }
-
-    /**
-     * Create an element
-     */
-    static $(parentEl, directSelector, classes = [], type = "div", prepend = false) {
-        let el = parentEl ? parentEl.querySelector(directSelector) : undefined;
-        if (!el) {
-            el = document.createElement(type);
-            if (directSelector.startsWith("#")) {
-                el.id = directSelector.substr(1);
-            } else if (directSelector.startsWith(".")) {
-                el.classList.add(directSelector.substr(1));
-            }
-            if (parentEl) {
-                if (parentEl.$$$ && parentEl.$$$.isList) {
-                    parentEl.addItem(el, 1);
-                } else {
-                    if (prepend) {
-                        parentEl.prepend(el);
-                    } else {
-                        parentEl.appendChild(el);
+        el.makeScrollable = (value = true, momentumScroll = false) => {
+            if (value) {
+                el.classList.add("outscroll");
+                if (momentumScroll) {
+                    if (!el.getAttribute("momentumScroll")) {
+                        this.enableMomentumScroll(el);
+                        el.setAttribute("momentumScroll", true);
                     }
+                } else {
+                    // TODO
+                    // this.disableMomentumScroll(el);
                 }
+            } else {
+                el.classList.remove("outscroll");
+                TODO;
+                // this.disableMomentumScroll(el);
             }
-            el.classList.add("loading");
-            this.enableMomentumScroll(el);
-        }
-        this._enhance(el, classes);
+            return el;
+        };
+
         el.setCover = (coverUrl) => {
             let coverEl = el.querySelector(".cover");
             if (coverUrl) {
@@ -219,85 +253,85 @@ export default class Html {
                     coverEl.remove();
                 }
             }
+            return el;
         };
-        return el;
-    }
-    static elById(parentEl, id, classes = [], type = "div") {
-        let el = parentEl.querySelector(`#${id}`);
-        if (!el) {
-            el = document.createElement(type);
-            el.id = id;
-            parentEl.appendChild(el);
-        }
-        this._enhance(el);
-        for (const className of classes) {
-            el.classList.add(className);
-        }
-        return el;
-    }
 
-    static elByClass(parentEl, className, extraClasses = [], type = "div") {
-        let el = parentEl.querySelector(`.${className}`);
-        if (!el) {
-            el = document.createElement(type);
-            el.classList.add(className);
-            parentEl.appendChild(el);
-        }
-        this._enhance(el);
-        for (const extraClass of extraClasses) {
-            el.classList.add(extraClass);
-        }
-        return el;
-    }
-
-    static enableOutScroll(el, value = true) {
-        el.classList.add("outscroll");
-        const resizeCallback = () => {
-            if (el.scrollWidth > el.clientWidth) {
-                el.classList.add("outside");
+        el.setEditable = (v) => {
+            if (el.tagName == "INPUT") {
+                el.readOnly = !v;
             } else {
-                el.classList.remove("outside");
+                el.setAttribute("contenteditable", v);
             }
+            return el;
         };
-        if (!el.$$$.enableOutScrollData) {
-            el.$$$.enableOutScrollData = {};
-        }
-        if (el.$$$.enableOutScrollData.resizeCallback) {
-            window.removeEventListener("resize", el.$$$.enableOutScrollData.resizeCallback);
-            el.$$$.enableOutScrollData.resizeCallback = null;
-        }
-        if (el.$$$.enableOutScrollData.observer) {
-            el.$$$.enableOutScrollData.observer.disconnect();
-            el.$$$.enableOutScrollData.observer = null;
-        }
-        if (el.$$$.enableOutScrollData.resizeObserver) {
-            el.$$$.enableOutScrollData.resizeObserver.disconnect();
-            el.$$$.enableOutScrollData.resizeObserver = null;
-        }
-        if (!value) return;
+    }
 
-        const resizeObserver = new ResizeObserver(() => {
-            resizeCallback();
-        });
-        resizeObserver.observe(el);
+    /**
+     * Destroy an element
+     */
+    static $0(parentEl, directSelector) {
+        const el = parentEl.querySelector(directSelector);
+        if (el) {
+            this._getReal(el).remove();
+        }
+    }
 
-        window.addEventListener("resize", resizeCallback);
-
-        const observer = new MutationObserver(() => {
-            if (!document.body.contains(el)) {
-                window.removeEventListener("resize", resizeCallback);
-                observer.disconnect();
-                resizeObserver.disconnect();
+    /**
+     * Create an element
+     */
+    static $(parentEl, directSelector, classes = [], type = "div", prepend = false) {
+        if (directSelector) {
+            directSelector = "#" + directSelector;
+        }
+        parentEl = parentEl ? this._getReal(parentEl) : parentEl;
+        if (!directSelector) {
+            if (!parentEl.$$$) parentEl.$$$ = {};
+            if (!parentEl.$$$.itemCount) parentEl.$$$.itemCount = {};
+            if (!parentEl.$$$.itemCount[type]) parentEl.$$$.itemCount[type] = 0;
+            directSelector = "#" + type + parentEl.$$$.itemCount[type]++;
+        }
+        let el = parentEl ? parentEl.querySelector(":scope > " + directSelector) : undefined;
+        if (!el) {
+            el = document.createElement(type);
+            if (directSelector.startsWith("#")) {
+                el.id = directSelector.substr(1);
+            } else if (directSelector.startsWith(".")) {
+                el.classList.add(directSelector.substr(1));
+            } else {
+                throw new Error("Invalid selector " + directSelector);
             }
-        });
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
-        el.$$$.enableOutScrollData.observer = observer;
-        el.$$$.enableOutScrollData.resizeObserver = resizeObserver;
-        el.$$$.enableOutScrollData.resizeCallback = resizeCallback;
-        resizeCallback();
+            if (parentEl) {
+                if (parentEl.$$$ && parentEl.$$$.isList) {
+                    parentEl.addItem(el, 1);
+                } else {
+                    if (prepend) {
+                        parentEl.prepend(el);
+                    } else {
+                        parentEl.appendChild(el);
+                    }
+                }
+            }
+            el.classList.add("loading");
+        }
+        this._enhance(el, classes);
+        el.resetState();
+
+        let varName = "";
+        let isClass = false;
+        if (directSelector.startsWith("#")) {
+            varName = directSelector.substr(1);
+        } else if (directSelector.startsWith(".")) {
+            varName = directSelector.substr(1);
+            isClass = true;
+        }
+        if (varName && parentEl) {
+            if (!isClass) {
+                if (!parentEl.$$$) parentEl.$$$ = {};
+                parentEl.$$$[varName] = el;
+            }
+        }
+
+        return el;
     }
 
     static initializeListUpdate(parentEl) {
@@ -317,8 +351,8 @@ export default class Html {
         parentEl.removeAttribute("refresh-id");
     }
 
-    static $list(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes);
+    static $list(parent, classes = [], id) {
+        const el = this.$(parent, id, classes);
         el.classList.add("list");
         el.addItem = (item, priority = 1) => {
             if (priority < 0) {
@@ -341,45 +375,45 @@ export default class Html {
         return el;
     }
 
-    static $vlist(parent, directSelector, classes = []) {
-        const l = this.$list(parent, directSelector, classes);
+    static $vlist(parent, classes = [], id) {
+        const l = this.$list(parent, classes, id);
         l.classList.add("v");
         return l;
     }
 
-    static $sep(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, ["sep", ...classes], "span");
+    static $sep(parent, classes = [], id) {
+        const el = this.$(parent, id, ["sep", ...classes], "span");
         el.classList.add("sep");
         return el;
     }
 
-    static $vsep(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "span");
+    static $vsep(parent, classes = [], id) {
+        const el = this.$(parent, id, classes, "span");
         el.classList.add("v");
         el.classList.add("sep");
 
         return el;
     }
 
-    static $hlist(parent, directSelector, classes = []) {
-        const l = this.$list(parent, directSelector, classes);
+    static $hlist(parent, classes = [], id) {
+        const l = this.$list(parent, classes, id);
         l.classList.add("h");
         return l;
     }
 
-    static $text(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "span");
+    static $text(parent, classes = [], id) {
+        const el = this.$(parent, id, classes, "span");
         el.classList.add("text");
         return el;
     }
 
-    static $title(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "h1");
+    static $title(parent, classes = [], id) {
+        const el = this.$(parent, id, classes, "h1");
         return el;
     }
 
-    static $img(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "img");
+    static $img(parent, classes = [], id) {
+        const el = this.$(parent, id, classes, "img");
         el.classList.add("img");
         el.setSrc = (src) => {
             el.src = src;
@@ -465,14 +499,22 @@ export default class Html {
         });
     }
 
-    static $cnt(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "div");
-        el.classList.add("cnt");
+    // static $cnt(parent, directSelector, classes = []) {
+    //     const el = this.$(parent, directSelector, classes, "div");
+    //     el.classList.add("cnt");
+    //     return el;
+    // }
+
+    static _getReal(el) {
+        const elParent = el.parentElement;
+        if (elParent && elParent.classList.contains("proxyParentCnt")) {
+            return elParent;
+        }
         return el;
     }
 
-    static $icon(parent, directSelector, classes = [], prepend = false) {
-        const iconCntEl = this.$(parent, directSelector, ["iconCnt", ...classes], "div", prepend);
+    static $icon(parent, classes = [], id, prepend = false) {
+        const iconCntEl = this.$(parent, id, ["iconCnt", ...classes], "div", prepend);
         iconCntEl.classList.remove("loading");
         let materialIconEl = iconCntEl.querySelector(":scope > .mic");
         let isNew = true;
@@ -506,7 +548,6 @@ export default class Html {
             const imgEl = iconCntEl.querySelector(":scope > .img");
             if (imgEl) {
                 imgEl.remove();
-                // materialIconEl.remove();
                 iconCntEl.appendChild(materialIconEl);
             }
             materialIconEl.classList.remove("loading");
@@ -518,7 +559,6 @@ export default class Html {
             const materialIconEl = iconCntEl.querySelector(":scope > .material-symbols-outlined");
             if (materialIconEl) {
                 materialIconEl.remove();
-                // iconImgEl.remove();
                 iconCntEl.appendChild(iconImgEl);
             }
             iconImgEl.classList.remove("loading");
@@ -529,8 +569,17 @@ export default class Html {
         return iconCntEl;
     }
 
-    static $inputText(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "input");
+    static $inputText(parent, classes = []) {
+        if (!parent.$$$) parent.$$$ = {};
+        if (!parent.$$$.itemCount) parent.$$$.itemCount = {};
+        if (!parent.$$$.itemCount.inputProxy) parent.$$$.itemCount.inputProxy = 0;
+        const parentEl = this.$hlist(
+            parent,
+            ["proxyParentCnt", "input", "text", ...classes],
+            "proxyParentCnt" + parent.$$$.itemCount.inputProxy,
+        );
+        parent.$$$.itemCount.inputProxy++;
+        const el = this.$(parentEl, undefined, [], "input");
         el.type = "text";
         el.classList.add("clickable");
 
@@ -587,14 +636,14 @@ export default class Html {
         return el;
     }
 
-    static $button(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "button");
+    static $button(parent, classes = [], id = undefined) {
+        const el = this.$(parent, id, classes, "button");
         el.setIconValue = (value) => {
             if (!value) {
-                this.$0(el, ".icon");
+                this.$0(el, "#buttonIcon");
                 el.classList.remove("withIcon");
             } else {
-                const iconEl = this.$icon(el, ".buttonIcon", ["icon"], true);
+                const iconEl = this.$icon(el, ["buttonIcon", "icon"], "buttonIcon", true);
                 iconEl.setValue(value);
                 el.classList.add("withIcon");
             }
@@ -603,11 +652,11 @@ export default class Html {
         };
         el.setIconSrc = (src) => {
             if (!src) {
-                this.$0(el, ".icon");
+                this.$0(el, "#buttonIcon");
                 el.classList.remove("withIcon");
             } else {
                 console.log("Set icon src", src);
-                const iconEl = this.$icon(el, ".buttonIcon", ["icon"], true);
+                const iconEl = this.$icon(el, ["buttonIcon", "icon"], "buttonIcon", true);
                 iconEl.setSrc(src);
                 el.classList.add("withIcon");
             }
@@ -617,18 +666,10 @@ export default class Html {
         return el;
     }
 
-    static $inputNumber(parent, directSelector, classes = []) {
-        const el = this.$(parent, directSelector, classes, "input");
+    static $inputNumber(parent, classes = []) {
+        const el = this.$inputText(parent, classes);
         el.type = "number";
-        el.classList.add("clickable");
 
-        el.min = 0;
-
-        el.setPlaceHolder = (placeholder) => {
-            el.placeholder = placeholder;
-            el.triggerRefresh();
-            return el;
-        };
         el.setAction = (callback) => {
             el.$$$.onChangeCallback = (v) => {
                 v = Number(v);
@@ -639,18 +680,15 @@ export default class Html {
         };
         el.setValue = (value, silent = false) => {
             if (silent) {
-                // set value without triggering callback
                 const cs = (ev) => {
                     ev.stopPropagation();
                     ev.preventDefault();
                 };
                 el.addEventListener("input", cs, { once: true });
-                // el.addEventListener("change", cs, { once: true });
                 el.value = value;
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         el.removeEventListener("input", cs);
-                        // el.removeEventListener("change", cs);
                     });
                 });
             } else {
@@ -669,28 +707,12 @@ export default class Html {
             }
             return v;
         };
-        if (el.$$$.onChangeCallbakWrapper) {
-            el.removeEventListener("input", el.$$$.onChangeCallbakWrapper);
-            // el.removeEventListener("change", el.$$$.onChangeCallbakWrapper);
-        }
-        el.$$$.onChangeCallbakWrapper = (ev) => {
-            if (el.$$$.onChangeCallbackScheduledTimeout) {
-                clearTimeout(el.$$$.onChangeCallbackScheduledTimeout);
-            }
-            el.$$$.onChangeCallbackScheduledTimeout = setTimeout(() => {
-                if (el.$$$.onChangeCallback) {
-                    el.$$$.onChangeCallback(el.getValue());
-                }
-            }, Constants.DEBOUNCE_CALLBACK_TIME);
-        };
-        el.addEventListener("input", el.$$$.onChangeCallbakWrapper);
-        // el.addEventListener("change", el.$$$.onChangeCallbakWrapper);
 
         return el;
     }
 
-    static $inputSelect(parent, directSelector, title, classes = [], multiSelect = false) {
-        const el = this.$(parent, directSelector, ["popupSelect", ...classes], "div");
+    static $inputSelect(parent, title, classes = [], multiSelect = false) {
+        const el = this.$(parent, undefined, ["popupSelect", ...classes], "div");
         el.classList.add("clickable");
 
         let popupContainerEl = el;
@@ -706,7 +728,7 @@ export default class Html {
             el.$$$.popupId = "popupSelect" + Date.now() + Math.floor(Math.random() * 1000);
         }
 
-        const btnEl = this.$button(el, ".selectBtn", ["fillw"]);
+        const btnEl = this.$button(el, ["selectBtn", "fillw"], "selectBtn");
 
         el.deselectOption = (value) => {
             const optionEl = el.$$$.selectOptions[value];
@@ -726,8 +748,8 @@ export default class Html {
 
                 valueString = valueString.slice(0, -2);
 
-                Html.$text(btnEl, ".label").setValue(valueString);
-                Html.$text(btnEl, ".secondaryLabel").setValue("");
+                Html.$text(btnEl, ["label"], "label").setValue(valueString);
+                Html.$text(btnEl, ["secondaryLabel"], "secondaryLabel").setValue("");
             }
             if (multiSelect) {
                 el.$$$.selectActions[value](el.$$$.selectedOptions);
@@ -746,25 +768,19 @@ export default class Html {
                 el.$$$.selectedOptions[value] = true;
                 let valueString = "";
                 for (const key in el.$$$.selectOptions) {
-                    const optionEl = el.$$$.selectOptions[key];
-                    // const toggleEl = optionEl.querySelector(".toggle");
                     if (el.$$$.selectedOptions[key]) {
-                        //     toggleEl.setValue("check_box_outline_blank");
-                        // }else{
                         valueString += el.$$$.selectLabels[key] + ", ";
-                        //     toggleEl.setValue("check_box");
                     }
                 }
-
                 valueString = valueString.slice(0, -2);
-                Html.$text(btnEl, ".label").setValue(valueString);
-                Html.$text(btnEl, ".secondaryLabel").setValue("");
+                Html.$text(btnEl, ["label"], "label").setValue(valueString);
+                Html.$text(btnEl, ["secondaryLabel"], "secondaryLabel").setValue("");
             } else {
                 if (el.$$$.selected === value && !forceRefresh) return;
                 el.$$$.selected = value;
                 optionEl.copyTo(btnEl);
             }
-            this.$icon(btnEl, ".expand", []).setValue("arrow_drop_down");
+            this.$icon(btnEl, ["expand"], "expand").setValue("arrow_drop_down");
             el.triggerRefresh();
             if (multiSelect) {
                 el.$$$.selectActions[value](el.$$$.selectedOptions);
@@ -779,17 +795,17 @@ export default class Html {
         const openPopup = () => {
             el.classList.remove("clickable");
             btnEl.classList.remove("clickable");
-            const popupOptionsEl = this.$vlist(popupContainerEl, "#" + el.$$$.popupId, [
-                "popup",
-                "popupSelect",
-                "l$landscape",
-            ]);
+            const popupOptionsEl = this.$vlist(
+                popupContainerEl,
+                ["popup", "popupSelect", "l$landscape"],
+                el.$$$.popupId,
+            );
             popupOptionsEl.classList.remove("loading");
             popupContainerEl.classList.add("popupOpen");
-            this.$title(popupOptionsEl, ".title", ["center"]).setValue(title);
+            this.$title(popupOptionsEl, ["center"], "title").setValue(title);
 
             if (multiSelect) {
-                const confirmBtnEl = this.$button(popupOptionsEl, ".confirm", []).setValue("Confirm");
+                const confirmBtnEl = this.$button(popupOptionsEl, ["confirm"], "confirm").setValue("Confirm");
                 confirmBtnEl.setIconValue("check");
                 confirmBtnEl.setAction(() => {
                     closePopup();
@@ -798,9 +814,25 @@ export default class Html {
 
             if (el.$$$.selectOptions) {
                 for (const key in el.$$$.selectOptions) {
-                    const btnEl = this.$button(popupOptionsEl, ".option" + key, ["option", "fillw"]);
+                    const btnEl = this.$button(
+                        popupOptionsEl,
+                        ["option" + key, "option", "fillw"],
+                        "option" + key,
+                    );
                     el.$$$.selectOptions[key].copyTo(btnEl);
                     if (!el.$$$.selectedOptions) el.$$$.selectedOptions = {};
+
+                    let toggleEl;
+                    if (multiSelect) {
+                        toggleEl = this.$icon(btnEl, ["toggle"], "toggle", true);
+
+                        if (!el.$$$.selectedOptions[key]) {
+                            toggleEl.setValue("check_box_outline_blank");
+                        } else {
+                            console.log("selected ", key);
+                            toggleEl.setValue("check_box");
+                        }
+                    }
 
                     btnEl.setAction(() => {
                         let optionEl = undefined;
@@ -811,7 +843,6 @@ export default class Html {
                         }
                         if (multiSelect) {
                             optionEl.copyTo(btnEl);
-                            const toggleEl = this.$icon(btnEl, ".toggle", [], true);
 
                             if (!el.$$$.selectedOptions[key]) {
                                 toggleEl.setValue("check_box_outline_blank");
@@ -823,34 +854,12 @@ export default class Html {
                             closePopup();
                         }
                     });
-                    if (multiSelect) {
-                        const toggleEl = this.$icon(btnEl, ".toggle", [], true);
-
-                        if (!el.$$$.selectedOptions[key]) {
-                            toggleEl.setValue("check_box_outline_blank");
-                        } else {
-                            console.log("selected ", key);
-                            toggleEl.setValue("check_box");
-                        }
-                    }
                 }
             }
 
-            // close if clicked outside
             const clickOutsideCallback = (e) => {
-                // const closeAction = () => {
-                //     if (
-                //         e.target != popupOptionsEl
-                //         && !popupOptionsEl.contains(e.target)
-                //         && e.target != btnEl
-                //     ) {
-                //         return true;
-                //     }
-                //     return false;
-                // }
                 if (e.target == btnEl) return;
                 if (e.target == popupOptionsEl) return;
-
                 const pX = popupOptionsEl.getBoundingClientRect().left;
                 const pY = popupOptionsEl.getBoundingClientRect().top;
                 const pW = popupOptionsEl.getBoundingClientRect().width;
@@ -858,9 +867,9 @@ export default class Html {
                 if (e.clientX > pX && e.clientX < pX + pW && e.clientY > pY && e.clientY < pY + pH) {
                     return;
                 }
-
                 closePopup();
             };
+
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     if (el.$$$.selectClickOutsideCallback) {
@@ -907,15 +916,15 @@ export default class Html {
         };
 
         el.addOption = (value, label, action = () => {}, selected = false) => {
-            const optionEl = this.$button(undefined, ".option" + value, ["option", "fillw"]);
+            const optionEl = this.$button(undefined, ["option" + value, "option", "fillw"], "option" + value);
             let toggleEl;
             if (multiSelect) {
-                toggleEl = this.$icon(optionEl, ".toggle", [], true);
+                toggleEl = this.$icon(optionEl, ["toggle"], "toggle", true);
                 toggleEl.setPriority(-20);
                 toggleEl.setValue(selected ? "check_box" : "check_box_outline_blank");
             }
-            const label1El = Html.$text(optionEl, ".label").setValue(label);
-            const label2El = Html.$text(optionEl, ".secondaryLabel").setValue("");
+            const label1El = Html.$text(optionEl, ["label"], "label").setValue(label);
+            const label2El = Html.$text(optionEl, ["secondaryLabel"], "secondaryLabel").setValue("");
             optionEl.setValue = (v, html = false) => {
                 label1El.setValue(v, html);
             };
@@ -930,20 +939,7 @@ export default class Html {
             }
             el.$$$.selectLabels[value] = label;
 
-            // if (multiSelect){
-            //     if (!el.$$$.selectedOptions)el.$$$.selectedOptions={};
-            //     el.$$$.selectActions[value] = ()=>{
-            //         el.$$$.selectedOptions[value]=!el.$$$.selectedOptions[value];
-            //         if (el.$$$.selectedOptions[value]){
-            //             toggleEl.setValue("check_box");
-            //         }else{
-            //             toggleEl.setValue("check_box_outline_blank");
-            //         }
-            //         action(el.$$$.selectedOptions);
-            //     }
-            // }else{
             el.$$$.selectActions[value] = action;
-            // }
 
             optionEl.setOnRefresh(() => {
                 if (el.$$$.selected === value) {
@@ -983,7 +979,7 @@ export default class Html {
         el.clearOptions = () => {
             if (!el.$$$.selectOptions) return;
             el.$$$.selectOptions = {};
-            l.$$$.selectedOptions = {};
+            el.$$$.selectedOptions = {};
             _selectPreferred();
             el.triggerRefresh();
         };
@@ -1003,14 +999,15 @@ export default class Html {
         return el;
     }
 
-    static $inputSlide(parentEl, directSelector, classes = []) {
-        const el = this.$(parentEl, directSelector, classes, "div");
+    static $inputSlide(parentEl, classes = []) {
+        const el = this.$(parentEl, undefined, classes, "div");
         el.classList.add("inputSlide");
-
-        const sliderEl = this.$(el, ".slider", ["fillw"], "input");
+        el.classList.add("clickable");
+        const sliderEl = this.$(el, "slider", ["slider"], "input");
+        const max = 100;
         sliderEl.type = "range";
         sliderEl.min = 0;
-        sliderEl.max = 10;
+        sliderEl.max = max;
         sliderEl.value = 0;
 
         const debounce = Constants.DEBOUNCE_CALLBACK_TIME;
@@ -1018,7 +1015,7 @@ export default class Html {
 
         sliderEl.addEventListener("input", () => {
             if (el.$$$.slideAction) {
-                lastValue = Number(sliderEl.value) / 10;
+                lastValue = Number(sliderEl.value) / max;
                 if (el.$$$.slideActionScheduledTimeout) {
                     clearTimeout(el.$$$.slideActionScheduledTimeout);
                 }
@@ -1037,14 +1034,14 @@ export default class Html {
                     ev.preventDefault();
                 };
                 el.addEventListener("input", cs, { once: true });
-                sliderEl.value = value * 10;
+                sliderEl.value = value * max;
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         el.removeEventListener("input", cs);
                     });
                 });
             } else {
-                sliderEl.value = value * 10;
+                sliderEl.value = value * max;
             }
             return el;
         };
@@ -1056,7 +1053,7 @@ export default class Html {
         return el;
     }
 
-    static $newPopup(parentEl, directSelector, title, classes = []) {
+    static $newPopup(parentEl, title, classes = []) {
         let popupContainerEl = parentEl;
         while (popupContainerEl && !popupContainerEl.classList.contains("popupContainer")) {
             popupContainerEl = popupContainerEl.parentElement;
@@ -1065,29 +1062,26 @@ export default class Html {
                 break;
             }
         }
-        const el = this.$vlist(popupContainerEl, directSelector, ["popup", "l$landscape", ...classes]);
+        const el = this.$vlist(popupContainerEl, ["popup", "l$landscape", ...classes]);
         el.classList.add("clickable");
-
-        this.$title(el, ".title", ["center"]).setValue(title);
-
+        this.$title(el, ["center"], "title").setValue(title);
         el.hide();
-        // const clickOutsideCallback = (e) => {
-        //     if(el.isHidden())return;
-        //     if (e.target == btnEl) return;
-        //     if (e.target == el)
-        //         return;
-
-        //     const pX = el.getBoundingClientRect().left;
-        //     const pY = el.getBoundingClientRect().top;
-        //     const pW = el.getBoundingClientRect().width;
-        //     const pH = el.getBoundingClientRect().height;
-        //     if (e.clientX > pX && e.clientX < pX + pW && e.clientY > pY && e.clientY < pY + pH) {
-        //         return;
-        //     }
-
-        //     closePopup();
-        // };
-
         return el;
     }
 }
+
+export default Html;
+export const $vlist = Html.$vlist.bind(Html);
+export const $hlist = Html.$hlist.bind(Html);
+export const $text = Html.$text.bind(Html);
+export const $title = Html.$title.bind(Html);
+export const $list = Html.$list.bind(Html);
+export const $vsep = Html.$vsep.bind(Html);
+export const $hsep = Html.$sep.bind(Html);
+export const $img = Html.$img.bind(Html);
+export const $icon = Html.$icon.bind(Html);
+export const $button = Html.$button.bind(Html);
+export const $inputText = Html.$inputText.bind(Html);
+export const $inputNumber = Html.$inputNumber.bind(Html);
+export const $inputSelect = Html.$inputSelect.bind(Html);
+export const $inputSlide = Html.$inputSlide.bind(Html);

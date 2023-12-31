@@ -11,7 +11,7 @@ export default {
     STORAGE_METHODS: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is preferred
     STORAGE_METHODS_BY_SPEED: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is fastest
 
-    DISABLE_POINTER_EVENTS: false, // set to true to disable pointer for elements that are not interactive.
+    DISABLE_POINTER_EVENTS: true, // set to true to disable pointer for elements that are not interactive.
     // This has the side effect of messing with the dom picker of debug tools, so should be off in development
     LOCK_MODE: undefined, // Set this to lock the app to a certain mode, useful for debugging
     EXT_TX_VIEWER: {

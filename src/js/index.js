@@ -20,7 +20,7 @@ async function main() {
         if (!walletEl) alert("No wallet element found");
 
         // A container that is vertical in portrait and horizontal in landscape
-        const containerEl = Html.$list(walletEl, "#container", ["p$v", "l$h", "fillw"]);
+        const containerEl = Html.$list(walletEl, ["p$v", "l$h", "fillw"], "container");
         containerEl.classList.add("popupContainer");
 
         // Create and start the wallet
@@ -34,6 +34,7 @@ async function main() {
         // create the UI
         const ui = new UI(containerEl, walletEl, lq);
         ui.captureOutputs();
+        window.dbui = ui;
         try {
             ui.useBrowserHistory(); // allow ui to control the browser history (this is used to support the back button)
             ui.setStage("wallet"); // set the initial stage

@@ -10,7 +10,7 @@ export default class HeaderModule extends UIModule {
     }
 
     onLoad(stage, stageContainerEl, walletEl, lq, ui) {
-        const logoEl = Html.$hlist(walletEl, "#logo").setPriority(-30);
+        const logoEl = Html.$hlist(walletEl, [], "logo").setPriority(-30);
         logoEl.setCover("static/icons/lw.png");
         setTimeout(() => {
             logoEl.style.display = "none";
