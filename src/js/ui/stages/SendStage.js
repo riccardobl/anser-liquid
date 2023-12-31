@@ -1,6 +1,8 @@
 import Html from "../Html.js";
 import UIStage from "../UIStage.js";
 import Constants from "../../Constants.js";
+import jsQR from "jsqr-es6";
+
 import {
     $vlist,
     $hlist,
@@ -56,6 +58,74 @@ export default class SendStage extends UIStage {
         );
 
         const addrEl = $inputText(c01El).setPlaceHolder("Address");
+
+        $icon(addrEl)
+            .setValue("qr_code_scanner")
+            .setAction(async () => {
+                const qrScanViewer = $newPopup(walletEl, "Scan QR Code", [], "qrScan");
+                const mediaContainer = $vlist(qrScanViewer).fill();
+                let videoEl = mediaContainer.querySelector("video");
+                if (!videoEl) {
+                    videoEl = document.createElement("video");
+                    mediaContainer.addItem(videoEl);
+                }
+
+                const constraints = {
+                    video: {
+                        facingMode: "environment",
+                    },
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoEl.srcObject = stream;
+                videoEl.setAttribute("playsinline", true);
+                videoEl.play();
+
+                $button(qrScanViewer, [])
+                    .setValue("Close")
+                    .setAction(() => {
+                        stream.getTracks().forEach((track) => track.stop());
+                        videoEl.srcObject = null;
+                        qrScanViewer.hide();
+                    });
+
+                const canvasEl = document.createElement("canvas");
+                canvasEl.width = videoEl.videoWidth;
+                canvasEl.height = videoEl.videoHeight;
+                const ctx = canvasEl.getContext("2d");
+
+                requestAnimationFrame(tick);
+
+                async function tick() {
+                    if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+                        canvasEl.height = videoEl.videoHeight;
+                        canvasEl.width = videoEl.videoWidth;
+                        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+                        const imageData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+                        if (code) {
+                            console.log("Found QR code", code.data);
+                            let addr = code.data.trim();
+                            if (
+                                !addr.startsWith(Constants.PAYURL_PREFIX[network]) &&
+                                !(await lq.verifyAddress(addr))
+                            ) {
+                                addr = undefined;
+                            }
+                            if (addr) {
+                                addrEl.setValue(addr);
+                                stream.getTracks().forEach((track) => track.stop());
+                                videoEl.srcObject = null;
+                                qrScanViewer.hide();
+                                return;
+                            }
+                        }
+                    }
+
+                    requestAnimationFrame(tick);
+                }
+                qrScanViewer.show();
+            });
+
         $icon(addrEl)
             .setValue("content_paste")
             .setAction(async () => {
@@ -228,8 +298,8 @@ export default class SendStage extends UIStage {
                 amountNativeEl.setValue(query.amount);
             }
 
-            if (query.asset) {
-                assetInputEl.selectOption(query.asset);
+            if (query.assetid) {
+                assetInputEl.selectOption(query.assetid);
             }
 
             TO_ADDR = addr;

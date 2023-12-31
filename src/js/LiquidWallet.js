@@ -65,6 +65,7 @@ export default class LiquidWallet {
             const buf = Liquid.address.toOutputScript(address, this.network);
             return buf.length > 0;
         } catch (e) {
+            console.log(e);
             return false;
         }
     }

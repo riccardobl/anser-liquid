@@ -2,6 +2,7 @@
     "dependencies": {
         "@vulpemventures/secp256k1-zkp": "^3.1.0",
         "buffer": "^6.0.3",
+        "jsqr-es6": "^1.4.0-1",
         "liquidjs-lib": "^6.0.2-liquid.32",
         "path-browserify": "^1.0.1",
         "qrcode": "^1.5.3",
