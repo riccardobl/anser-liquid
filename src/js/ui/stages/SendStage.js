@@ -41,7 +41,7 @@ export default class SendStage extends UIStage {
         let SECONDARY_CURRENCY = secondaryCurrency;
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
 
-        let DUMMY_ADDR = Constants.DUMMY_OUT_ADDRESS.testnet;
+        const DUMMY_ADDR = Constants.DUMMY_OUT_ADDRESS[network];
         let TO_ADDR = DUMMY_ADDR;
         let FEE = 0;
 
@@ -207,7 +207,7 @@ export default class SendStage extends UIStage {
                 feeValueEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human());
                 feeValueSecondaryEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human(SECONDARY_CURRENCY));
                 if (signAndSend) {
-                    if (TO_ADDR !== DUMMY_ADDR) {
+                    if (TO_ADDR != DUMMY_ADDR) {
                         console.log("Verify");
                         loading("Verifying...");
                         await tx.verify();
