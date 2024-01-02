@@ -13,6 +13,19 @@ export default class SideSwap {
         this.sideSwapWs = sideSwapWs;
         this.cache = cache;
         this.store = store;
+        this.assetPrices = {};
+    }
+
+    async getAssetPrice(assetHash) {
+        this.query("load_prices", { asset: assetHash });
+        return new Promise((resolve) => {
+            const interval = setInterval(() => {
+                if (typeof this.assetPrices[assetHash] != "undefined") {
+                    clearInterval(interval);
+                    resolve(this.assetPrices[assetHash]);
+                }
+            }, 100);
+        });
     }
 
     async subscribeToAssetPriceUpdate(assetHash, callback) {
@@ -92,6 +105,7 @@ export default class SideSwap {
                         // handle subscription
                         const assetHash = response.result.asset;
                         if (this.assetSubscriptions[assetHash]) {
+                            this.assetPrices[assetHash] = response.result.ind ? response.result.ind : 0;
                             for (const cb of this.assetSubscriptions[assetHash]) {
                                 cb(response.result.ind ? response.result.ind : 0, "BTC");
                             }

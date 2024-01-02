@@ -187,6 +187,15 @@ export default class AssetProvider {
         return icon;
     }
 
+    async _getAssetPrice(assetHash) {
+        let price = await this.cache.get("p:" + assetHash);
+        if (!price) {
+            price = await this.sideSwap.getAssetPrice(assetHash);
+            await this.cache.set("p:" + assetHash, price);
+        }
+        return price;
+    }
+
     async track(assetHash, noInit = false) {
         if (!noInit) await this._init();
         if (assetHash === this.baseAssetId) return;
@@ -311,7 +320,7 @@ export default class AssetProvider {
             if (this._isFiat(asset)) {
                 fl = 1 / (await this._getFiatPrice(asset));
             } else {
-                fl = 1 / (await this.cache.get("p:" + asset));
+                fl = 1 / (await this._getAssetPrice(asset));
             }
             if (fl < 0 || fl == Infinity || fl == NaN) return 0;
             return fl * 10 ** this.basePrecision;
@@ -335,7 +344,11 @@ export default class AssetProvider {
             "Price of " + targetAsset + " " + price2,
         );
 
-        return this.floatToInt(converted, targetAsset);
+        const p = await this.floatToInt(converted, targetAsset);
+        if (isNaN(p) || p == Infinity || p < 0) {
+            return 0;
+        }
+        return p;
     }
 
     async getAssetInfo(assetId) {
