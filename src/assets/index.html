@@ -1,36 +1,233 @@
 <!doctype html>
 <html>
     <head>
-        <title></title>
-        <link rel="icon" href="favicon.png" type="image/png" />
+        <title>Anser Liquid | Home</title>
 
+        <link rel="icon" href="favicon.png" type="image/png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Roboto+Slab:wght@300&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://kit.fontawesome.com/288c71aa49.js" crossorigin="anonymous"></script>
+        <meta
+            name="viewport"
+            content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+        />
         <style>
+            :root {
+                --primaryBackground: #020b1a;
+                --secondaryBackground: #021b30;
+                --elementsBackground: #021b30a8;
+                --highlightedBackground: #01070ec5;
+
+                --foreground: #8db0c4;
+                --elementsForeground: #8db0c4;
+                --headerForeground: #8db0c4;
+
+                --shade: rgba(33, 46, 45, 0.575);
+                --heavyShade: rgba(2, 10, 26, 1);
+                --textShade: rgba(107, 107, 107, 0.349);
+
+                --error: #ff0000;
+                --warning: var(--foreground);
+            }
+
             body {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                justify-content: center;
+                text-align: left;
+
                 height: 100vh;
-                font-family: Arial, sans-serif;
-                background-color: #333;
-                /* Dark background */
-                color: #fff;
-                /* Light text */
+                background-color: var(--primaryBackground);
+                color: var(--foreground);
+                text-align: center;
+                font-family: "DotGothic16", sans-serif;
+                font-family: "Roboto Slab", serif;
+                text-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
+            }
+
+            a {
+                color: var(--foreground);
+            }
+
+            .faq {
+                text-align: left;
+            }
+
+            h1 {
+                margin-bottom: 0.5rem;
+                font-size: 6rem;
+            }
+
+            h2 {
+                font-size: 4rem;
+            }
+
+            main {
+                max-width: 1000px;
+                font-weight: bold;
+                text-align: center;
+                padding-top: 2rem;
+                font-size: 1.2rem;
+            }
+
+            main h1,
+            main h2,
+            main h3 {
+                padding-top: 2rem;
+            }
+
+            main h3 {
+                font-size: 2rem;
+                padding-bottom: 0rem;
+                margin-bottom: 0.2rem;
+            }
+
+            p {
+                padding: 0;
+                margin: 0;
+            }
+
+            header {
+                color: var(--secondaryBackground);
+                position: relative;
+                /* position: absolute; */
+                /* top: 0; */
+                /* left: 0; */
+                width: 100%;
+                margin-bottom: 0rem;
+            }
+
+            .cover {
+                background-size: cover;
+                position: absolute;
+                z-index: -3;
+                left: 0;
+                top: 0;
+                background-repeat: no-repeat;
+                width: 100%;
+                height: 100%;
+                filter: blur(60px);
+                opacity: 0.6;
+            }
+
+            .img {
+                width: 100%;
+                height: 100%;
+                z-index: 3;
+                border-radius: 6px;
+
+                position: absolute;
+                left: 0;
+                top: 0;
+                background-repeat: no-repeat;
+                background-size: contain;
+            }
+
+            header .cover {
+                background: url("app/static/icons/lwheader.png");
+                filter: blur(100px);
+                opacity: 1;
+            }
+
+            footer {
+                margin-top: 4rem;
+                padding-bottom: 2rem;
             }
 
             button {
-                margin: 10px;
-                padding: 10px 20px;
-                font-size: 1.2em;
-                background-color: #555;
-                /* Darker button background */
-                color: #fff;
-                /* Light text */
+                padding: 0.6rem;
+                padding-right: 1rem;
+                padding-left: 1rem;
+                font-size: 1.8rem;
+                font-weight: bold;
+                color: var(--primaryBackground);
+                background-color: var(--foreground);
                 border: none;
-                /* Remove default button border */
+                border-radius: 8px;
+                margin: 1rem;
+                cursor: pointer;
+            }
+
+            .hlist {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .button {
+                cursor: pointer;
+                margin: 1rem;
+                font-size: 3rem;
+                color: var(--foreground);
+            }
+
+            button:hover,
+            .button:hover {
+                filter: brightness(150%);
+            }
+
+            .fadeIn {
+                opacity: 1;
+                transition: opacity 0.3s linear;
+            }
+
+            .fadeOut {
+                opacity: 0;
+                transition: opacity 0.2s linear;
+            }
+
+            #screenshot {
+                position: relative;
+                background-repeat: no-repeat;
+                background-size: contain;
+                z-index: 3;
+                margin: auto;
+                cursor: pointer;
             }
         </style>
         <script>
+            function setImage(el, src) {
+                const cover = el.querySelector(".cover");
+                const imgEl = el.querySelector(".img");
+                el.classList.add("fadeOut");
+                el.classList.remove("fadeIn");
+                let timer = 200;
+                if (el.getAttribute("data-first") == "true") {
+                    timer = 0;
+                    el.setAttribute("data-first", "false");
+                }
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    const aspectRatio = img.width / img.height;
+                    setTimeout(() => {
+                        el.style.width = "min(100%,898px)";
+                        const height = el.offsetWidth / aspectRatio;
+                        el.style.height = `${height}px`;
+                        cover.style.backgroundImage = `url(${img.src})`;
+                        imgEl.style.backgroundImage = `url(${img.src})`;
+                        el.classList.remove("fadeOut");
+                        el.classList.add("fadeIn");
+                    }, timer);
+                };
+            }
+
+            function loopImages(el, images) {
+                let i = 0;
+                setImage(el, images[i]);
+                setInterval(() => {
+                    i++;
+                    if (i >= images.length) {
+                        i = 0;
+                    }
+                    setImage(el, images[i]);
+                }, 6000);
+            }
+
             function openPopupLandscape() {
                 window.open(
                     "/app/index.html",
@@ -54,8 +251,206 @@
     </head>
 
     <body>
-        <button onclick="openPopupLandscape()">Open in Landscape Popup</button>
-        <button onclick="openPopupPortrait()">Open in Portrait Popup</button>
-        <button onclick="openBlank()">Open in New Tab</button>
+        <header>
+            <div class="cover"></div>
+            <h1>Anser</h1>
+            <h2>A liquid companion for Alby</h2>
+        </header>
+        <main>
+            <p>
+                Anser is the <a target="_blank" href="https://getalby.com/">Alby extension</a> powered
+                user-friendly gateway to the liquid network for your browser.
+            </p>
+
+            <h2>Liquid in the browser</h2>
+            <p>
+                Anser is a progressive web app that can be easily installed on your device, providing a native
+                app experience. Alternatively, you can utilize it directly within your browser or even host
+                your own instance.
+            </p>
+            <br /><br />
+
+            <div id="screenshot" onclick="openPopupLandscape()">
+                <div class="cover"></div>
+                <div class="img"></div>
+            </div>
+            <script>
+                loopImages(document.body.querySelector("#screenshot"), [
+                    "screenshot/1.webp",
+                    "screenshot/2.webp",
+                    "screenshot/3.webp",
+                    "screenshot/4.webp",
+                    "screenshot/5.webp",
+                ]);
+            </script>
+            <br />
+            <br />
+            <div class="hlist">
+                <button onclick="openBlank()"><i class="fa-solid fa-rocket-launch"></i> Launch Anser</button>
+                <i onclick="openPopupPortrait()" class="button fa-solid fa-mobile"></i>
+                <i onclick="openPopupLandscape()" class="button fa-solid fa-computer"></i>
+            </div>
+
+            <h2>For developers</h2>
+            <p>
+                Anser isn't just a standalone application, it's also a versatile library that seamlessly
+                integrates into your webpages, enabling you to harness the power of the Liquid Network within
+                an <a target="_blank" href="https://getalby.com/">Alby</a>-enabled browser.
+            </p>
+            <p>
+                Explore the
+                <a href="https://github.com/riccardobl/anser-liquid/blob/master/README.md">documentation</a>
+                for comprehensive details, and experiment with the examples provided below.
+            </p>
+            <br />
+
+            <p
+                class="codepen"
+                data-height="300"
+                data-theme-id="dark"
+                data-default-tab="html,result"
+                data-slug-hash="VwRvpor"
+                data-user="riccardobl"
+                style="
+                    height: 300px;
+                    box-sizing: border-box;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 2px solid;
+                    margin: 1em 0;
+                    padding: 1em;
+                "
+            >
+                <span
+                    >See the Pen <a href="https://codepen.io/riccardobl/pen/VwRvpor"> Anser Send</a> by
+                    Riccardo Balbo (<a href="https://codepen.io/riccardobl">@riccardobl</a>) on
+                    <a href="https://codepen.io">CodePen</a>.</span
+                >
+            </p>
+            <script async src="https://cpwebassets.codepen.io/assets/embed/ei.js"></script>
+
+            <p
+                class="codepen"
+                data-height="300"
+                data-theme-id="dark"
+                data-default-tab="html,result"
+                data-slug-hash="ZEPbKYb"
+                data-user="riccardobl"
+                style="
+                    height: 300px;
+                    box-sizing: border-box;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 2px solid;
+                    margin: 1em 0;
+                    padding: 1em;
+                "
+            >
+                <span
+                    >See the Pen <a href="https://codepen.io/riccardobl/pen/ZEPbKYb"> Anser Send</a> by
+                    Riccardo Balbo (<a href="https://codepen.io/riccardobl">@riccardobl</a>) on
+                    <a href="https://codepen.io">CodePen</a>.</span
+                >
+            </p>
+            <script async src="https://cpwebassets.codepen.io/assets/embed/ei.js"></script>
+
+            <p
+                class="codepen"
+                data-height="300"
+                data-theme-id="dark"
+                data-default-tab="html,result"
+                data-slug-hash="XWGmRJK"
+                data-user="riccardobl"
+                style="
+                    height: 300px;
+                    box-sizing: border-box;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 2px solid;
+                    margin: 1em 0;
+                    padding: 1em;
+                "
+            >
+                <span
+                    >See the Pen <a href="https://codepen.io/riccardobl/pen/XWGmRJK"> Anser Show</a> by
+                    Riccardo Balbo (<a href="https://codepen.io/riccardobl">@riccardobl</a>) on
+                    <a href="https://codepen.io">CodePen</a>.</span
+                >
+            </p>
+            <script async src="https://cpwebassets.codepen.io/assets/embed/ei.js"></script>
+            <h2>FAQ</h2>
+            <div class="faq">
+                <h3>Q: Do I need Alby to use Anser?</h3>
+                <p>Yes, Anser relies on the Alby browser extension for key management and signing.</p>
+
+                <h3>Q: Can you see my private keys, transactions, or balances?</h3>
+                <p>No, Anser is a fully client-side app; your keys never leave the Alby extension.</p>
+
+                <h3>Q: Does Anser hold or transmit my funds?</h3>
+                <p>
+                    No, Anser serves as an interface that filters and displays data from the Liquid Network.
+                    It enables you to create valid transactions that are signed by the Alby extension and
+                    broadcasted through an Electrum node.
+                </p>
+
+                <h3>Q: Who manages the Electrum node used by Anser?</h3>
+                <p>
+                    Anser connects to the public websocket endpoint provided by
+                    <a href="https://github.com/Blockstream/esplora/blob/master/API.md" target="_blank"
+                        >Blockstream</a
+                    >.
+                    <br />
+                    It's important to note that this node only provides access to public data of the Liquid
+                    Network, and broadcast your transactions to the other nodes. It does not hold your keys or
+                    funds and cannot sign or build transactions on your behalf.
+                </p>
+
+                <h3>Q: Is Anser open source?</h3>
+                <p>
+                    Yes, you can find the source code on
+                    <a href="https://github.com/riccardobl/anser-liquid" target="_blank">GitHub</a>.
+                </p>
+
+                <h3>Q: Can I self-host Anser?</h3>
+                <p>
+                    Absolutely! Anser is a static web app that can be hosted on any webserver, including your
+                    local machine.
+                    <br />
+                    Check the
+                    <a href="https://github.com/riccardobl/anser-liquid/blob/master/README.md"
+                        >documentation</a
+                    >
+                    for more information.
+                </p>
+            </div>
+        </main>
+
+        <footer>
+            <a href="https://github.com/riccardobl/anser-liquid/issues/new"
+                ><i class="fa-solid fa-bug"></i> Report an Issue</a
+            >
+            |
+            <a href="https://github.com/riccardobl"><i class="fa-brands fa-github"></i> Follow on Github</a> |
+            <a href="https://github.com/sponsors/riccardobl"
+                ><i class="fa-solid fa-circle-dollar-to-slot"></i> Sponsor</a
+            >
+            |
+            <a href="https://getalby.com/p/rblb"><i class="fa-solid fa-bolt"></i> Zap</a>
+        </footer>
+        <a href="https://github.com/riccardobl/anser-liquid"
+            ><img
+                decoding="async"
+                width="149"
+                height="149"
+                src="https://github.blog/wp-content/uploads/2008/12/forkme_right_orange_ff7600.png?resize=149%2C149"
+                class="attachment-full size-full"
+                style="position: fixed; top: 0; right: 0; border: 0; z-index: 9999"
+                alt="Fork me on GitHub"
+                loading="lazy"
+                data-recalc-dims="1"
+        /></a>
     </body>
 </html>
