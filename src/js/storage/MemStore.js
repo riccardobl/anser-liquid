@@ -19,7 +19,6 @@ export default class MemStore extends AbstractBrowserStore {
         if (!key) throw new Error("Key is required");
 
         if (value instanceof Promise || key instanceof Promise) {
-            console.trace();
             throw new Error("Promise not allowed in db");
         }
 

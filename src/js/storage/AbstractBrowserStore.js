@@ -75,7 +75,6 @@ export default class AbstractBrowserStore {
         if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
         if (!value) {
             console.log("Setting " + key + " to null");
-            console.trace();
         }
 
         if (!value) {

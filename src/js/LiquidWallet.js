@@ -32,28 +32,7 @@ export default class LiquidWallet {
     async start() {
         await this._reloadAccount();
         await this.refresh();
-    }
-
-    async exportApi(window) {
-        await this.check();
-        if (!window.liquid) {
-            window.liquid = {};
-        }
-        window.liquid.receive = async (amount /*float*/, assetHash, qrOptions) => {
-            if (!assetHash) assetHash = this.baseAsset;
-            amount = await this.v(amount, assetHash).int(assetHash); //int
-            return this.receive(amount, assetHash, qrOptions);
-        };
-        window.liquid.createTransaction = async (amount /*float*/, assetHash, toAddress) => {
-            if (!assetHash) assetHash = this.baseAsset;
-            amount = await this.v(amount, assetHash).int(assetHash); //int
-            return this.prepareTransaction(amount, assetHash, toAddress);
-        };
-        window.liquid.send = async (amount /*float*/, assetHash, toAddress) => {
-            const tr = window.liquid.createTransaction(amount, assetHash, toAddress);
-            const txid = await tr.broadcast();
-            return txid;
-        };
+        this.started = true;
     }
 
     /**
@@ -93,19 +72,8 @@ export default class LiquidWallet {
     // Called at startup and when the account changes
     async _reloadAccount() {
         await this.check();
-        console.log("Reload");
-
-        // deinitialize electrum client
-        // if (this.elc) {
-        //     this.elc.close();
-        //     this.elc = undefined;
-        // }
 
         console.log("Reloading account");
-        // if there is a previous subscription: unsubscribe
-        // if (this.scripthashEventSubscription) {
-        //     this.elc.unsubscribe('blockchain.scripthash.subscribe', this.scripthashEventSubscription);
-        // }
 
         // detect network for new account
         this.networkName = (await window.liquid.getAddress()).address.startsWith("tlq")
@@ -461,13 +429,15 @@ export default class LiquidWallet {
      */
     async prepareTransaction(amount, asset, toAddress, estimatedFeeVByte = null, averageSizeVByte = 2000) {
         await this.check();
-        if (!this.verifyAddress(toAddress)) throw new Error("Invalid address");
+        if (!this.verifyAddress(toAddress)) throw new Error("Invalid address", { cause: "invalid_address" });
 
         // if estimateFee is not set, we get the best fee for speed
         if (!estimatedFeeVByte) {
             estimatedFeeVByte = await this.estimateFeeRate(1);
             estimatedFeeVByte = estimatedFeeVByte.feeRate;
         }
+
+        if (isNaN(estimatedFeeVByte)) throw new Error("Invalid fee rate", { cause: "invalid_fee_rate" });
 
         // If asset unset, we assume its the base asset (L-BTC)
         if (!asset) asset = this.baseAsset;
@@ -537,7 +507,7 @@ export default class LiquidWallet {
                     isNaN(utxo.ldata.value) ||
                     Math.floor(utxo.ldata.value) != utxo.ldata.value
                 )
-                    throw new Error("Invalid UTXO");
+                    throw new Error("Invalid UTXO", { cause: "invalid_utxo" });
                 collectedAmount += utxo.ldata.value;
                 inputs.push(utxo); // collect this input
                 if (collectedAmount >= expectedCollectedAmount) break; // we have enough input
@@ -555,6 +525,7 @@ export default class LiquidWallet {
                         "+" +
                         feeXsize +
                         ")",
+                    { cause: "insufficient_funds" },
                 );
             }
 
@@ -562,7 +533,7 @@ export default class LiquidWallet {
             const changeAmount = collectedAmount - expectedCollectedAmount;
             if (changeAmount < 0 || Math.floor(changeAmount) != changeAmount) {
                 // guard
-                throw new Error("Invalid change amount " + changeAmount);
+                throw new Error("Invalid change amount " + changeAmount, { cause: "invalid_change_amount" });
             }
 
             // Set change outputs
@@ -582,7 +553,7 @@ export default class LiquidWallet {
             if (expectedFee > 0) {
                 for (const utxo of utxos) {
                     if (utxo.ldata.assetHash !== feeAsset) continue; // not the fee asset
-                    if (utxo.ldata.value <= 0) throw new Error("Invalid UTXO"); // guard
+                    if (utxo.ldata.value <= 0) throw new Error("Invalid UTXO", { cause: "invalid_utxo" });
                     if (
                         !utxo.ldata.value ||
                         utxo.ldata.value <= 0 ||
@@ -590,21 +561,23 @@ export default class LiquidWallet {
                         Math.floor(utxo.ldata.value) != utxo.ldata.value
                     )
                         // guard
-                        throw new Error("Invalid UTXO");
+                        throw new Error("Invalid UTXO", { cause: "invalid_utxo" });
                     collectedFee += utxo.ldata.value;
                     inputs.push(utxo); // we collect this fee
                     if (collectedFee >= expectedFee) break; // enough fee
                 }
 
                 if (collectedFee < expectedFee) {
-                    throw new Error("Insufficient funds for fees " + collectedFee + " < " + expectedFee);
+                    throw new Error("Insufficient funds for fees " + collectedFee + " < " + expectedFee, {
+                        cause: "insufficient_funds",
+                    });
                 }
 
                 // Calculate change
                 const changeFee = collectedFee - expectedFee;
                 if (changeFee < 0 || Math.floor(changeFee) != changeFee) {
                     // guard
-                    throw new Error("Invalid fee change  " + changeFee);
+                    throw new Error("Invalid fee change  " + changeFee, { cause: "invalid_change" });
                 }
 
                 // Set changes
@@ -729,7 +702,9 @@ export default class LiquidWallet {
 
             if (totalOut + fees !== totalIn) {
                 // We don't have the same amount of input and output
-                throw new Error("Invalid transaction " + (totalOut + fees) + " " + totalIn);
+                throw new Error("Invalid transaction " + (totalOut + fees) + " " + totalIn, {
+                    cause: "invalid_transaction",
+                });
             } else {
                 console.log("Total in", totalIn);
                 console.log("Total out", totalOut);
@@ -738,14 +713,14 @@ export default class LiquidWallet {
 
             if (fees > totalOut) {
                 // we have more fees than outputs (likely an error...)
-                throw new Error("Fees too high compared to output " + fees);
+                throw new Error("Fees too high compared to output " + fees, { cause: "fees_too_high" });
             } else {
                 asserts.push("Fees are lower than outputs");
             }
 
             if (fees > Constants.FEE_GUARD) {
                 //  Fees are higher than the hardcoded value. This catches user mistakes
-                throw new Error("Fees too high compared to guard " + fees);
+                throw new Error("Fees too high compared to guard " + fees, { cause: "fees_too_high" });
             } else {
                 asserts.push("Fees are lower than guard value");
             }
@@ -831,7 +806,7 @@ export default class LiquidWallet {
                 if (outtx._compiledTx) return outtx._compiledTx;
                 let signedPset = await window.liquid.signPset(psetUpdater.pset.toBase64());
                 if (!signedPset || !signedPset.signed) {
-                    throw new Error("Failed to sign transaction");
+                    throw new Error("Failed to sign transaction", { cause: "failed_to_sign" });
                 }
                 signedPset = signedPset.signed;
                 const signed = Liquid.Pset.fromBase64(signedPset);
@@ -853,24 +828,35 @@ export default class LiquidWallet {
                     outtx._txData = await this.getTransaction(undefined, txBuffer);
                 }
                 const txData = outtx._txData;
-                if (!txData.info.valid) throw new Error("Invalid transaction");
+                if (!txData.info.valid)
+                    throw new Error("Invalid transaction", { cause: "invalid_transaction" });
                 if (txData.info.isIncoming || !txData.info.isOutgoing)
                     throw new Error(
                         "Transaction direction is wrong " +
                             txData.info.isIncoming +
                             "!=" +
                             txData.info.isOutgoing,
+                        {
+                            cause: "wrong_direction",
+                        },
                     );
                 if (txData.info.outAmount !== amount)
-                    throw new Error("Transaction amount is wrong " + txData.info.outAmount + "!=" + amount);
+                    throw new Error("Transaction amount is wrong " + txData.info.outAmount + "!=" + amount, {
+                        cause: "amount_missmatch",
+                    });
                 if (txData.info.outAsset !== asset)
-                    throw new Error("Transaction asset is wrong " + txData.info.outAsset + "!=" + asset);
+                    throw new Error("Transaction asset is wrong " + txData.info.outAsset + "!=" + asset, {
+                        cause: "asset_missmatch",
+                    });
                 if (txData.info.feeAmount !== totalFee)
-                    throw new Error("Transaction fee is wrong " + txData.info.feeAmount + "!=" + totalFee);
+                    throw new Error("Transaction fee is wrong " + txData.info.feeAmount + "!=" + totalFee, {
+                        cause: "fee_missmatch",
+                    });
 
                 if (txData.info.feeAsset !== feeAsset)
                     throw new Error(
                         "Transaction fee asset is wrong " + txData.info.feeAsset + "!=" + feeAsset,
+                        { cause: "fee_asset_missmatch" },
                     );
                 outtx._verified = true;
                 return outtx;
@@ -1345,7 +1331,6 @@ export default class LiquidWallet {
             const asset = utxo.ldata.assetHash;
             if (!balanceXasset[asset])
                 balanceXasset[asset] = {
-                    info: undefined,
                     value: 0,
                     hash: asset,
                     asset: asset,
@@ -1480,5 +1465,152 @@ export default class LiquidWallet {
 
     async clearCache() {
         await this.cache.clear();
+    }
+}
+
+if (window) {
+    const isModule = typeof import.meta !== "undefined";
+    if (!isModule) {
+        async function loadInBrowser() {
+            if (!window.liquid) {
+                console.log("Waiting for liquid");
+                setTimeout(loadInBrowser, 1000);
+                return false;
+            }
+
+            console.log("Loading anser in browser");
+            const lq = new LiquidWallet();
+
+            /**
+             * Return an instance of LiquidWallet
+             * @returns {Promise<LiquidWallet>}
+             */
+            window.liquid.wallet = async () => {
+                if (!lq.started) await lq.start();
+                return lq;
+            };
+
+            /**
+             * @deprecated
+             */
+            window.liquid.getWallet = async () => {
+                return window.liquid.wallet();
+            };
+
+            /**
+             * Generate a payment url and QR code to receive a payment
+             * @param {number} amount  Hint the amount to receive as floating point number (eg. 0.001) 0 = any (N.B. this is just a hint, the sender can send any amount)
+             * @param {string} assetHash Asset hash of the asset to receive (NB. this is just a hint, the sender can send any asset). Leave empty for any asset or L-BTC.
+             * @returns {Promise<{url: string, qr: string}>} A promise that resolves to an object with a url and a qr string.
+             * @returns
+             */
+            window.liquid.receive = async (amount /*float*/, assetHash, qrOptions) => {
+                if (!lq.started) await lq.start();
+                if (!assetHash) assetHash = lq.baseAsset;
+                amount = await lq.v(amount, assetHash).int(assetHash); //int
+                return lq.receive(amount, assetHash, qrOptions);
+            };
+
+            /**
+             * Send an amount to an address
+             * @param {number} amount The amount to send as floating point number (eg. 0.001)
+             * @param {string} assetHash  Asset hash of the asset to send.
+             * @param {string} toAddress  The address to send to
+             * @param {number} fee  The fee in sats per vbyte to use. 0 or empty = auto
+             * @returns {Promise<string>} The txid of the transaction
+             */
+            window.liquid.send = async (amount /*float*/, assetHash, toAddress, fee) => {
+                if (!lq.started) await lq.start();
+                amount = await lq.v(amount, assetHash).int(assetHash); //int
+                const tr = await lq.prepareTransaction(amount, assetHash, toAddress, fee);
+                const txid = await tr.broadcast();
+                return txid;
+            };
+
+            /**
+             * Estimate the fee for a transaction
+             * @param {number} priority 0 = low, 1 = high
+             * @returns {Promise<{feeRate: string, blocks: number}>} The fee in sats per vbyte to pay and the number of blocks that will take to confirm
+             */
+            window.liquid.estimateFee = async (priority /*0 - 1*/) => {
+                if (!lq.started) await lq.start();
+                return (await lq.estimateFeeRate(priority)).feeRate;
+            };
+
+            /**
+             * Get the balance of each owned asset
+             * @returns {Promise<[{asset: string, value: number}]>} An array of objects with asset and value
+             */
+            window.liquid.balance = async () => {
+                if (!lq.started) await lq.start();
+                const balance = await lq.getBalance();
+                for (const b of balance) {
+                    b.value = await lq.v(b.value, b.asset).float();
+                }
+                return balance;
+            };
+
+            /**
+             * True if anser is loaded
+             */
+            window.liquid.isAnser = true;
+
+            /**
+             * @deprecated
+             * @returns
+             */
+            window.liquid.isAnser = async () => {
+                return window.liquid.isAnser;
+            };
+
+            /**
+             * @deprecated
+             * @returns
+             */
+            window.liquid.getNetworkName = async () => {
+                return window.liquid.networkName();
+            };
+
+            /**
+             * Returns the network name (eg. "liquid", "testnet"...)
+             * @returns {string}
+             */
+            window.liquid.networkName = async () => {
+                if (!lq.started) await lq.start();
+                return lq.getNetworkName();
+            };
+
+            /**
+             * Returns the hash for L-BTC
+             * @returns  string
+             */
+            window.liquid.BTC = async () => {
+                if (!lq.started) await lq.start();
+                return lq.getBaseAsset();
+            };
+
+            /**
+             * Returns info for the given asset
+             * @param {string} assetHash asset hash
+             * @returns {Promise<{name: string, ticker: string, precision: number, hash:string}>} The info for this asset
+             */
+            window.liquid.assetInfo = async (assetHash) => {
+                if (!lq.started) await lq.start();
+                return lq.assets().getAssetInfo(assetHash);
+            };
+
+            /**
+             * Get the icon for the given asset
+             * @param {string} assetHash  the asset
+             * @returns {string} an url to the icon
+             */
+            window.liquid.assetIcon = async (assetHash) => {
+                if (!lq.started) await lq.start();
+                return lq.assets().getAssetIcon(assetHash);
+            };
+
+            return true;
+        }
+        loadInBrowser();
     }
 }

@@ -59,13 +59,6 @@ export default class UI {
         return this.store;
     }
 
-    exportApi(window, lq) {
-        if (!window.liquid.ui) {
-            window.liquid.ui = {};
-        }
-        // TODO
-    }
-
     constructor(stageContainerEl, walletEl, lq) {
         this.stageContainerEl = stageContainerEl;
         this.walletEl = walletEl;

@@ -124,7 +124,6 @@ export default class LocalStore extends AbstractBrowserStore {
             }
         }
         if (value instanceof Promise || key instanceof Promise) {
-            console.trace();
             throw new Error("Promise not allowed in db");
         }
 

@@ -55,7 +55,6 @@ export default class SideSwap {
         }
         // init websocket
         if (!this.sw) {
-            console.trace();
             this.starting = true;
             console.log("Connecting to ", this.sideSwapWs);
             this.sw = new WebSocket(this.sideSwapWs);

@@ -27,14 +27,11 @@ async function main() {
         const lq = new LiquidWallet();
         await lq.start();
 
-        // export the window.liquid apis
-        // actually, this is not needed here, just showing how to do it
-        lq.exportApi(window);
-
         // create the UI
         const ui = new UI(containerEl, walletEl, lq);
         ui.captureOutputs();
         window.dbui = ui;
+        window.dblq = lq;
         try {
             ui.useBrowserHistory(); // allow ui to control the browser history (this is used to support the back button)
             ui.setStage("wallet"); // set the initial stage
