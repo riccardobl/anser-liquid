@@ -1,6 +1,6 @@
 # Anser: A liquid companion for Alby
 
-![anser](src/assets/screenshot/2.webp)
+[![anser](src/assets/screenshot/2.webp)](https://anserliquid.frk.wf)
 
 Anser is a client-side web app that uses the [Alby extension](https://getalby.com/)'s
 liquid integration to provide a simple interface to the Liquid Network.
@@ -48,18 +48,20 @@ ghcr.io/riccardobl/anser-liquid:v1.0
 
 ## Using Anser Library in your website
 
-The main way to use Anser Library is to include the [LiquidWallet.js](src/js/LiquidWallet.js) script as a module and instantiate a LiquidWallet object.
+One way to use Anser Library is to include the [LiquidWallet.js](src/js/LiquidWallet.js) script as a module and instantiate a LiquidWallet object.
 
 However to make things even easier, there is an additional set of simplified APIs that is automatically exported in window.liquid namespace when the script is included as a normal script tag.
 
 ```html
-<script src="liquidwallet.lib.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/gh/riccardobl/anser-liquid@releases/{VERSION}/liquidwallet.lib.js"></script>
 ```
+
+N.B. Replace {VERSION} with the latest version from the [Release Page](https://github.com/riccardobl/anser-liquid/releases).
 
 The `window.liquid` API provides common functionalities in a more intuitive way.
 See the documentation [here](/API.md).
 
-You can find the minified version of LiquidWallet.js that can be used both as a module and as a script tag in the [Release Page](https://github.com/riccardobl/anser-liquid/releases).
+You can find the minified version of LiquidWallet.js that can be used both as a module and as a script tag in the [Release Page](https://github.com/riccardobl/anser-liquid/releases) or in [JsDelivr](https://www.jsdelivr.com/package/gh/riccardobl/anser-liquid).
 
 ## Build and run locally
 
@@ -135,7 +137,7 @@ To enable https you can use a reverse proxy like [nginx](https://www.nginx.com/)
 
 The source code is logically divided in 2 parts:
 
--   [src/js/LiquidWallet.js](src/js/LiquidWallet.js) is the backend that handles all the communication with the various APIs and exposes a simple interface that can be used by any app.
+-   [src/js/LiquidWallet.js](src/js/LiquidWallet.js) serves as the backend component, managing all interactions with various APIs. It provides a streamlined interface that can be easily integrated with any application.
 -   [src/js/ui](src/js/ui) contains everything related to the UI of the web app.
 
 The entry point of the web app is

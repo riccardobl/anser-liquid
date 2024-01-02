@@ -1483,7 +1483,7 @@ if (window) {
 
             /**
              * Return an instance of LiquidWallet
-             * @returns {Promise<LiquidWallet>}
+             * @returns {Promise<LiquidWallet>} the wallet instance
              */
             window.liquid.wallet = async () => {
                 if (!lq.started) await lq.start();
@@ -1501,8 +1501,7 @@ if (window) {
              * Generate a payment url and QR code to receive a payment
              * @param {number} amount  Hint the amount to receive as floating point number (eg. 0.001) 0 = any (N.B. this is just a hint, the sender can send any amount)
              * @param {string} assetHash Asset hash of the asset to receive (NB. this is just a hint, the sender can send any asset). Leave empty for any asset or L-BTC.
-             * @returns {Promise<{url: string, qr: string}>} A promise that resolves to an object with a url and a qr string.
-             * @returns
+             * @returns {Promise<{url: string, qr: string}>} A promise that resolves to an object with a payment url and a qr code image url
              */
             window.liquid.receive = async (amount /*float*/, assetHash, qrOptions) => {
                 if (!lq.started) await lq.start();
@@ -1565,7 +1564,7 @@ if (window) {
 
             /**
              * Returns the network name (eg. "liquid", "testnet"...)
-             * @returns {string}
+             * @returns {Promise<string>} the network name
              */
             window.liquid.networkName = async () => {
                 if (!lq.started) await lq.start();
@@ -1574,7 +1573,7 @@ if (window) {
 
             /**
              * Returns the hash for L-BTC
-             * @returns  string
+             * @returns  {Promise<string>} the asset hash
              */
             window.liquid.BTC = async () => {
                 if (!lq.started) await lq.start();
@@ -1594,7 +1593,7 @@ if (window) {
             /**
              * Get the icon for the given asset
              * @param {string} assetHash  the asset
-             * @returns {string} an url to the icon
+             * @returns {Promise<string>} the url to the icon
              */
             window.liquid.assetIcon = async (assetHash) => {
                 if (!lq.started) await lq.start();
