@@ -1,5 +1,7 @@
 import Constants from "./Constants.js";
 import fetch from "./utils/fetch-timeout.js";
+import Icons from "./Icons.js";
+import SpecialSymbols from "./SpecialSymbols.js";
 /**
  * A wrapper around several apis.
  * Provides pricing for liquid assets, fiat currencies, their icons and other info.
@@ -16,9 +18,7 @@ export default class AssetProvider {
         baseTicker,
         baseName,
         fiatTickerUrl = "https://blockchain.info/ticker",
-        fiatTrackerTimeout = 60 * 60 * 1000,
-        staticIconsUrl = "static/icons.json",
-        specialSymbolsUrl = "static/specialSymbols.json",
+        fiatTrackerTimeout = 5 * 60 * 1000,
     ) {
         this.cache = cache;
         this.store = store;
@@ -33,14 +33,11 @@ export default class AssetProvider {
         this.trackedAssets = [];
         this.trackedFiatAssets = [];
         this.staticIcons = {};
-        this.staticIconsUrl = staticIconsUrl;
-        this.specialSymbolsUrl = specialSymbolsUrl;
         this.specialSymbols = {};
     }
 
     async _getFiatData() {
-        const fiatTickerUrlDescriber = this.fiatTickerUrl.toLowerCase().replace(" ", "_");
-
+        const fiatTickerUrlDescriber = this.fiatTickerUrl.toLowerCase().replace(/[^a-z0-9]/g, "");
         let fiatData = await this.cache.get("fiat:" + fiatTickerUrlDescriber);
         if (!fiatData || Date.now() - fiatData.timestamp > this.fiatTrackerTimeout) {
             try {
@@ -81,7 +78,6 @@ export default class AssetProvider {
     async _init() {
         while (this.starting) {
             console.log("Waiting...");
-            console.trace();
             await new Promise((res) => setTimeout(res, 100));
         }
         if (this.ready) return;
@@ -104,8 +100,8 @@ export default class AssetProvider {
                 }
             }
 
-            this.staticIcons = await fetch(this.staticIconsUrl).then((r) => r.json());
-            this.specialSymbols = await fetch(this.specialSymbolsUrl).then((r) => r.json());
+            this.staticIcons = Icons;
+            this.specialSymbols = SpecialSymbols;
         } catch (e) {
             console.error(e);
         } finally {
