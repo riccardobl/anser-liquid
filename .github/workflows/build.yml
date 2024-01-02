@@ -12,21 +12,19 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-    contents: read
+    contents: write
     pages: write
     id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-    group: "pages"
-    cancel-in-progress: false
+    packages: write
 
 jobs:
     # deploy docker to github registry
     deployDocker:
         if: github.event_name == 'release'
         runs-on: ubuntu-latest
+        env:
+            REGISTRY: ghcr.io
+            IMAGE_NAME: ${{ github.repository }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -34,17 +32,23 @@ jobs:
             - name: Login to GitHub Packages
               uses: docker/login-action@v1
               with:
-                  registry: docker.pkg.github.com
+                  registry: ${{ env.REGISTRY }}
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Build and push
-              uses: docker/build-push-action@v2
+            - name: Extract metadata (tags, labels) for Docker
+              id: meta
+              uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+              with:
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
               with:
                   context: .
-                  file: ./Dockerfile
                   push: true
-                  tags: docker.pkg.github.com/${{ github.repository }}/anser-static:${{ github.sha }}
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
 
     # deploy static
     deployStatic:
@@ -69,20 +73,62 @@ jobs:
               if: github.event_name == 'release'
               run: |
                   cd dist
-                  zip -r ../anser-static-deploy.zip www
+                  zip -r ../anser-static-deploy.zip .
                   cd ..
 
-            - name: "Upload to github releases"
+            - name: Deploy to release branch
               if: github.event_name == 'release'
-              uses: actions/upload-release-asset@v1
-              with:
-                  upload_url: ${{ github.event.release.upload_url }}
-                  asset_path: ./anser-static-deploy.zip
-                  asset_name: anser-static-deploy.zip
-                  asset_content_type: application/zip
+              run: |
+                  # Commit the changes
+                  git config --global user.name "Github Actions"
+                  git config --global user.email "actions@users.noreply.github.com"
 
-    # deploy static
+                  git clone --single-branch --branch "releases" https://github.com/${GITHUB_REPOSITORY} releases
+                  version="`if [[ $GITHUB_REF == refs\/tags* ]]; then echo ${GITHUB_REF//refs\/tags\//}; fi`"
+
+                  cd releases
+                  mkdir -p ${version}
+                  mkdir -p latest
+                  cp -f ../dist/lib/liquidwallet.lib.js ${version}/liquidwallet.lib.js
+                  cp -f ../dist/lib/liquidwallet.lib.js latest/liquidwallet.lib.js
+
+                  git add .
+                  git commit -m "update ${version}"
+                  git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+                  git push origin releases
+
+            - name: Deploy to GitHub Releases
+              if: github.event_name == 'release'
+              run: |
+                  set -e
+                  echo "${GITHUB_EVENT_PATH}"
+                  cat ${GITHUB_EVENT_PATH}
+                  releaseId=$(jq --raw-output '.release.id' ${GITHUB_EVENT_PATH})
+
+                  echo "Upload to release $releaseId"
+
+                  filename="./anser-static-deploy.zip"
+                  url="https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$releaseId/assets?name=$(basename $filename)"
+                  echo "Upload to $url"
+                  curl -L \
+                  -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  -H "Content-Type: application/zip" \
+                  --data-binary @"$filename" \
+                  "$url"
+
+                  filename="./dist/lib/liquidwallet.lib.js"
+                  url="https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$releaseId/assets?name=$(basename $filename)"
+                  echo "Upload to $url"
+                  curl -L \
+                  -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  -H "Content-Type: application/javascript" \
+                  --data-binary @"$filename" \
+                  "$url"
+
+    # deploy gh pages
     deployPages:
+        if: github.event_name == 'release'
+        concurrency: ci-${{ github.ref }}
         environment:
             name: github-pages
             url: ${{ steps.deployment.outputs.page_url }}
@@ -99,12 +145,10 @@ jobs:
                   bash build.sh
 
             - name: Upload artifact
-              if: github.event_name == 'release'
               uses: actions/upload-pages-artifact@v3
               with:
                   path: "./dist/"
 
             - name: Deploy to GitHub Pages
-              if: github.event_name == 'release'
               id: deployment
               uses: actions/deploy-pages@v4

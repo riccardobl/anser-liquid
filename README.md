@@ -28,7 +28,20 @@ Anser is a web app that can be hosted on any web server capable of serving stati
 Anser is also available as a self-contained docker container that can be run on any docker host. You can build a docker image from this repo (see [Build and run with Docker](#build-and-run-with-docker)) or you can pull the latest image from github package registry.
 
 ```bash
-TODO
+# Pull the image ( check https://github.com/riccardobl/anser-liquid/pkgs/container/anser-liquid for the latest version )
+docker pull ghcr.io/riccardobl/anser-liquid:v1.0
+
+# Run and expose on port 8080
+docker run -d \
+--restart=always \
+--name="anserliquid" \
+--read-only \
+--tmpfs /data \
+--tmpfs /tmp \
+--tmpfs /config \
+-p 8080:80 \
+ghcr.io/riccardobl/anser-liquid:v1.0
+
 ```
 
 # Development
@@ -102,8 +115,7 @@ cd anser-liquid
 docker build -t anserliquid .
 
 # Run and expose on port 8080
-docker run -d \
---restart=always \
+docker run -it --rm \
 --name="anserliquid" \
 --read-only \
 --tmpfs /data \
