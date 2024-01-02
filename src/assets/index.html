@@ -34,13 +34,22 @@
                 --warning: var(--foreground);
             }
 
+            * {
+                box-sizing: border-box;
+                flex-shrink: 1;
+            }
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
             body {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 text-align: left;
 
-                height: 100vh;
                 background-color: var(--primaryBackground);
                 color: var(--foreground);
                 text-align: center;
@@ -66,7 +75,15 @@
                 font-size: 4rem;
             }
 
+            @media (max-width: 600px) {
+                h2 {
+                    font-size: 2rem;
+                }
+            }
+
             main {
+                padding: 1rem;
+
                 max-width: 1000px;
                 font-weight: bold;
                 text-align: center;
@@ -92,6 +109,8 @@
             }
 
             header {
+                padding: 1rem;
+
                 color: var(--secondaryBackground);
                 position: relative;
                 /* position: absolute; */
@@ -431,7 +450,7 @@
             <a href="https://github.com/riccardobl/anser-liquid"
                 ><i class="fa-brands fa-github"></i> Follow on Github</a
             >
-            |
+            <br />
             <a href="https://github.com/sponsors/riccardobl"
                 ><i class="fa-solid fa-circle-dollar-to-slot"></i> Sponsor</a
             >
