@@ -1,6 +1,6 @@
 {
     "name": "Anser Liquid",
-    "short_name": "AnserWallet",
+    "short_name": "Anser Liquid",
     "description": "An alby companion to manage liquid assets",
     "start_url": "/app",
     "display": "standalone",
