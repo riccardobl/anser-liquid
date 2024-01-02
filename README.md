@@ -1,5 +1,7 @@
 # Anser: A liquid companion for Alby
 
+![anser](src/assets/screenshot/2.webp)
+
 Anser is a client-side web app that uses the [Alby extension](https://getalby.com/)'s
 liquid integration to provide a simple interface to the Liquid Network.
 
@@ -17,7 +19,7 @@ There is a live version hosted on github pages that is automatically updated wit
 
 Anser is a web app that can be hosted on any web server capable of serving static files.
 
-1. Download the latest release from the [Release Page](/releases).
+1. Download the latest release from the [Release Page](https://github.com/riccardobl/anser-liquid/releases).
 2. Unzip the archive
 3. Upload the extracted files to your web server
 
@@ -42,9 +44,9 @@ However to make things even easier, there is an additional set of simplified API
 ```
 
 The `window.liquid` API provides common functionalities in a more intuitive way.
-See the full documentation [here](/API.md).
+See the documentation [here](/API.md).
 
-You can find the minified version of LiquidWallet.js that can be used both as a module and as a script tag in the [Release Page](/releases).
+You can find the minified version of LiquidWallet.js that can be used both as a module and as a script tag in the [Release Page](https://github.com/riccardobl/anser-liquid/releases).
 
 ## Build and run locally
 
@@ -87,6 +89,15 @@ BUILD_MODE="production" npm run build
 #### Setup
 
 ```bash
+# Clone the repo
+git clone https://github.com/riccardobl/anser-liquid.git
+
+# Enter the directory
+cd anser-liquid
+
+# (Optional) checkout a specific version
+# git checkout v1.0
+
 # Build
 docker build -t anserliquid .
 
@@ -117,7 +128,7 @@ The source code is logically divided in 2 parts:
 
 The entry point of the web app is
 
--   [src/js/index.js](src/js/index.js) is the entry point of the web app
+-   [src/js/index.js](src/js/index.js)
 
 # FAQ
 
