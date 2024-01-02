@@ -11,7 +11,7 @@ export default {
     STORAGE_METHODS: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is preferred
     STORAGE_METHODS_BY_SPEED: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is fastest
 
-    DISABLE_POINTER_EVENTS: true, // set to true to disable pointer for elements that are not interactive.
+    DISABLE_POINTER_EVENTS: false, // set to true to disable pointer for elements that are not interactive.
     // This has the side effect of messing with the dom picker of debug tools, so should be off in development
     LOCK_MODE: undefined, // Set this to lock the app to a certain mode, useful for debugging
     EXT_TX_VIEWER: {
@@ -27,7 +27,7 @@ export default {
             "tlq1qqf5wd5h3r2tl6tlpkag34uyg9fdkh2v6gshntur7pdkqpxp8v0mk6ke5awh2vejugcrj6gf564av8xld7nmwc477eq78r2clt",
         liquid: "lq1qqg9xdv9v8rze8f5ax7e5sfrxvvfuyjk9qwduajuuek653myfweck9s865resnaetqnvc7j5w2rn8lx6dsyntzephy9604mchf",
     },
-    DEFAULT_THEME: "streamgoose",
+    DEFAULT_THEME: "spacequack",
 
     PAYURL_PREFIX: {
         testnet: "liquidtestnet",
