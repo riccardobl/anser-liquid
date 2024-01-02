@@ -1469,8 +1469,8 @@ export default class LiquidWallet {
 }
 
 if (window) {
-    const isModule = typeof import.meta !== "undefined";
-    if (!isModule) {
+    const isModule = false; //typeof import.meta !== "undefined";
+    if (window && !isModule) {
         async function loadInBrowser() {
             if (!window.liquid) {
                 console.log("Waiting for liquid");
@@ -1554,14 +1554,6 @@ if (window) {
              * True if anser is loaded
              */
             window.liquid.isAnser = true;
-
-            /**
-             * @deprecated
-             * @returns
-             */
-            window.liquid.isAnser = async () => {
-                return window.liquid.isAnser;
-            };
 
             /**
              * @deprecated
