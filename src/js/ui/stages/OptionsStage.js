@@ -69,6 +69,11 @@ export default class OptionsStage extends UIStage {
                 alert("Cache cleared");
                 window.location.reload();
             });
+        $vsep(optionsEl);
+        const gpuModel = $text(optionsEl, ["sub"]);
+        ui.getGPUModel().then((model) => {
+            gpuModel.setValue(`GPU: ${model}`);
+        });
 
         ui.getCurrentTheme().then((currentTheme) => {
             const themeEl = themeSelector;
