@@ -29,6 +29,8 @@ export default class UI {
         try {
             if (typeof this.safeMode !== "undefined") return this.safeMode;
             if (!window.WebGLRenderingContext) return this.setSafeMode(true);
+            const nCores = navigator.hardwareConcurrency;
+            if (typeof nCores !== "undefined" && nCores > 0 && nCores < 4) return this.setSafeMode(true);
             const canvas = document.createElement("canvas");
             const gl =
                 canvas.getContext("webgl", { powerPreference: "high-performance" }) ||
