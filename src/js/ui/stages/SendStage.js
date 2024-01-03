@@ -147,8 +147,11 @@ export default class SendStage extends UIStage {
         const availableBalanceValueEl = $text(availableBalanceEl);
         const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
 
-        $title(c01El).setValue("Priority");
+        $title(c01El).setValue("Fee");
         const prioritySlideEl = $inputSlide(c01El);
+        prioritySlideEl.setLabel(0, "Low (slow)");
+        prioritySlideEl.setLabel(0.5, "Medium");
+        prioritySlideEl.setLabel(1, "High (fast)");
 
         const feeRowEl = $hlist(c01El, ["sub"]);
         $hsep(feeRowEl).grow(100);

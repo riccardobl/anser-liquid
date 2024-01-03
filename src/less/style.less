@@ -16,6 +16,9 @@
 
     --error: #ff0000;
     --warning: var(--elementsBackground);
+
+    --outgoingTxForeground: #b76a6a;
+    --incomingTxForeground: #6d8b6d;
 }
 
 #liquidwallet {
@@ -148,7 +151,26 @@
         align-items: center;
         justify-content: space-between;
         width: 100%;
+        padding-bottom: 1rem;
 
+        .label {
+            position: absolute;
+            color: var(--foreground);
+            font-size: 0.8rem;
+            text-align: center;
+            bottom: 0;
+
+            white-space: nowrap;
+            transform: translateX(-50%);
+        }
+
+        .label:first-of-type {
+            transform: translateX(0%);
+        }
+
+        .label:last-of-type {
+            transform: translateX(-100%);
+        }
         .slider {
             flex-grow: 1;
             padding: 0;

@@ -1443,7 +1443,7 @@ export default class LiquidWallet {
              * @param {string} targetAssetHash  if unset means to use the base asset
              * @returns
              */
-            human: async (targetAssetHash) => {
+            human: async (targetAssetHash, special = true) => {
                 await this.check();
                 if (!targetAssetHash) targetAssetHash = assetHash;
 
@@ -1451,7 +1451,7 @@ export default class LiquidWallet {
                 amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
                 amount = await this.assetProvider.intToFloat(amount, targetAssetHash);
 
-                amount = await this.assetProvider.floatToStringValue(amount, targetAssetHash);
+                amount = await this.assetProvider.floatToStringValue(amount, targetAssetHash, special);
                 return amount;
             },
 

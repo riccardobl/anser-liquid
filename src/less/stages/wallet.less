@@ -6,6 +6,25 @@
     /* filter: grayscale(40%); */
 }
 
+#liquidwallet #container.wallet.stage #history {
+    .tx.incoming {
+        .txAmount {
+            color: var(--incomingTxForeground);
+        }
+        .txAmount::before {
+            content: "+ ";
+        }
+    }
+    .tx.outgoing {
+        .txAmount {
+            color: var(--outgoingTxForeground);
+        }
+        .txAmount::before {
+            content: "- ";
+        }
+    }
+}
+
 #liquidwallet #container.wallet.stage .asset.h {
     width: 100%;
 }

@@ -1003,11 +1003,22 @@ class Html {
         el.classList.add("clickable");
         const sliderEl = this.$(el, "slider", ["slider"], "input");
         sliderEl.classList.add("clickable");
-        const max = 100;
+        const max = 10;
         sliderEl.type = "range";
         sliderEl.min = 0;
         sliderEl.max = max;
         sliderEl.value = 0;
+
+        el.setLabel = (pos, label) => {
+            const posSel = pos.toString().replace(".", "_");
+            if (!label) {
+                this.$0(el, "#label" + posSel);
+                return;
+            }
+            const labelEl = this.$text(el, ["label"], "label" + posSel).setValue(label);
+            labelEl.style.left = `${pos * 100}%`;
+            return el;
+        };
 
         const debounce = Constants.DEBOUNCE_CALLBACK_TIME;
         let lastValue = 0;

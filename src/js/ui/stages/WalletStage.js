@@ -60,7 +60,7 @@ export default class WalletPage extends UIStage {
                 const balanceSecondaryEl = $text(balanceAltCntEl, ["sub"]);
 
                 lq.v(balance.value, balance.asset)
-                    .human()
+                    .human(balance.asset, false)
                     .then((value) => {
                         balanceEl.setValue(value);
                     });
@@ -201,9 +201,11 @@ export default class WalletPage extends UIStage {
                     txElCnt.hide();
                 } else {
                     if (txData.info.isIncoming) {
+                        txElCnt.classList.add("incoming");
                         txDirectionEl.setValue("arrow_downward");
                         txDirectionEl.classList.add("incoming");
                     } else {
+                        txElCnt.classList.add("outgoing");
                         txDirectionEl.setValue("arrow_upward");
                         txDirectionEl.classList.add("outgoing");
                     }
@@ -245,7 +247,7 @@ export default class WalletPage extends UIStage {
                             txSymbolEl.setValue(info.ticker);
                         });
                     lq.v(txData.info.outAmount, txData.info.outAsset)
-                        .human()
+                        .human(txData.info.outAsset, false)
                         .then((value) => {
                             txAmountEl.setValue(value);
                         });

@@ -14,6 +14,9 @@
 
     --error: #ff0000;
     --warning: #ff9800;
+
+    --outgoingTxForeground: #b76a6a;
+    --incomingTxForeground: #6d8b6d;
 }
 
 #liquidwallet #logo {

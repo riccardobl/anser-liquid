@@ -261,13 +261,13 @@ export default class AssetProvider {
         return price;
     }
 
-    async floatToStringValue(v, assetHash) {
+    async floatToStringValue(v, assetHash, useSpecialSymbols = false) {
         const info = await this.getAssetInfo(assetHash);
         let symbol = info.ticker;
         const precision = info.precision;
         let symbolBeforeValue = false;
 
-        if (this.specialSymbols[symbol]) {
+        if (useSpecialSymbols && this.specialSymbols[symbol]) {
             symbolBeforeValue = true;
             symbol = this.specialSymbols[symbol];
         }
