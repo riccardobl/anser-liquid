@@ -35,4 +35,9 @@ export default {
     },
 
     GLOBAL_MESSAGE: undefined,
+
+    BLOCK_TIME: {
+        testnet: 60 * 1000, // 1 minute in ms
+        liquid: 60 * 1000, // 1 minute in ms
+    },
 };

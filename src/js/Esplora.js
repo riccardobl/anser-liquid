@@ -33,29 +33,37 @@ export default class Esplora {
     }
 
     async getFee(priority = 1) {
+        priority = Math.floor(priority * 10) / 10;
         priority = 1.0 - priority;
-
-        const response = await this.query("fee-estimates");
-        const keys = Object.keys(response);
-        keys.sort((a, b) => parseInt(a) - parseInt(b));
-        const n = keys.length;
         if (priority < 0) priority = 0;
         if (priority > 1) priority = 1;
-        priority = 1.0 - priority;
-        priority = Math.floor(priority * n);
-        const selectedKey = keys[priority];
-        const out = {
-            blocks: Number(selectedKey),
-            feeRate: Number(response[selectedKey]),
-        };
-        if (!out.feeRate) {
-            console.log("Can't estimate fee, use hardcoded value " + Constants.HARDCODED_FEE);
-            out.feeRate = Constants.HARDCODED_FEE;
-        }
-        if (!out.blocks) {
-            out.blocks = 1;
-        }
 
+        let out = await this.cache.get("fee" + priority);
+        if (!out) {
+            const response = await this.query("fee-estimates");
+            const keys = Object.keys(response);
+            keys.sort((a, b) => parseInt(a) - parseInt(b));
+            const n = keys.length;
+
+            priority = Math.floor(priority * n);
+            if (priority >= n) priority = n - 1;
+
+            const selectedKey = keys[priority];
+            out = {
+                blocks: Number(selectedKey),
+                feeRate: Number(response[selectedKey]),
+            };
+
+            if (!out.feeRate) {
+                console.log("Can't estimate fee, use hardcoded value " + Constants.HARDCODED_FEE);
+                out.feeRate = Constants.HARDCODED_FEE;
+            }
+            if (!out.blocks) {
+                out.blocks = 60;
+            }
+
+            await this.cache.set("fee" + priority, out, 3000);
+        }
         return out;
     }
 

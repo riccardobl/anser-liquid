@@ -36,7 +36,7 @@ export default class SendStage extends UIStage {
         let ASSET_HASH = primaryCurrency;
         let ASSET_INFO = await lq.assets().getAssetInfo(primaryCurrency);
         let INPUT_AMOUNT = 0;
-        let PRIORITY = 1;
+        let PRIORITY = 0.5;
 
         let SECONDARY_CURRENCY = secondaryCurrency;
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
@@ -143,7 +143,7 @@ export default class SendStage extends UIStage {
 
         const availableBalanceEl = $hlist(c01El, ["sub"]).fill();
         $hsep(availableBalanceEl).grow(100);
-        $text(availableBalanceEl).setValue("Available balance: ");
+        const availableBalanceTextEl = $text(availableBalanceEl).setValue("Available balance: ");
         const availableBalanceValueEl = $text(availableBalanceEl);
         const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
 
@@ -156,6 +156,11 @@ export default class SendStage extends UIStage {
         const feeValueEl = $text(feeRowEl);
         $hsep(feeRowEl).setValue("/");
         const feeValueSecondaryEl = $text(feeRowEl);
+        const timeRowEl = $hlist(c01El, ["sub"]);
+        $hsep(timeRowEl).grow(100);
+        $text(timeRowEl).setValue("Confirmation time: ~");
+        const timeValueEl = $text(timeRowEl).setValue("10");
+        $hsep(timeRowEl).setValue("minutes");
 
         const errorRowEl = $vlist(c01El, ["error"]);
         errorRowEl.hide();
@@ -198,6 +203,7 @@ export default class SendStage extends UIStage {
             }
             ticker1El.setValue(ASSET_INFO.ticker);
             ticker2El.setValue(SECONDARY_INFO.ticker);
+            availableBalanceTextEl.setValue("Available balance (" + ASSET_INFO.ticker + "): ");
 
             try {
                 const feeRate = await lq.estimateFeeRate(PRIORITY);
@@ -206,6 +212,10 @@ export default class SendStage extends UIStage {
                 errorRowEl.hide();
                 feeValueEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human());
                 feeValueSecondaryEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human(SECONDARY_CURRENCY));
+
+                const time = Constants.BLOCK_TIME[network] * feeRate.blocks;
+                timeValueEl.setValue(time / 1000 / 60);
+
                 if (signAndSend) {
                     if (TO_ADDR != DUMMY_ADDR) {
                         console.log("Verify");
@@ -244,7 +254,7 @@ export default class SendStage extends UIStage {
         };
 
         prioritySlideEl.setAction((v) => {
-            PRIORITY = v;
+            PRIORITY = Math.max(v, 0.001);
             _updateInvoice();
         });
 
