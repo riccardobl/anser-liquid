@@ -20,6 +20,30 @@
 import Constants from "../Constants.js";
 import BrowserStore from "../storage/BrowserStore.js";
 export default class UI {
+    static async setSafeMode(v) {
+        this.safeMode = v;
+        return this.safeMode;
+    }
+
+    static async isSafeMode() {
+        try {
+            if (typeof this.safeMode !== "undefined") return this.safeMode;
+            if (!window.WebGLRenderingContext) return this.setSafeMode(true);
+            const canvas = document.createElement("canvas");
+            const gl =
+                canvas.getContext("webgl", { powerPreference: "high-performance" }) ||
+                canvas.getContext("experimental-webgl", { powerPreference: "high-performance" });
+            if (!gl) return this.setSafeMode(true);
+            const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+            const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+            const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            console.log("GPU", vendor, renderer);
+        } catch (e) {
+            return this.setSafeMode(true);
+        }
+        return this.setSafeMode(false);
+    }
+
     static STAGES = [];
     static registerStage(stageName) {
         stageName = stageName[0].toUpperCase() + stageName.slice(1);
@@ -99,6 +123,22 @@ export default class UI {
         }
         if (cssEl.href !== themePath) {
             cssEl.href = themePath;
+        }
+
+        const useSafeMode = await UI.isSafeMode();
+        let safeModeEl = document.head.querySelector("link#liquidwalletSafeMode");
+
+        if (!useSafeMode) {
+            if (safeModeEl) safeModeEl.remove();
+        } else {
+            if (!safeModeEl) {
+                safeModeEl = document.createElement("link");
+                safeModeEl.id = "liquidwalletSafeMode";
+                safeModeEl.rel = "stylesheet";
+                safeModeEl.type = "text/css";
+                document.head.appendChild(safeModeEl);
+            }
+            safeModeEl.href = "static/safemode.css";
         }
     }
 

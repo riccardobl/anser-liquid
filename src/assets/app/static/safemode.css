@@ -1,0 +1,79 @@
+* {
+    filter: none !important;
+    backdrop-filter: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+}
+
+.cover {
+    background: none !important;
+}
+
+#logo {
+    display: none !important;
+}
+
+@keyframes loading {
+}
+
+@keyframes appearFromVoid {
+    0% {
+        transform: none;
+    }
+
+    100% {
+        transform: none;
+    }
+}
+
+@keyframes appearFromLeft {
+    0% {
+        transform: none;
+    }
+
+    100% {
+        transform: none;
+    }
+}
+
+@keyframes appearFromRight {
+    0% {
+        transform: none;
+    }
+
+    100% {
+        transform: none;
+    }
+}
+
+@keyframes shake {
+    0% {
+        transform: none;
+    }
+
+    100% {
+        transform: none;
+    }
+}
+
+@keyframes blur {
+    0% {
+        filter: none !important;
+    }
+
+    100% {
+        filter: none !important;
+    }
+}
+
+@keyframes blurOut {
+    0% {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+
+    100% {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+}
