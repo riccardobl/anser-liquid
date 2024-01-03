@@ -47,7 +47,11 @@ async function main() {
         }
     } catch (e) {
         console.error(e);
-        alert(e);
+        if (e.cause == "liquid_not_available") {
+            window.location.href = "liquidnotfound.html";
+        } else {
+            alert(e);
+        }
     }
 }
 
