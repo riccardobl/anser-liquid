@@ -265,8 +265,12 @@ export default class AssetProvider {
         const info = await this.getAssetInfo(assetHash);
         let symbol = info.ticker;
         const precision = info.precision;
+        let symbolBeforeValue = false;
 
-        if (this.specialSymbols[symbol]) symbol = this.specialSymbols[symbol];
+        if (this.specialSymbols[symbol]) {
+            symbolBeforeValue = true;
+            symbol = this.specialSymbols[symbol];
+        }
 
         const isFiat = this._isFiat(assetHash);
         // if isFiat keep only 2 decimal, otherwise keep 6
@@ -289,7 +293,7 @@ export default class AssetProvider {
         // if (!decs || decs.length < 2) decs = "00";
         // v = v + "." + decs;
         if (symbol) {
-            v = v + " " + symbol;
+            v = symbolBeforeValue ? symbol + " " + v : v + " " + symbol;
         }
         return v;
     }
