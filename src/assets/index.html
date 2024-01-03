@@ -37,6 +37,7 @@
                 box-sizing: border-box;
                 flex-shrink: 1;
             }
+
             html,
             body {
                 margin: 0;
@@ -247,7 +248,7 @@
             }
 
             function openPopupLandscape() {
-                window.open(
+                return window.open(
                     "/app/index.html",
                     "_blank",
                     "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=900,height=600,screenX=200,screenY=200",
@@ -255,7 +256,7 @@
             }
 
             function openPopupPortrait() {
-                window.open(
+                return window.open(
                     "/app/index.html",
                     "_blank",
                     "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=500,height=800,screenX=200,screenY=200",
@@ -263,7 +264,53 @@
             }
 
             function openBlank() {
-                window.open("/app/index.html", "_blank");
+                return window.open("/app/index.html", "_blank");
+            }
+
+            function openSame() {
+                document.location.href = "/app/index.html";
+            }
+
+            async function openAuto() {
+                try {
+                    const launchBtn = document.querySelector("#launch");
+                    if (!launchBtn.getAttribute("originText")) {
+                        launchBtn.setAttribute("originText", launchBtn.innerText);
+                    }
+                    launchBtn.innerText = "Launching...";
+                } catch (e) {
+                    console.log(e);
+                }
+                let popup;
+                try {
+                    if (window.innerWidth > 1000) {
+                        popup = openPopupLandscape();
+                        await new Promise((res, rej) => {
+                            setTimeout(() => {
+                                res();
+                            }, 4000);
+                        });
+                        if (!popup || popup.closed || typeof popup.closed == "undefined") {
+                            popup = undefined;
+                        }
+                        if (popup && (!popup.isOpen || !popup.isOpen())) {
+                            popup = undefined;
+                        }
+                    }
+                } catch (e) {
+                    console.log(e);
+                    popup = undefined;
+                }
+                if (!popup) {
+                    openSame();
+                }
+
+                try {
+                    const launchBtn = document.querySelector("#launch");
+                    launchBtn.innerText = launchBtn.getAttribute("originText") || "Launch";
+                } catch (e) {
+                    console.log(e);
+                }
             }
         </script>
     </head>
@@ -294,7 +341,7 @@
             </p>
             <br /><br />
 
-            <div id="screenshot" onclick="openPopupLandscape()">
+            <div id="screenshot" onclick="openAuto()">
                 <div class="cover"></div>
                 <div class="img"></div>
             </div>
@@ -310,7 +357,7 @@
             <br />
             <br />
             <div class="hlist">
-                <button onclick="openBlank()">Launch</button>
+                <button id="launch" onclick="openAuto()">Launch</button>
                 <!-- <i onclick="openPopupPortrait()" class="button fa-solid fa-mobile"></i>
                 <i onclick="openPopupLandscape()" class="button fa-solid fa-computer"></i> -->
             </div>
