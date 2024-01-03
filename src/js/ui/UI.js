@@ -230,9 +230,13 @@ export default class UI {
         let time = 5000;
         if (type === "error") time = 10000;
         if (type === "fatal") time = 60000;
-        setTimeout(() => {
+        const deletionTimeout = setTimeout(() => {
             alertContainerEl.removeChild(alertBox);
         }, time);
+        alertBox.addEventListener("click", () => {
+            clearTimeout(deletionTimeout);
+            alertContainerEl.removeChild(alertBox);
+        });
     }
 }
 
