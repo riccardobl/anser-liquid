@@ -9,6 +9,7 @@ import SideSwap from "./SideSwap.js";
 import Esplora from "./Esplora.js";
 import { SLIP77Factory } from "slip77";
 import BrowserStore from "./storage/BrowserStore.js";
+import Errors from "./Errors.js";
 
 /**
  * The full wallet Api.
@@ -131,6 +132,30 @@ export default class LiquidWallet {
 
         // initialize electrum client
         this.elc = new ElectrumWS(electrumWs);
+        this.elc.ws.addEventListener("message", (msg) => {
+            try {
+                if (msg.type && msg.type == "message" && msg.data && msg.data.includes('"error":')) {
+                    msg = JSON.parse(msg.data);
+                    msg = msg.error;
+                    let realErrorStart = msg.indexOf("RPC error: {");
+                    if (realErrorStart < 0) throw new Error(msg);
+                    msg = msg.substring(realErrorStart + 11);
+                    msg = JSON.parse(msg);
+                    if (msg) {
+                        if (msg.message && Errors[msg.message]) {
+                            msg = Errors[msg.message];
+                        } else if (msg.code && Errors[msg.code]) {
+                            msg = Errors[msg.code];
+                        } else {
+                            msg = msg.message || JSON.stringify(msg);
+                        }
+                        console.error(msg);
+                    }
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        });
 
         // get base asset
         this.baseAsset = this.network.assetHash;
@@ -213,10 +238,10 @@ export default class LiquidWallet {
     // Performs the initialization if needed
     async check() {
         if (typeof window.liquid === "undefined") {
-            throw new Error("Liquid is not available.");
+            throw new Error("Liquid is not available.", { cause: "liquid_not_available" });
         }
         if (typeof window.liquid.isEnabled === "undefined") {
-            throw new Error("Liquid is not supported.");
+            throw new Error("Liquid is not supported.", { cause: "liquid_not_available" });
         }
         const enabled = await window.liquid.isEnabled();
         if (!enabled) {
