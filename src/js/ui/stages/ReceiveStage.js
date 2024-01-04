@@ -35,14 +35,16 @@ export default class ReceiveStage extends UIStage {
         let SECONDARY_CURRENCY = secondaryCurrency;
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
 
-        const c0 = $vlist(stageCntEl).fill().makeScrollable();
-        const c1 = $vlist(stageCntEl).grow(100).fill().makeScrollable();
+        const c0 = $vlist(stageCntEl, []).fill().makeScrollable();
+        const c1 = $vlist(stageCntEl, ["main"]).grow(100).fill().makeScrollable();
 
-        const assetSelector = $inputSelect(c0, "Select Asset");
-        $vsep(c0);
+        $title(c1).setValue("Asset");
+        const assetSelector = $inputSelect(c1, "Select Asset");
+
         const invoiceQr = $hlist(c0);
+        $title(c1).setValue("Address");
 
-        const invoiceTx = Html.$inputText(c0).setEditable(false);
+        const invoiceTx = Html.$inputText(c1).setEditable(false);
 
         $icon(invoiceTx)
             .setAction(() => {
@@ -51,7 +53,7 @@ export default class ReceiveStage extends UIStage {
             })
             .setValue("content_copy");
 
-        $title(c1).setValue("Settings");
+        $title(c1).setValue("Amount");
         const amountPrimaryEl = $inputNumber(c1).grow(50).setPlaceHolder("0.00");
         const tickerEl = $text(amountPrimaryEl).setValue(ASSET_INFO.ticker);
 

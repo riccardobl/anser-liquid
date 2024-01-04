@@ -151,7 +151,8 @@
         align-items: center;
         justify-content: space-between;
         width: 100%;
-        padding-bottom: 1rem;
+        padding: 0 !important;
+        padding-bottom: 1.2rem !important;
 
         .label {
             position: absolute;
@@ -176,8 +177,7 @@
             padding: 0;
             margin: 0;
             border-radius: 20px;
-            margin-left: 1rem;
-            margin-right: 1rem;
+
             padding-left: 0.5rem;
             padding-right: 0.5rem;
             height: 2rem;
@@ -394,16 +394,23 @@
         // justify-content: center;
         @media (orientation: landscape) {
             flex-direction: row;
-
-            & > :first-child {
-                width: min(40vw, 512px);
-            }
             & > :not(.popup) {
                 flex-shrink: 1;
                 width: 100%;
             }
-        }
 
+            .list.h.fill {
+                & > :not(.popup) {
+                    flex-shrink: 1;
+                    width: 100%;
+                }
+            }
+        }
+        .icon {
+            &.img {
+                width: 100%;
+            }
+        }
         .error {
             padding: 1.2rem;
             font-size: 0.8rem;
@@ -512,6 +519,9 @@
                 font-size: 0.8rem;
             }
         }
+        button.selectBtn {
+            box-shadow: none;
+        }
 
         .iconCnt {
             display: flex;
@@ -529,6 +539,7 @@
         }
 
         .popupSelect {
+            padding: 0 !important;
             display: flex;
             justify-content: stretch;
         }
@@ -610,12 +621,27 @@
             &.outscroll > * {
                 flex-shrink: 0;
             }
-
+            column-gap: 0.2rem;
+            row-gap: 0.2rem;
             & > * {
                 /* display: flex; */
                 align-items: stretch;
                 /* padding:0; */
-                margin: 0.2rem;
+                margin-top: 0.1rem;
+                margin-bottom: 0.1rem;
+                column-gap: 0.2rem;
+                row-gap: 0.2rem;
+            }
+
+            &.highlight {
+                & > * {
+                    border-radius: 14px;
+                    box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
+                }
+            }
+
+            &.baselineAlign {
+                align-items: baseline !important;
             }
 
             &.main {
@@ -625,8 +651,8 @@
                 padding-right: 0.6rem;
 
                 & > * {
-                    border-radius: 14px;
-                    box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
+                    // border-radius: 14px;
+                    // box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
                     margin: 0.3rem;
                     padding: 0.6rem;
                 }

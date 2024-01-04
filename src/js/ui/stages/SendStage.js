@@ -45,9 +45,20 @@ export default class SendStage extends UIStage {
         let TO_ADDR = DUMMY_ADDR;
         let FEE = 0;
 
-        const c01El = $vlist(walletEl).makeScrollable().fill();
+        const c00El = $vlist(walletEl).fill().makeScrollable();
+        const c000El = $list(c00El, ["p$v", "l$h", "l$baselineAlign"]).fill();
+        const c02El = $vlist(c000El, ["main"]).makeScrollable().fill();
+        const c01El = $vlist(c000El, ["main"]).makeScrollable().fill();
+        const c03El = $hlist(c00El, []).fill();
 
-        const assetInputEl = $inputSelect(c01El, "Select Asset");
+        $title(c02El).setValue("Asset");
+
+        const assetInputEl = $inputSelect(c02El, "Select Asset");
+
+        $title(c01El).setValue("To");
+
+        const addrEl = $inputText(c01El).setPlaceHolder("Address");
+
         $text(c01El, ["warning"]).setValue(
             `
         <span>
@@ -56,8 +67,6 @@ export default class SendStage extends UIStage {
                 `,
             true,
         );
-
-        const addrEl = $inputText(c01El).setPlaceHolder("Address");
 
         $icon(addrEl)
             .setValue("qr_code_scanner")
@@ -133,42 +142,46 @@ export default class SendStage extends UIStage {
                 addrEl.setValue(text);
             });
 
-        $title(c01El).setValue("Amount");
+        $title(c02El).setValue("Amount");
 
-        const amountNativeEl = $inputNumber(c01El).setPlaceHolder("0.00");
+        const amountNativeEl = $inputNumber(c02El).setPlaceHolder("0.00");
         const ticker1El = $text(amountNativeEl);
 
-        const amountSecondaryEl = $inputNumber(c01El).setPlaceHolder("0.00");
+        const amountSecondaryEl = $inputNumber(c02El).setPlaceHolder("0.00");
         const ticker2El = $text(amountSecondaryEl);
 
-        const availableBalanceEl = $hlist(c01El, ["sub"]).fill();
+        const availableBalanceDataEl = $vlist(c02El, ["sub"]).fill();
+        const availableBalanceEl = $hlist(availableBalanceDataEl, ["sub"]).fill();
         $hsep(availableBalanceEl).grow(100);
         const availableBalanceTextEl = $text(availableBalanceEl).setValue("Available balance: ");
         const availableBalanceValueEl = $text(availableBalanceEl);
-        const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
+        const useAllRowEl = $hlist(availableBalanceDataEl, ["sub"]);
+        $hsep(useAllRowEl).grow(100);
+        const useAllEl = $button(useAllRowEl, ["small"]).setValue("SEND ALL");
 
         $title(c01El).setValue("Fee");
         const prioritySlideEl = $inputSlide(c01El);
         prioritySlideEl.setLabel(0, "Low (slow)");
         prioritySlideEl.setLabel(0.5, "Medium");
         prioritySlideEl.setLabel(1, "High (fast)");
+        const feeDataEl = $vlist(c01El, []).fill();
 
-        const feeRowEl = $hlist(c01El, ["sub"]);
+        const feeRowEl = $hlist(feeDataEl, ["sub"]);
         $hsep(feeRowEl).grow(100);
         $text(feeRowEl).setValue("Fee: ");
         const feeValueEl = $text(feeRowEl);
         $hsep(feeRowEl).setValue("/");
         const feeValueSecondaryEl = $text(feeRowEl);
-        const timeRowEl = $hlist(c01El, ["sub"]);
+        const timeRowEl = $hlist(feeDataEl, ["sub"]);
         $hsep(timeRowEl).grow(100);
         $text(timeRowEl).setValue("Confirmation time: ~");
         const timeValueEl = $text(timeRowEl).setValue("10");
         $hsep(timeRowEl).setValue("minutes");
 
-        const errorRowEl = $vlist(c01El, ["error"]);
+        const errorRowEl = $vlist(c03El, ["error"]);
         errorRowEl.hide();
 
-        const confirmBtnEl = Html.$button(c01El).setValue("Confirm and sign");
+        const confirmBtnEl = Html.$button(c03El).setValue("Confirm and sign");
 
         const loading = (v) => {
             if (!v) {

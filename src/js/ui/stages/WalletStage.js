@@ -30,7 +30,10 @@ export default class WalletPage extends UIStage {
         const primaryCurrency = (await store.get(`primaryCurrency${network}`)) || lq.getBaseAsset();
         const secondaryCurrency = (await store.get(`secondaryCurrency${network}`)) || "USD";
 
-        const assetsEl = $list(parentEl, ["main", "p$h", "l$v"], "assets").makeScrollable(true, true);
+        const assetsEl = $list(parentEl, ["main", "highlight", "p$h", "l$v"], "assets").makeScrollable(
+            true,
+            true,
+        );
         assetsEl.setPriority(-10);
         assetsEl.initUpdate();
 
@@ -130,7 +133,9 @@ export default class WalletPage extends UIStage {
 
     async renderHistoryPanel(parentEl, lq, filter, ui, forceRefresh = false, limit = 100, page = 0) {
         filter = this.filter;
-        const historyEl = $vlist(parentEl, ["main"], "history").makeScrollable(true, true).fill();
+        const historyEl = $vlist(parentEl, ["main", "highlight"], "history")
+            .makeScrollable(true, true)
+            .fill();
 
         const history = await lq.getHistory(); //.slice(page * limit, page * limit + limit); TODO: pagination
 
@@ -299,7 +304,9 @@ export default class WalletPage extends UIStage {
     }
 
     async renderSendReceive(parentEl, lq, filter, ui) {
-        const cntEl = $hlist(parentEl, ["buttons", "fillw", "main"], "sendReceive").setPriority(-15).fill();
+        const cntEl = $hlist(parentEl, ["buttons", "fillw", "main", "highlight"], "sendReceive")
+            .setPriority(-15)
+            .fill();
         $button(cntEl, [])
             .setValue("Receive")
             .setIconValue("arrow_downward")
@@ -315,12 +322,15 @@ export default class WalletPage extends UIStage {
     }
 
     async renderSearchBar(walletEl, lq, render, ui) {
-        const searchInputEl = $inputText(walletEl).setPlaceHolder("Search");
+        const searchBarParentEl = $hlist(walletEl, ["searchBar", "main", "highlight"])
+            .setPriority(-10)
+            .fill();
+        const searchInputEl = $inputText(searchBarParentEl).setPlaceHolder("Search");
         searchInputEl.setAttribute("autocomplete", "off");
         searchInputEl.setAttribute("autocorrect", "off");
         searchInputEl.setAttribute("autocapitalize", "off");
         searchInputEl.setAttribute("spellcheck", "false");
-        searchInputEl.setPriority(-10);
+        // searchInputEl.setPriority(-10);
         let lastValue = "";
         let scheduledTimeout = undefined;
         const searchIcon = $icon(searchInputEl, ["search"]).setValue("search");
