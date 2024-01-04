@@ -20,7 +20,7 @@ permissions:
 jobs:
     # deploy docker to github registry
     deployDocker:
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && !github.event.release.prerelease
         runs-on: ubuntu-latest
         env:
             REGISTRY: ghcr.io
@@ -50,8 +50,7 @@ jobs:
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
 
-    # deploy static
-    deployStatic:
+    deployPackage:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
@@ -92,10 +91,11 @@ jobs:
                   cp -f ../dist/lib/liquidwallet.lib.js ${version}/liquidwallet.lib.js
                   cp -f ../dist/lib/liquidwallet.lib.js latest/liquidwallet.lib.js
 
-                  git add .
-                  git commit -m "update ${version}"
                   git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-                  git push origin releases
+
+                  git add . || true
+                  git commit -m "update ${version}" || true
+                  git push origin releases || true
 
             - name: Deploy to GitHub Releases
               if: github.event_name == 'release'
@@ -125,8 +125,7 @@ jobs:
                   --data-binary @"$filename" \
                   "$url"
 
-    # deploy gh pages
-    deployPages:
+    deployWWW:
         if: github.event_name == 'release'
         concurrency: ci-${{ github.ref }}
         environment:
@@ -138,6 +137,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Setup Pages
+              if: github.event_name == 'release' && !github.event.release.prerelease
               uses: actions/configure-pages@v4
 
             - name: Build
@@ -145,10 +145,47 @@ jobs:
                   bash build.sh
 
             - name: Upload artifact
+              if: github.event_name == 'release' && !github.event.release.prerelease
               uses: actions/upload-pages-artifact@v3
               with:
                   path: "./dist/"
 
             - name: Deploy to GitHub Pages
               id: deployment
+              if: github.event_name == 'release' && !github.event.release.prerelease
               uses: actions/deploy-pages@v4
+
+            - name: Prepare Node 18
+              uses: actions/setup-node@v2
+              with:
+                  node-version: 18
+
+            - name: Upload to ipfs
+              run: |
+                  npm install -g @web3-storage/w3cli
+                  mkdir -p /home/runner/.config/w3access
+                  echo '${{secrets.W3_ACCESS}}' > ~/.config/w3access/w3cli.json 
+                  w3 space use anser
+                  w3 up ./dist/ --json > ipfs.json
+                  cid=$(jq -r '.root["/"]' ipfs.json)
+                  echo "$cid" > deploy.log
+                  cat deploy.log
+
+            - name: Write ipfs link to release description
+              run: |
+                  set -e
+                  echo "${GITHUB_EVENT_PATH}"
+                  cat ${GITHUB_EVENT_PATH}
+                  releaseId=$(jq --raw-output '.release.id' ${GITHUB_EVENT_PATH})
+
+                  cid=`cat deploy.log`
+
+                  deployLink="IPfs deployment:\n - ipfs://${cid}\n\nWeb2 gateway:\n - https://${cid}.ipfs.cf-ipfs.com\n\nWeb2 gateway (alt):\n - https://${cid}.ipfs.w3s.link\n - https://${cid}.ipfs.dweb.link"
+                  echo $deployLink
+
+                  # Add to release description
+                  curl -X PATCH \
+                  -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/$releaseId \
+                  -d "{\"body\": \"${deployLink}\"}"
