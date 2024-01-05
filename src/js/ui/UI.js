@@ -33,19 +33,23 @@ export default class UI {
     static async isSafeMode() {
         try {
             if (typeof this.safeMode !== "undefined") return this.safeMode;
-            if (!window.WebGLRenderingContext) return this.setSafeMode(true);
-            if (!window.WebGL2RenderingContext) return this.setSafeMode(true);
-
             const nCores = navigator.hardwareConcurrency;
             if (typeof nCores !== "undefined" && nCores > 0 && nCores < 4) return this.setSafeMode(true);
-            const canvas = document.createElement("canvas");
-            const gl = canvas.getContext("webgl2");
-            if (!gl) return this.setSafeMode(true);
-            const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-            const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-            const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-            console.log("GPU", vendor, renderer);
-            this.gpuModel = renderer + " " + vendor;
+
+            const isIPFs = window.location.href.startsWith("ipfs://");
+            if (!isIPFs) {
+                if (!window.WebGLRenderingContext) return this.setSafeMode(true);
+                if (!window.WebGL2RenderingContext) return this.setSafeMode(true);
+
+                const canvas = document.createElement("canvas");
+                const gl = canvas.getContext("webgl2");
+                if (!gl) return this.setSafeMode(true);
+                const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+                const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                console.log("GPU", vendor, renderer);
+                this.gpuModel = renderer + " " + vendor;
+            }
         } catch (e) {
             return this.setSafeMode(true);
         }
