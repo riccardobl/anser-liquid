@@ -223,14 +223,18 @@ export default class SendStage extends UIStage {
             ticker1El.setValue(ASSET_INFO.ticker);
             ticker2El.setValue(SECONDARY_INFO.ticker);
             availableBalanceTextEl.setValue("Available balance (" + ASSET_INFO.ticker + "): ");
-            if (INPUT_AMOUNT <= 0) {
-                loading("Enter a valid amount...");
+            const isSimulation = !signAndSend || TO_ADDR == DUMMY_ADDR;
 
-                return;
-            }
             try {
                 const feeRate = await lq.estimateFeeRate(PRIORITY);
-                const tx = await lq.prepareTransaction(INPUT_AMOUNT, ASSET_HASH, TO_ADDR, feeRate.feeRate);
+                const tx = await lq.prepareTransaction(
+                    INPUT_AMOUNT,
+                    ASSET_HASH,
+                    TO_ADDR,
+                    feeRate.feeRate,
+                    2000,
+                    isSimulation,
+                );
                 FEE = tx.fee;
                 errorRowEl.hide();
                 feeValueEl.setValue(await lq.v(tx.fee, lq.getBaseAsset()).human());

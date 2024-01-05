@@ -451,8 +451,16 @@ export default class LiquidWallet {
      * @param {string} toAddress destination address
      * @param {number} estimatedFeeVByte estimated fee rate in vbyte if unset, will get the best fee for 1 block confirmation (if possible)
      * @param {number} averageSizeVByte average transaction size in vbyte  is used to apr the initial coins collection for fees.
+     * @param {boolean} simulation if true, skip some checks and compute intensive operations the resulting transaction is not broadcastable
      */
-    async prepareTransaction(amount, asset, toAddress, estimatedFeeVByte = null, averageSizeVByte = 2000) {
+    async prepareTransaction(
+        amount,
+        asset,
+        toAddress,
+        estimatedFeeVByte = null,
+        averageSizeVByte = 2000,
+        simulation = false,
+    ) {
         await this.check();
         if (!this.verifyAddress(toAddress)) throw new Error("Invalid address", { cause: "invalid_address" });
 
@@ -682,7 +690,7 @@ export default class LiquidWallet {
         [pset, psetUpdater] = newPset(inputs, outputs);
 
         // estimate the fee
-        const estimatedSize = VByteEstimator.estimateVirtualSize(pset, true);
+        const estimatedSize = VByteEstimator.estimateVirtualSize(pset, false);
 
         // real pset
         [inputs, outputs, totalFee] = await build(estimatedFeeVByte, estimatedSize, true);
@@ -705,7 +713,7 @@ export default class LiquidWallet {
         // GUARD
         const asserts = [];
 
-        {
+        if (!simulation) {
             // decode transaction
             let totalIn = 0;
             let totalOut = 0;
@@ -754,68 +762,70 @@ export default class LiquidWallet {
         }
 
         // Prepare zkp
-        const ownedInputs = inputs.map((input, i) => {
-            return {
-                index: i,
-                value: input.ldata.value,
-                valueBlindingFactor: input.ldata.valueBlindingFactor,
-                asset: input.ldata.asset,
-                assetBlindingFactor: input.ldata.assetBlindingFactor,
-            };
-        });
+        if (!simulation) {
+            const ownedInputs = inputs.map((input, i) => {
+                return {
+                    index: i,
+                    value: input.ldata.value,
+                    valueBlindingFactor: input.ldata.valueBlindingFactor,
+                    asset: input.ldata.asset,
+                    assetBlindingFactor: input.ldata.assetBlindingFactor,
+                };
+            });
 
-        const outputIndexes = [];
-        for (const [index, output] of pset.outputs.entries()) {
-            if (output.blindingPubkey && output.blinderIndex) {
-                outputIndexes.push(index);
-            }
-        }
-
-        const inputIndexes = ownedInputs.map((input) => input.index);
-        let isLast = true;
-        for (const out of pset.outputs) {
-            if (out.isFullyBlinded()) continue;
-            if (out.needsBlinding() && out.blinderIndex) {
-                if (!inputIndexes.includes(out.blinderIndex)) {
-                    isLast = false;
-                    break;
+            const outputIndexes = [];
+            for (const [index, output] of pset.outputs.entries()) {
+                if (output.blindingPubkey && output.blinderIndex) {
+                    outputIndexes.push(index);
                 }
             }
-        }
 
-        const zkpLib = this.zkpLib;
-        const zkpLibValidator = this.zkpLibValidator;
+            const inputIndexes = ownedInputs.map((input) => input.index);
+            let isLast = true;
+            for (const out of pset.outputs) {
+                if (out.isFullyBlinded()) continue;
+                if (out.needsBlinding() && out.blinderIndex) {
+                    if (!inputIndexes.includes(out.blinderIndex)) {
+                        isLast = false;
+                        break;
+                    }
+                }
+            }
 
-        const zkpGenerator = new Liquid.ZKPGenerator(
-            zkpLib,
-            Liquid.ZKPGenerator.WithOwnedInputs(ownedInputs),
-        );
+            const zkpLib = this.zkpLib;
+            const zkpLibValidator = this.zkpLibValidator;
 
-        const outputBlindingArgs = zkpGenerator.blindOutputs(
-            pset,
-            Liquid.Pset.ECCKeysGenerator(zkpLib.ecc),
-            outputIndexes,
-        );
+            const zkpGenerator = new Liquid.ZKPGenerator(
+                zkpLib,
+                Liquid.ZKPGenerator.WithOwnedInputs(ownedInputs),
+            );
 
-        const blinder = new Liquid.Blinder(pset, ownedInputs, zkpLibValidator, zkpGenerator);
+            const outputBlindingArgs = zkpGenerator.blindOutputs(
+                pset,
+                Liquid.Pset.ECCKeysGenerator(zkpLib.ecc),
+                outputIndexes,
+            );
 
-        if (isLast) {
-            blinder.blindLast({ outputBlindingArgs });
-        } else {
-            blinder.blindNonLast({ outputBlindingArgs });
-        }
+            const blinder = new Liquid.Blinder(pset, ownedInputs, zkpLibValidator, zkpGenerator);
 
-        pset = blinder.pset;
-        psetUpdater = new Liquid.Updater(pset);
+            if (isLast) {
+                blinder.blindLast({ outputBlindingArgs });
+            } else {
+                blinder.blindNonLast({ outputBlindingArgs });
+            }
 
-        const walletScript = address.outputScript;
-        const xOnlyPubKey = address.publicKey.subarray(1);
+            pset = blinder.pset;
+            psetUpdater = new Liquid.Updater(pset);
 
-        for (const [index, input] of pset.inputs.entries()) {
-            if (!input.witnessUtxo) continue;
-            const script = input.witnessUtxo.script;
-            if (script.equals(walletScript)) {
-                psetUpdater.addInTapInternalKey(index, xOnlyPubKey);
+            const walletScript = address.outputScript;
+            const xOnlyPubKey = address.publicKey.subarray(1);
+
+            for (const [index, input] of pset.inputs.entries()) {
+                if (!input.witnessUtxo) continue;
+                const script = input.witnessUtxo.script;
+                if (script.equals(walletScript)) {
+                    psetUpdater.addInTapInternalKey(index, xOnlyPubKey);
+                }
             }
         }
 
@@ -828,6 +838,7 @@ export default class LiquidWallet {
             _verified: false,
             _txData: undefined,
             compile: async () => {
+                if (simulation) throw new Error("Can't compile in simulation mode");
                 if (outtx._compiledTx) return outtx._compiledTx;
                 let signedPset = await window.liquid.signPset(psetUpdater.pset.toBase64());
                 if (!signedPset || !signedPset.signed) {
@@ -843,6 +854,7 @@ export default class LiquidWallet {
                 return hex;
             },
             verify: async () => {
+                if (simulation) throw new Error("Can't verify in simulation mode");
                 if (outtx._verified) return true;
                 // now the even funnier part, we verify the transaction as if we were the receiver
                 // and we check if everything is in order
@@ -888,6 +900,7 @@ export default class LiquidWallet {
             },
 
             broadcast: async () => {
+                if (simulation) throw new Error("Can't broadcast in simulation mode");
                 const hex = await outtx.compile();
                 await outtx.verify();
                 const txid = await this.elcAction("blockchain.transaction.broadcast", [hex]);
