@@ -180,7 +180,7 @@ jobs:
 
                   cid=`cat deploy.log`
 
-                  deployLink="IPfs deployment:\n - ipfs://${cid}\n\nWeb2 gateway:\n - https://${cid}.ipfs.cf-ipfs.com\n\nWeb2 gateway (alt):\n - https://${cid}.ipfs.w3s.link\n - https://${cid}.ipfs.dweb.link"
+                  deployLink="IPfs deployment:\n - ipfs://${cid}\n\nWWW gateway:\n - https://${cid}.ipfs.cf-ipfs.com\n\nWWW gateway (alt):\n - https://${cid}.ipfs.w3s.link\n - https://${cid}.ipfs.dweb.link"
                   echo $deployLink
 
                   # Add to release description
