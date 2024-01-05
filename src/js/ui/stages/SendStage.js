@@ -49,7 +49,7 @@ export default class SendStage extends UIStage {
         const c000El = $list(c00El, ["p$v", "l$h", "l$baselineAlign"]).fill();
         const c02El = $vlist(c000El, ["main"]).makeScrollable().fill();
         const c01El = $vlist(c000El, ["main"]).makeScrollable().fill();
-        const c03El = $hlist(c00El, []).fill();
+        const c03El = $vlist(c00El, ["bottom"]).fill();
 
         $title(c02El).setValue("Asset");
 
@@ -151,13 +151,16 @@ export default class SendStage extends UIStage {
         const ticker2El = $text(amountSecondaryEl);
 
         const availableBalanceDataEl = $vlist(c02El, ["sub"]).fill();
-        const availableBalanceEl = $hlist(availableBalanceDataEl, ["sub"]).fill();
+        const availableBalanceLabelRowEl = $hlist(availableBalanceDataEl, ["sub"]);
+        $hsep(availableBalanceLabelRowEl).grow(100);
+
+        const availableBalanceTextEl = $text(availableBalanceLabelRowEl).setValue("Available balance: ");
+
+        const availableBalanceEl = $hlist(availableBalanceDataEl, ["sub"]);
         $hsep(availableBalanceEl).grow(100);
-        const availableBalanceTextEl = $text(availableBalanceEl).setValue("Available balance: ");
         const availableBalanceValueEl = $text(availableBalanceEl);
-        const useAllRowEl = $hlist(availableBalanceDataEl, ["sub"]);
-        $hsep(useAllRowEl).grow(100);
-        const useAllEl = $button(useAllRowEl, ["small"]).setValue("SEND ALL");
+
+        const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
 
         $title(c01El).setValue("Fee");
         const prioritySlideEl = $inputSlide(c01El);
@@ -181,7 +184,7 @@ export default class SendStage extends UIStage {
         const errorRowEl = $vlist(c03El, ["error"]);
         errorRowEl.hide();
 
-        const confirmBtnEl = Html.$button(c03El).setValue("Confirm and sign");
+        const confirmBtnEl = Html.$button(c03El, []).setValue("Confirm and sign");
 
         const loading = (v) => {
             if (!v) {
@@ -220,7 +223,11 @@ export default class SendStage extends UIStage {
             ticker1El.setValue(ASSET_INFO.ticker);
             ticker2El.setValue(SECONDARY_INFO.ticker);
             availableBalanceTextEl.setValue("Available balance (" + ASSET_INFO.ticker + "): ");
+            if (INPUT_AMOUNT <= 0) {
+                loading("Enter a valid amount...");
 
+                return;
+            }
             try {
                 const feeRate = await lq.estimateFeeRate(PRIORITY);
                 const tx = await lq.prepareTransaction(INPUT_AMOUNT, ASSET_HASH, TO_ADDR, feeRate.feeRate);
@@ -286,6 +293,8 @@ export default class SendStage extends UIStage {
                     .getAssetInfo(asset.hash)
                     .then(async (info) => {
                         const optionEl = assetInputEl.addOption(asset.hash, info.ticker, (value) => {
+                            amountNativeEl.setValue(0);
+                            amountSecondaryEl.setValue(0);
                             ASSET_HASH = value;
                             ASSET_INFO = info;
                             _updateInvoice();
