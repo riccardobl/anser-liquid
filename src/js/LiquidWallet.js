@@ -500,7 +500,7 @@ export default class LiquidWallet {
             const inputs = [];
             const outputs = [];
 
-            const feeXsize = Math.floor(fee * size); // fee for the entire size of the transaction
+            const feeXsize = Math.floor(fee * size * 1.1); // fee for the entire size of the transaction
 
             // how much we expect to collect in amount to send and in fees (nb if feeAsset==asset, we sum the fee to the amount and use a single input)
             const expectedCollectedAmount = feeAsset === asset ? amount + feeXsize : amount;
