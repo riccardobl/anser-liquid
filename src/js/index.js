@@ -8,10 +8,32 @@ import "../less/style.less";
 import LiquidWallet from "./LiquidWallet.js";
 import UI from "./ui/UI.js";
 import Html from "./ui/Html.js";
+import LinkOpener from "./utils/LinkOpener.js";
 
 /**
  * The entry point for the Liquid Wallet APP
  */
+
+async function versionCheck(ui) {
+    try {
+        const currentVersion = await fetch("version.txt").then((r) => r.text());
+        const latestGithubReleaseData = await fetch(
+            "https://api.github.com/repos/riccardobl/anser-liquid/releases/latest",
+        ).then((r) => r.json());
+        if (!latestGithubReleaseData.tag_name) throw new Error("Cannot get latest version from github");
+        const latestVersion = latestGithubReleaseData.tag_name;
+        if (currentVersion != latestVersion) {
+            const alertEl = ui.info(
+                "New version available: " + latestVersion + ". Click here to visit the release page.",
+            );
+            alertEl.addEventListener("click", () => {
+                LinkOpener.navigate(latestGithubReleaseData.html_url);
+            });
+        }
+    } catch (e) {
+        console.log(e);
+    }
+}
 
 async function main() {
     try {
@@ -45,6 +67,7 @@ async function main() {
         } catch (e) {
             console.error(e);
         }
+        versionCheck(ui);
     } catch (e) {
         console.error(e);
         if (e.cause == "liquid_not_available") {

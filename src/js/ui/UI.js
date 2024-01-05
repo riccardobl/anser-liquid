@@ -263,6 +263,10 @@ export default class UI {
         this.showAlert("alert", this.walletEl, ...args);
     }
 
+    perma(...args) {
+        this.showAlert("perma", this.walletEl, ...args);
+    }
+
     showAlert(type, containerElement, ...args) {
         let alertContainerEl = containerElement.querySelector(".alertContainer");
         if (!alertContainerEl) {
@@ -282,6 +286,7 @@ export default class UI {
         let time = 5000;
         if (type === "error") time = 10000;
         if (type === "fatal") time = 60000;
+        if (type === "perma") time = 1000 * 60 * 60;
         const deletionTimeout = setTimeout(() => {
             alertContainerEl.removeChild(alertBox);
         }, time);
@@ -289,6 +294,8 @@ export default class UI {
             clearTimeout(deletionTimeout);
             alertContainerEl.removeChild(alertBox);
         });
+
+        return alertBox;
     }
 }
 
