@@ -1494,6 +1494,19 @@ export default class LiquidWallet {
                 amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
                 return amount;
             },
+
+            /**
+             * Returns the price of an int amount in the target asset as an integer
+             * @param {*} targetAssetHash if unset means to use the base asset
+             * @returns
+             */
+            cint: async (targetAssetHash) => {
+                await this.check();
+                if (!targetAssetHash) targetAssetHash = assetHash;
+                let amount = inAmount;
+                amount = await this.assetProvider.getPrice(amount, assetHash, targetAssetHash);
+                return amount;
+            },
         };
     }
 
