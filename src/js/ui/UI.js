@@ -36,7 +36,8 @@ export default class UI {
             const nCores = navigator.hardwareConcurrency;
             if (typeof nCores !== "undefined" && nCores > 0 && nCores < 4) return this.setSafeMode(true);
 
-            const isIPFs = window.location.href.startsWith("ipfs://");
+            const isIPFs =
+                window.location.href.startsWith("ipfs://") || window.location.href.includes(".ipfs.");
             if (!isIPFs) {
                 if (!window.WebGLRenderingContext) return this.setSafeMode(true);
                 if (!window.WebGL2RenderingContext) return this.setSafeMode(true);
