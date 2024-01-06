@@ -41,10 +41,9 @@ export default class ReceiveStage extends UIStage {
         const assetSelector = $inputSelect(rightCnt, "Select Asset");
 
         const invoiceQr = $hlist(leftCnt);
-        $title(rightCnt).setValue("Address");
 
         const invoiceTx = Html.$inputText(rightCnt).setEditable(false);
-
+        $text(invoiceTx, ["sub"]).setValue("Address:").setPriority(-1);
         $icon(invoiceTx)
             .setAction(() => {
                 navigator.clipboard.writeText(invoiceTx.getValue());
@@ -52,14 +51,7 @@ export default class ReceiveStage extends UIStage {
             })
             .setValue("content_copy");
 
-        $title(rightCnt).setValue("Amount");
-        const amountPrimaryEl = $inputNumber(rightCnt).grow(50).setPlaceHolder("0.00");
-        const tickerEl = $text(amountPrimaryEl).setValue(ASSET_INFO.ticker);
-
-        const amountSecondaryEl = Html.$inputNumber(rightCnt).grow(50).setPlaceHolder("0.00");
-        const tickerEl2 = $text(amountSecondaryEl).setValue(SECONDARY_INFO.ticker);
-
-        $text(leftCnt, ["warning"]).setValue(
+        $text(rightCnt, ["warning"]).setValue(
             `
         <span>
         Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network.
@@ -67,6 +59,17 @@ export default class ReceiveStage extends UIStage {
                 `,
             true,
         );
+
+        // $title(rightCnt).setValue("Amount");
+        const amountPrimaryEl = $inputNumber(rightCnt).grow(50).setPlaceHolder("0.00");
+        $text(amountPrimaryEl, ["sub"]).setValue("Amount:").setPriority(-1);
+
+        const tickerEl = $text(amountPrimaryEl).setValue(ASSET_INFO.ticker);
+
+        const amountSecondaryEl = Html.$inputNumber(rightCnt).grow(50).setPlaceHolder("0.00");
+        $text(amountSecondaryEl, ["sub"]).setValue("Amount:").setPriority(-1);
+
+        const tickerEl2 = $text(amountSecondaryEl).setValue(SECONDARY_INFO.ticker);
 
         const _updateInvoice = async () => {
             if (!ASSET_HASH || !ASSET_INFO) return; // if unset do nothing

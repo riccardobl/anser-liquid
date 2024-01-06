@@ -48,16 +48,7 @@ export default class SendStage extends UIStage {
         const parentCnt = $vlist(walletEl).fill().makeScrollable();
 
         const assetInputEl = $inputSelect(parentCnt, "Select Asset");
-
-        const midCnt = $list(parentCnt, ["p$v", "l$h"]).fill().setAlign("top");
-        const midleftCnt = $vlist(midCnt, []).makeScrollable().fill();
-        const midrightCnt = $vlist(midCnt, []).makeScrollable().fill();
-
-        $title(midrightCnt).setValue("To");
-
-        const addrEl = $inputText(midrightCnt).setPlaceHolder("Address");
-
-        $text(midrightCnt, ["warning"]).setValue(
+        $text(parentCnt, ["warning"]).setValue(
             `
         <span>
         Please ensure that the receiver address is on the <b>${await lq.getNetworkName()}</b> network. 
@@ -65,6 +56,13 @@ export default class SendStage extends UIStage {
                 `,
             true,
         );
+
+        const midCnt = $list(parentCnt, ["p$v", "l$h"]).fill().setAlign("top");
+        const midleftCnt = $vlist(midCnt, []).makeScrollable().fill();
+        const midrightCnt = $vlist(midCnt, []).makeScrollable().fill();
+
+        const addrEl = $inputText(midrightCnt).setPlaceHolder("Address");
+        $text(addrEl, ["sub"]).setValue("To:").setPriority(-1);
 
         $icon(addrEl)
             .setValue("qr_code_scanner")
@@ -140,12 +138,13 @@ export default class SendStage extends UIStage {
                 addrEl.setValue(text);
             });
 
-        $title(midleftCnt).setValue("Amount");
-
         const amountNativeEl = $inputNumber(midleftCnt).setPlaceHolder("0.00");
+        $text(amountNativeEl, ["sub"]).setValue("Amount:").setPriority(-1);
+
         const ticker1El = $text(amountNativeEl);
 
         const amountSecondaryEl = $inputNumber(midleftCnt).setPlaceHolder("0.00");
+        $text(amountSecondaryEl, ["sub"]).setValue("Amount:").setPriority(-1);
         const ticker2El = $text(amountSecondaryEl);
 
         const availableBalanceDataEl = $vlist(midleftCnt, ["sub"]).fill();
@@ -160,12 +159,11 @@ export default class SendStage extends UIStage {
 
         const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
 
-        $title(parentCnt).setValue("Fee");
-        const prioritySlideEl = $inputSlide(parentCnt);
-        prioritySlideEl.setLabel(0, "Low (slow)");
-        prioritySlideEl.setLabel(0.5, "Medium");
-        prioritySlideEl.setLabel(1, "High (fast)");
-        const feeDataEl = $vlist(parentCnt, []).fill();
+        const prioritySlideEl = $inputSlide(midrightCnt);
+        prioritySlideEl.setLabel(0, "Low fee (slow)");
+        prioritySlideEl.setLabel(0.5, "Medium fee");
+        prioritySlideEl.setLabel(1, "High fee (fast)");
+        const feeDataEl = $vlist(midrightCnt, []).fill();
 
         const feeRowEl = $hlist(feeDataEl, ["sub"]).setAlign("center-right");
         $hsep(feeRowEl).grow(100);
