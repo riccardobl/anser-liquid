@@ -56,6 +56,14 @@ export default class OptionsStage extends UIStage {
 
         $vsep(optionsEl);
 
+        if (window.installPWA) {
+            $button(optionsEl)
+                .setValue("Install as progressive web app")
+                .setAction(() => {
+                    if (window.installPWA) window.installPWA();
+                });
+        }
+
         $button(optionsEl)
             .setValue("Report an issue")
             .setAction(() => {
@@ -69,6 +77,7 @@ export default class OptionsStage extends UIStage {
                 alert("Cache cleared");
                 window.location.reload();
             });
+
         $vsep(optionsEl);
         const gpuModel = $text(optionsEl, ["sub"]);
         ui.getGPUModel().then((model) => {

@@ -17,6 +17,7 @@
 
     --outgoingTxForeground: #b76a6a;
     --incomingTxForeground: #6d8b6d;
+    --popupBackground: #dadada;
 }
 
 #liquidwallet #logo {

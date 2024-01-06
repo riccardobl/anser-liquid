@@ -252,19 +252,19 @@ export default class UI {
     }
 
     error(...args) {
-        this.showAlert("error", this.walletEl, ...args);
+        return this.showAlert("error", this.walletEl, ...args);
     }
 
     fatal(...args) {
-        this.showAlert("fatal", this.walletEl, ...args);
+        return this.showAlert("fatal", this.walletEl, ...args);
     }
 
     info(...args) {
-        this.showAlert("alert", this.walletEl, ...args);
+        return this.showAlert("alert", this.walletEl, ...args);
     }
 
     perma(...args) {
-        this.showAlert("perma", this.walletEl, ...args);
+        return this.showAlert("perma", this.walletEl, ...args);
     }
 
     showAlert(type, containerElement, ...args) {

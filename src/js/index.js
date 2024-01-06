@@ -35,7 +35,59 @@ async function versionCheck(ui) {
     }
 }
 
+function capturePWAPrompt() {
+    window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        window.installPWA = () => {
+            e.prompt();
+            e.userChoice.then(function (choiceResult) {
+                try {
+                    console.log("PWA outcome", choiceResult.outcome);
+                    if (choiceResult.outcome == "dismissed") {
+                        console.log("PWA User cancelled home screen install");
+                    } else {
+                        console.log("PWA User added to home screen");
+                    }
+                    window.installPWA = null;
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        };
+    });
+}
+
+function renderPWAInstallPrompt(ui) {
+    if (window.installPWA && !localStorage.getItem("pwaInstallPrompt")) {
+        const installPromptEl = ui.perma(`
+        Do you want to install this app on your device for a better experience? 
+        `);
+
+        const acceptButtonEl = document.createElement("button");
+        acceptButtonEl.classList.add("button");
+        installPromptEl.appendChild(acceptButtonEl);
+        acceptButtonEl.innerText = "Install";
+        acceptButtonEl.addEventListener("click", () => {
+            console.log("PWA", "Install");
+            if (window.installPWA) window.installPWA();
+        });
+
+        const cancelButtonEl = document.createElement("button");
+        installPromptEl.appendChild(cancelButtonEl);
+        cancelButtonEl.classList.add("button");
+        cancelButtonEl.innerText = "Continue without installing";
+        cancelButtonEl.addEventListener("click", () => {
+            console.log("PWA", "cancel");
+            localStorage.setItem("pwaInstallPrompt", "dismissed");
+        });
+    } else {
+        console.log("PWA", "custom dialog not supported or already installed");
+    }
+}
+
 async function main() {
+    capturePWAPrompt();
+
     try {
         // Get the wallet element
         const walletEl = document.body.querySelector("#liquidwallet");
@@ -52,6 +104,8 @@ async function main() {
         // create the UI
         const ui = new UI(containerEl, walletEl, lq);
         ui.captureOutputs();
+        renderPWAInstallPrompt(ui);
+
         window.dbui = ui;
         window.dblq = lq;
         try {

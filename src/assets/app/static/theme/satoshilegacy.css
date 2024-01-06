@@ -19,6 +19,7 @@
 
     --outgoingTxForeground: #b76a6a;
     --incomingTxForeground: #6d8b6d;
+    --popupBackground: rgb(26, 15, 0);
 }
 #liquidwallet #container .asset .cover {
     filter: blur(20px) grayscale(0.4) brightness(0.6);

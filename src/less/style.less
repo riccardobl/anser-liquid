@@ -19,6 +19,8 @@
 
     --outgoingTxForeground: #b76a6a;
     --incomingTxForeground: #6d8b6d;
+
+    --popupBackground: var(--elementsForeground);
 }
 
 #liquidwallet {
@@ -66,16 +68,22 @@
     }
 
     .alert {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        row-gap: 0.6rem;
         font-size: 1rem;
         padding: 1rem;
         border-radius: 10px;
         color: var(--foreground);
-        opacity: 0.9;
+        opacity: 1;
         transition: opacity 0.5s ease;
-        background-color: var(--elementsBackground);
+        background-color: var(--popupBackground);
         margin-top: 0.3rem;
         text-align: center;
-
+        > :nth-child(1) {
+            margin-top: 0.5rem;
+        }
         &.error {
             color: var(--headerForeground);
             background-color: var(--error);
@@ -313,6 +321,48 @@
         padding: 0;
     }
 
+    button {
+        box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
+        border-radius: 14px;
+        border: none;
+        background-color: var(--elementsBackground);
+        color: var(--elementsForeground);
+        font-weight: bold;
+        font-size: 1rem;
+        text-align: center;
+        cursor: pointer;
+        padding: 1rem;
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+
+        &.withIcon {
+            display: flex;
+            flex-direction: column;
+            margin: 0.3rem;
+            padding: 1rem !important;
+
+            .icon {
+                margin-bottom: 0rem;
+                font-size: 3rem;
+            }
+        }
+
+        &.small {
+            box-shadow: none;
+            border-radius: 8px;
+            padding: 0.4rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            font-size: 0.8rem;
+        }
+    }
+
+    button.selectBtn {
+        display: flex;
+        box-shadow: none;
+    }
+
     #logo {
         display: flex;
         position: fixed;
@@ -491,48 +541,6 @@
             filter: drop-shadow(1px 20px 18px rgba(0, 0, 0, 0.3));
         }
 
-        button {
-            box-shadow: 2px 5px 2px rgba(0, 0, 0, 0.3);
-            border-radius: 14px;
-            border: none;
-            background-color: var(--elementsBackground);
-            color: var(--elementsForeground);
-            font-weight: bold;
-            font-size: 1rem;
-            text-align: center;
-            cursor: pointer;
-            padding: 1rem;
-            text-align: center;
-            align-items: center;
-            justify-content: center;
-
-            &.withIcon {
-                display: flex;
-                flex-direction: column;
-                margin: 0.3rem;
-                padding: 1rem !important;
-
-                .icon {
-                    margin-bottom: 0rem;
-                    font-size: 3rem;
-                }
-            }
-
-            &.small {
-                box-shadow: none;
-                border-radius: 8px;
-                padding: 0.4rem;
-                padding-left: 1rem;
-                padding-right: 1rem;
-                font-size: 0.8rem;
-            }
-        }
-
-        button.selectBtn {
-            display: flex;
-            box-shadow: none;
-        }
-
         .iconCnt {
             display: flex;
             align-items: center;
@@ -585,7 +593,7 @@
         .popup {
             width: 90vw;
             display: flex;
-            background: var(--highlightedBackground);
+            background: var(--popupBackground);
             height: min(80vh, 50rem);
             overflow-y: auto;
             z-index: 99;
