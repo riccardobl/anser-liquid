@@ -35,16 +35,15 @@ export default class ReceiveStage extends UIStage {
         let SECONDARY_CURRENCY = secondaryCurrency;
         let SECONDARY_INFO = await lq.assets().getAssetInfo(secondaryCurrency);
 
-        const c0 = $vlist(stageCntEl, []).fill().makeScrollable();
-        const c1 = $vlist(stageCntEl, ["main"]).grow(100).fill().makeScrollable();
+        const leftCnt = $vlist(stageCntEl, []).fill().makeScrollable().setAlign("center");
+        const rightCnt = $vlist(stageCntEl, []).fill().makeScrollable();
 
-        $title(c1).setValue("Asset");
-        const assetSelector = $inputSelect(c1, "Select Asset");
+        const assetSelector = $inputSelect(rightCnt, "Select Asset");
 
-        const invoiceQr = $hlist(c0);
-        $title(c1).setValue("Address");
+        const invoiceQr = $hlist(leftCnt);
+        $title(rightCnt).setValue("Address");
 
-        const invoiceTx = Html.$inputText(c1).setEditable(false);
+        const invoiceTx = Html.$inputText(rightCnt).setEditable(false);
 
         $icon(invoiceTx)
             .setAction(() => {
@@ -53,22 +52,14 @@ export default class ReceiveStage extends UIStage {
             })
             .setValue("content_copy");
 
-        $title(c1).setValue("Amount");
-        const amountPrimaryEl = $inputNumber(c1).grow(50).setPlaceHolder("0.00");
+        $title(rightCnt).setValue("Amount");
+        const amountPrimaryEl = $inputNumber(rightCnt).grow(50).setPlaceHolder("0.00");
         const tickerEl = $text(amountPrimaryEl).setValue(ASSET_INFO.ticker);
 
-        const amountSecondaryEl = Html.$inputNumber(c1).grow(50).setPlaceHolder("0.00");
+        const amountSecondaryEl = Html.$inputNumber(rightCnt).grow(50).setPlaceHolder("0.00");
         const tickerEl2 = $text(amountSecondaryEl).setValue(SECONDARY_INFO.ticker);
 
-        // const tickerEl = Html.$text(amountPrimaryRow, ".asset", ["center", "enforceSmallWidth"]).grow(5);
-
-        // const amountSecondaryRow = Html.$hlist(c02El, "#amountCntS", ["fillw"]);
-        // const amountSecondaryEl = Html.$inputNumber(amountSecondaryRow, ".amountInput")
-        //     .grow(50)
-        //     .setPlaceHolder("0.00");
-        // const tickerEl2 = Html.$text(amountSecondaryRow, ".asset", ["center", "enforceSmallWidth"]).grow(5);
-
-        $text(c1, ["warning"]).setValue(
+        $text(leftCnt, ["warning"]).setValue(
             `
         <span>
         Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network.
@@ -76,15 +67,7 @@ export default class ReceiveStage extends UIStage {
                 `,
             true,
         );
-        // const warningRowEl = Html.$vlist(c02El, "#warningNetwork", ["fillw", "warning"]);
-        // warningRowEl.setValue(
-        //     `
-        // <span>
-        // Please ensure that the sender is on the <b>${await lq.getNetworkName()}</b> network.
-        // </span>
-        //         `,
-        //     true,
-        // );
+
         const _updateInvoice = async () => {
             if (!ASSET_HASH || !ASSET_INFO) return; // if unset do nothing
             const { addr, qr } = await lq.receive(INPUT_AMOUNT, ASSET_HASH); // create invoice

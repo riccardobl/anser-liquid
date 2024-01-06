@@ -1,6 +1,6 @@
 html {
     /* font-size:102%; */
-    @media (min-width: 1400px) {
+    @media (min-width: 1800px) {
         font-size: 120%;
     }
 }
@@ -11,7 +11,6 @@ body {
 }
 
 * {
-    padding: 0;
     box-sizing: border-box;
     min-width: 0 !important;
     font-family: "Lato", sans-serif;
@@ -25,6 +24,7 @@ body {
 ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
+    opacity: 0.4;
     /* width of the entire scrollbar */
 }
 
@@ -37,20 +37,20 @@ body {
     background: var(--elementsBackground);
     /* color of the scroll thumb */
     border-radius: 10px;
+    opacity: 0.4;
     /* roundness of the scroll thumb */
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
+    opacity: 0.4;
     /* color of the scroll thumb when hovering */
 }
 
 /* For Firefox */
 * {
     scrollbar-width: thin;
-    /* "auto" or "thin"  */
     scrollbar-color: var(--elementsBackground) transparent;
-    /* scroll thumb and track */
 }
 
 body,

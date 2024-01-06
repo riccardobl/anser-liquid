@@ -30,10 +30,7 @@ export default class WalletPage extends UIStage {
         const primaryCurrency = (await store.get(`primaryCurrency${network}`)) || lq.getBaseAsset();
         const secondaryCurrency = (await store.get(`secondaryCurrency${network}`)) || "USD";
 
-        const assetsEl = $list(parentEl, ["main", "highlight", "p$h", "l$v"], "assets").makeScrollable(
-            true,
-            true,
-        );
+        const assetsEl = $list(parentEl, ["highlight", "p$h", "l$v"], "assets").makeScrollable(true, true);
         assetsEl.setPriority(-10);
         assetsEl.initUpdate();
 
@@ -69,11 +66,16 @@ export default class WalletPage extends UIStage {
                     });
 
                 lq.v(balance.value, balance.asset)
+                    .cint(lq.getBaseAsset())
+                    .then((value) => {
+                        assetEl.setPriority(-value);
+                    });
+
+                lq.v(balance.value, balance.asset)
                     .human(primaryCurrency)
                     .then((price) => {
                         if (price) {
                             balancePrimaryEl.setValue(price);
-                            assetEl.setPriority(-Math.floor(Number(price.split(" ")[0]) * 100000));
                         } else {
                             assetEl.setPriority(0);
                             balancePrimaryEl.setValue("-");
@@ -133,9 +135,7 @@ export default class WalletPage extends UIStage {
 
     async renderHistoryPanel(parentEl, lq, filter, ui, forceRefresh = false, limit = 100, page = 0) {
         filter = this.filter;
-        const historyEl = $vlist(parentEl, ["main", "highlight"], "history")
-            .makeScrollable(true, true)
-            .fill();
+        const historyEl = $vlist(parentEl, ["highlight"], "history").makeScrollable(true, true).fill();
 
         const history = await lq.getHistory(); //.slice(page * limit, page * limit + limit); TODO: pagination
 
@@ -304,9 +304,7 @@ export default class WalletPage extends UIStage {
     }
 
     async renderSendReceive(parentEl, lq, filter, ui) {
-        const cntEl = $hlist(parentEl, ["buttons", "fillw", "main", "highlight"], "sendReceive")
-            .setPriority(-15)
-            .fill();
+        const cntEl = $hlist(parentEl, ["buttons", "highlight"], "sendReceive").setPriority(-15).fill();
         $button(cntEl, [])
             .setValue("Receive")
             .setIconValue("arrow_downward")
@@ -322,17 +320,13 @@ export default class WalletPage extends UIStage {
     }
 
     async renderSearchBar(walletEl, lq, render, ui) {
-        const searchBarParentEl = $hlist(walletEl, ["searchBar", "main", "highlight"])
-            .setPriority(-10)
-            .fill();
+        const searchBarParentEl = $hlist(walletEl, ["searchBar", "highlight"]).setPriority(-10).fill();
         const searchInputEl = $inputText(searchBarParentEl).setPlaceHolder("Search");
         searchInputEl.setAttribute("autocomplete", "off");
         searchInputEl.setAttribute("autocorrect", "off");
         searchInputEl.setAttribute("autocapitalize", "off");
         searchInputEl.setAttribute("spellcheck", "false");
-        // searchInputEl.setPriority(-10);
-        let lastValue = "";
-        let scheduledTimeout = undefined;
+
         const searchIcon = $icon(searchInputEl, ["search"]).setValue("search");
 
         searchInputEl.addEventListener("input", () => {
@@ -341,13 +335,6 @@ export default class WalletPage extends UIStage {
         });
 
         searchInputEl.setAction(async (lastValue) => {
-            // set loading icon
-
-            // const value = searchInputEl.value;
-            // if (value === lastValue) return;
-            // lastValue = value;
-            // if (scheduledTimeout) clearTimeout(scheduledTimeout);
-            // scheduledTimeout = setTimeout(() => {
             let words = "";
             let partial = true;
             lastValue = lastValue.trim();

@@ -42,7 +42,7 @@ async function main() {
         if (!walletEl) alert("No wallet element found");
 
         // A container that is vertical in portrait and horizontal in landscape
-        const containerEl = Html.$list(walletEl, ["p$v", "l$h", "fillw"], "container");
+        const containerEl = Html.$list(walletEl, ["p$v", "l$h"], "container");
         containerEl.classList.add("popupContainer");
 
         // Create and start the wallet

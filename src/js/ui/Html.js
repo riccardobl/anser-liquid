@@ -88,6 +88,16 @@ class Html {
             return el;
         };
 
+        /* top, bottom ,left ,right, center*/
+        el.setAlign = (v = "center") => {
+            if (v.includes("-")) v = v.split("-");
+            else v = [v];
+            for (const a of v) {
+                el.classList.add(a);
+            }
+            return el;
+        };
+
         el.addClass = (cls, mode = "all") => {
             if (mode == "landscape") {
                 el.$$$.landScapeClasses.push(cls);
@@ -728,7 +738,7 @@ class Html {
             el.$$$.popupId = "popupSelect" + Date.now() + Math.floor(Math.random() * 1000);
         }
 
-        const btnEl = this.$button(el, ["selectBtn", "fillw"], "selectBtn");
+        const btnEl = this.$button(el, ["selectBtn"], "selectBtn");
 
         el.deselectOption = (value) => {
             const optionEl = el.$$$.selectOptions[value];
@@ -814,11 +824,7 @@ class Html {
 
             if (el.$$$.selectOptions) {
                 for (const key in el.$$$.selectOptions) {
-                    const btnEl = this.$button(
-                        popupOptionsEl,
-                        ["option" + key, "option", "fillw"],
-                        "option" + key,
-                    );
+                    const btnEl = this.$button(popupOptionsEl, ["option" + key, "option"], "option" + key);
                     el.$$$.selectOptions[key].copyTo(btnEl);
                     if (!el.$$$.selectedOptions) el.$$$.selectedOptions = {};
 
@@ -914,7 +920,7 @@ class Html {
         };
 
         el.addOption = (value, label, action = () => {}, selected = false) => {
-            const optionEl = this.$button(undefined, ["option" + value, "option", "fillw"], "option" + value);
+            const optionEl = this.$button(undefined, ["option" + value, "option"], "option" + value);
             let toggleEl;
             if (multiSelect) {
                 toggleEl = this.$icon(optionEl, ["toggle"], "toggle", true);

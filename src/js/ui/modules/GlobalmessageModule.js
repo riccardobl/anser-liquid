@@ -12,7 +12,7 @@ export default class HeaderModule extends UIModule {
 
     onLoad(stage, stageContainerEl, walletEl, lq, ui) {
         if (Constants.GLOBAL_MESSAGE) {
-            const globalMessageEl = Html.$hlist(walletEl, "#globalMessage", ["fillw"]);
+            const globalMessageEl = Html.$hlist(walletEl, "#globalMessage", []);
             globalMessageEl.setValue(Constants.GLOBAL_MESSAGE);
         }
     }

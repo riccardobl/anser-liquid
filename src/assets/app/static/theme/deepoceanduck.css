@@ -13,7 +13,7 @@
     --elementsForeground: #8db0c4;
     --headerForeground: #8db0c4;
 
-    --error: #ff0000;
+    --error: #b76a6a;
     --warning: var(--foreground);
 
     --outgoingTxForeground: #b76a6a;

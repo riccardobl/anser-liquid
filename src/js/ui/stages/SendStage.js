@@ -45,21 +45,19 @@ export default class SendStage extends UIStage {
         let TO_ADDR = DUMMY_ADDR;
         let FEE = 0;
 
-        const c00El = $vlist(walletEl).fill().makeScrollable();
-        const c000El = $list(c00El, ["p$v", "l$h", "l$baselineAlign"]).fill();
-        const c02El = $vlist(c000El, ["main"]).makeScrollable().fill();
-        const c01El = $vlist(c000El, ["main"]).makeScrollable().fill();
-        const c03El = $vlist(c00El, ["bottom"]).fill();
+        const parentCnt = $vlist(walletEl).fill().makeScrollable();
 
-        $title(c02El).setValue("Asset");
+        const assetInputEl = $inputSelect(parentCnt, "Select Asset");
 
-        const assetInputEl = $inputSelect(c02El, "Select Asset");
+        const midCnt = $list(parentCnt, ["p$v", "l$h"]).fill().setAlign("top");
+        const midleftCnt = $vlist(midCnt, []).makeScrollable().fill();
+        const midrightCnt = $vlist(midCnt, []).makeScrollable().fill();
 
-        $title(c01El).setValue("To");
+        $title(midrightCnt).setValue("To");
 
-        const addrEl = $inputText(c01El).setPlaceHolder("Address");
+        const addrEl = $inputText(midrightCnt).setPlaceHolder("Address");
 
-        $text(c01El, ["warning"]).setValue(
+        $text(midrightCnt, ["warning"]).setValue(
             `
         <span>
         Please ensure that the receiver address is on the <b>${await lq.getNetworkName()}</b> network. 
@@ -142,15 +140,15 @@ export default class SendStage extends UIStage {
                 addrEl.setValue(text);
             });
 
-        $title(c02El).setValue("Amount");
+        $title(midleftCnt).setValue("Amount");
 
-        const amountNativeEl = $inputNumber(c02El).setPlaceHolder("0.00");
+        const amountNativeEl = $inputNumber(midleftCnt).setPlaceHolder("0.00");
         const ticker1El = $text(amountNativeEl);
 
-        const amountSecondaryEl = $inputNumber(c02El).setPlaceHolder("0.00");
+        const amountSecondaryEl = $inputNumber(midleftCnt).setPlaceHolder("0.00");
         const ticker2El = $text(amountSecondaryEl);
 
-        const availableBalanceDataEl = $vlist(c02El, ["sub"]).fill();
+        const availableBalanceDataEl = $vlist(midleftCnt, ["sub"]).fill();
         const availableBalanceLabelRowEl = $hlist(availableBalanceDataEl, ["sub"]);
         $hsep(availableBalanceLabelRowEl).grow(100);
 
@@ -162,14 +160,14 @@ export default class SendStage extends UIStage {
 
         const useAllEl = $button(availableBalanceEl, ["small"]).setValue("SEND ALL");
 
-        $title(c01El).setValue("Fee");
-        const prioritySlideEl = $inputSlide(c01El);
+        $title(parentCnt).setValue("Fee");
+        const prioritySlideEl = $inputSlide(parentCnt);
         prioritySlideEl.setLabel(0, "Low (slow)");
         prioritySlideEl.setLabel(0.5, "Medium");
         prioritySlideEl.setLabel(1, "High (fast)");
-        const feeDataEl = $vlist(c01El, []).fill();
+        const feeDataEl = $vlist(parentCnt, []).fill();
 
-        const feeRowEl = $hlist(feeDataEl, ["sub"]);
+        const feeRowEl = $hlist(feeDataEl, ["sub"]).setAlign("center-right");
         $hsep(feeRowEl).grow(100);
         $text(feeRowEl).setValue("Fee: ");
         const feeValueEl = $text(feeRowEl);
@@ -181,10 +179,12 @@ export default class SendStage extends UIStage {
         const timeValueEl = $text(timeRowEl).setValue("10");
         $hsep(timeRowEl).setValue("minutes");
 
-        const errorRowEl = $vlist(c03El, ["error"]);
+        const bottomCnt = $vlist(parentCnt, ["bottom"]).fill();
+
+        const errorRowEl = $vlist(bottomCnt, ["error"]);
         errorRowEl.hide();
 
-        const confirmBtnEl = Html.$button(c03El, []).setValue("Confirm and sign");
+        const confirmBtnEl = Html.$button(bottomCnt, []).setValue("Confirm and sign");
 
         const loading = (v) => {
             if (!v) {
