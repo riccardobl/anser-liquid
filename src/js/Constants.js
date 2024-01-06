@@ -27,7 +27,7 @@ export default {
             "tlq1qqf5wd5h3r2tl6tlpkag34uyg9fdkh2v6gshntur7pdkqpxp8v0mk6ke5awh2vejugcrj6gf564av8xld7nmwc477eq78r2clt",
         liquid: "lq1qqg9xdv9v8rze8f5ax7e5sfrxvvfuyjk9qwduajuuek653myfweck9s865resnaetqnvc7j5w2rn8lx6dsyntzephy9604mchf",
     },
-    DEFAULT_THEME: "spacequack",
+    DEFAULT_THEME: "deepoceanduck",
 
     PAYURL_PREFIX: {
         testnet: "liquidtestnet",
