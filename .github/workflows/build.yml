@@ -126,7 +126,6 @@ jobs:
                   "$url"
 
     deployWWW:
-        if: github.event_name == 'release'
         concurrency: ci-${{ github.ref }}
         environment:
             name: github-pages
@@ -160,7 +159,16 @@ jobs:
               with:
                   node-version: 18
 
+            - name: Deploy to surge.sh
+              uses: dswistowski/surge-sh-action@v1
+              with:
+                  domain: "anser-snapshot.surge.sh"
+                  project: "./dist/"
+                  login: ${{ secrets.SURGE_LOGIN }}
+                  token: ${{ secrets.SURGE_TOKEN }}
+
             - name: Upload to ipfs
+              if: github.event_name == 'release'
               run: |
                   npm install -g @web3-storage/w3cli
                   mkdir -p /home/runner/.config/w3access
@@ -172,6 +180,7 @@ jobs:
                   cat deploy.log
 
             - name: Write ipfs link to release description
+              if: github.event_name == 'release'
               run: |
                   set -e
                   echo "${GITHUB_EVENT_PATH}"
