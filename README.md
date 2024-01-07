@@ -11,7 +11,13 @@ See the [FAQ](#faq) for more details.
 
 Anser is a progressive web app that can be easily installed on your device, providing a native app experience. Alternatively, you can utilize it directly within your browser or even host your own instance.
 
-There is a live version hosted on github pages that is automatically updated with every release, you can find it [here](https://anserliquid.frk.wf) .
+## Stable
+
+There is a live version hosted on github pages that is automatically updated with every release, you can find it [here](https://anserliquid.frk.wf) also available on IPfs (check the [Release Page](https://github.com/riccardobl/anser-liquid/releases) for the link).
+
+## Dev Snapshot
+
+If you wish to test the latest updates from the master branch, you can access the snapshot [here](https://anser-snapshot.surge.sh).
 
 # Self Hosting
 
