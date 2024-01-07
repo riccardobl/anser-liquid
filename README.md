@@ -1,6 +1,6 @@
 # Anser: A liquid companion for Alby
 
-[![anser](src/assets/screenshot/2.webp)](https://anserliquid.frk.wf)
+[![anser](src/assets/screenshot/3.webp)](https://anserliquid.frk.wf)
 
 Anser is a client-side web app that uses the [Alby extension](https://getalby.com/)'s
 liquid integration to provide a simple interface to the Liquid Network.
