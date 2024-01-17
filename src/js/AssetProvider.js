@@ -88,14 +88,14 @@ export default class AssetProvider {
             const trackedAssets = await this.store.get("trackedAssets");
             if (trackedAssets) {
                 for (const asset of trackedAssets) {
-                    await this.track(asset, true);
+                    await this.track(asset, true, true);
                 }
             }
 
             const trackedFiatAssets = await this.store.get("trackedFiatAssets");
             if (trackedFiatAssets) {
                 for (const asset of trackedFiatAssets) {
-                    await this.track(asset, true);
+                    await this.track(asset, true, true);
                 }
             }
 
@@ -195,60 +195,61 @@ export default class AssetProvider {
         return price;
     }
 
-    async track(assetHash, noInit = false) {
-        if (!noInit) await this._init();
-        if (assetHash === this.baseAssetId) return;
+    async _saveTrackedAssets() {
         await this.store.lock("trackedAssets");
         try {
-            console.log("Track", assetHash);
-
-            if (this._isFiat(assetHash)) {
-                if (this.trackedFiatAssets.indexOf(assetHash) < 0) {
-                    this.trackedFiatAssets.push(assetHash);
-                    await this.store.set("trackedFiatAssets", this.trackedFiatAssets);
-                }
-                return;
-            }
-
-            if (this.trackedAssets.indexOf(assetHash) >= 0) return;
-
-            this.trackedAssets.push(assetHash);
             await this.store.set("trackedAssets", this.trackedAssets);
-
-            let first = true;
-            return new Promise((res, rej) => {
-                const trackerCallback = async (price, baseAssetId) => {
-                    await this.cache.set("p:" + assetHash, price);
-                    if (first) {
-                        res(price);
-                        first = false;
-                    }
-                };
-                if (!this.trackerCallbacks) this.trackerCallbacks = {};
-                this.trackerCallbacks[assetHash] = trackerCallback;
-                this.sideSwap.subscribeToAssetPriceUpdate(assetHash, trackerCallback);
-            });
+            await this.store.set("trackedFiatAssets", this.trackedFiatAssets);
         } finally {
             await this.store.unlock("trackedAssets");
         }
     }
 
-    async untrack(assetHash) {
+    async track(assetHash, noInit = false, noSave = false) {
+        if (!noInit) await this._init();
         if (assetHash === this.baseAssetId) return;
-        await this.store.lock("trackedAssets");
-        try {
-            if (this._isFiat(assetHash)) return;
-            const index = this.trackedAssets.indexOf(assetHash);
-            if (index < 0) return;
-            this.trackedAssets.splice(index, 1);
-            await this.store.set("trackedAssets", this.trackedAssets);
-            const trackerCallback = this.trackerCallbacks[assetHash];
-            if (trackerCallback) {
-                this.sideSwap.unsubscribeFromAssetPriceUpdate(assetHash, trackerCallback);
-                delete this.trackerCallbacks[assetHash];
+        console.log("Track", assetHash);
+
+        if (this._isFiat(assetHash)) {
+            if (this.trackedFiatAssets.indexOf(assetHash) < 0) {
+                this.trackedFiatAssets.push(assetHash);
+                if (!noSave) await this._saveTrackedAssets();
             }
-        } finally {
-            await this.store.unlock("trackedAssets");
+            return;
+        }
+
+        if (this.trackedAssets.indexOf(assetHash) >= 0) return;
+
+        this.trackedAssets.push(assetHash);
+        if (!noSave) await this._saveTrackedAssets();
+
+        let first = true;
+        return new Promise((res, rej) => {
+            const trackerCallback = async (price, baseAssetId) => {
+                await this.cache.set("p:" + assetHash, price);
+                if (first) {
+                    res(price);
+                    first = false;
+                }
+            };
+            if (!this.trackerCallbacks) this.trackerCallbacks = {};
+            this.trackerCallbacks[assetHash] = trackerCallback;
+            this.sideSwap.subscribeToAssetPriceUpdate(assetHash, trackerCallback);
+        });
+    }
+
+    async untrack(assetHash, noSave = false) {
+        if (assetHash === this.baseAssetId) return;
+
+        if (this._isFiat(assetHash)) return;
+        const index = this.trackedAssets.indexOf(assetHash);
+        if (index < 0) return;
+        this.trackedAssets.splice(index, 1);
+        if (!noSave) await this._saveTrackedAssets();
+        const trackerCallback = this.trackerCallbacks[assetHash];
+        if (trackerCallback) {
+            this.sideSwap.unsubscribeFromAssetPriceUpdate(assetHash, trackerCallback);
+            delete this.trackerCallbacks[assetHash];
         }
     }
 
