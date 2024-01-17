@@ -7,7 +7,7 @@ export default {
     HARDCODED_FEE: 0.27, // used when the fee api fails
     DEBOUNCE_CALLBACK_TIME: 500, // lower this value to make the app more responsive, but more resource intensive
     APP_ID: "lq", // The app id
-    APP_VERSION: 1, // bumping this invalidates all cache and storage
+    APP_VERSION: 10, // bumping this invalidates all cache and storage
     STORAGE_METHODS: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is preferred
     STORAGE_METHODS_BY_SPEED: ["LocalStore", "IDBStore", "MemStore"], // order matters, first is fastest
 

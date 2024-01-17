@@ -9,6 +9,21 @@ export default class AbstractBrowserStore {
     constructor(prefix, limit) {
         this.limit = limit;
         this.prefix = prefix;
+        this.locks = {};
+    }
+
+    async lock(key) {
+        let t = 1;
+        while (this.locks[key]) {
+            await new Promise((resolve) => setTimeout(resolve, t));
+            t *= 2;
+            if (t > 100) t = 100;
+        }
+        this.locks[key] = true;
+    }
+
+    unlock(key) {
+        delete this.locks[key];
     }
 
     async _init() {
@@ -21,9 +36,9 @@ export default class AbstractBrowserStore {
             this.starting = true;
 
             this.accessTable = await this._retrieve("s:accessTable");
-
             this.expirationTable = await this._retrieve("s:expirationTable");
             this.sizeTable = await this._retrieve("s:sizeTable");
+
             if (!this.accessTable) {
                 this.accessTable = new Map();
             }
@@ -79,9 +94,9 @@ export default class AbstractBrowserStore {
 
         if (!value) {
             await this._delete(key);
-            this.accessTable.delete(key);
-            this.expirationTable.delete(key);
-            this.sizeTable.delete(key);
+            await this._setAccessTime(key, undefined);
+            await this._setExpiration(key, undefined);
+            await this._setSize(key, undefined);
         } else {
             const entrySize = await this._calcSize(key, value);
             if (this.limit) {
@@ -90,26 +105,51 @@ export default class AbstractBrowserStore {
                 }
             }
             await this._store(key, value);
-            // localStorage.setItem(key, JSON.stringify(value));
-            this.accessTable.set(key, Date.now());
-            if (expiration) this.expirationTable.set(key, Date.now() + expiration);
-            else this.expirationTable.delete(key);
-            this.sizeTable.set(key, entrySize);
+            await this._setAccessTime(key, Date.now());
+            await this._setExpiration(key, expiration ? Date.now() + expiration : undefined);
+            await this._setSize(key, entrySize);
         }
-        this._store("s:accessTable", this.accessTable);
-        this._store("s:expirationTable", this.expirationTable);
-        this._store("s:sizeTable", this.sizeTable);
-        // localStorage.setItem('accessTable', JSON.stringify(Array.from(this.accessTable.entries())));
-        // localStorage.setItem('expirationTable', JSON.stringify(Array.from(this.expirationTable.entries())));
-        // localStorage.setItem('sizeTable', JSON.stringify(Array.from(this.sizeTable.entries())));
+    }
+
+    async _setAccessTime(key, time) {
+        await this._init();
+        await this.lock("s:");
+        try {
+            if (time) this.accessTable.set(key, time);
+            else this.accessTable.delete(key);
+            await this._store("s:accessTable", this.accessTable);
+        } finally {
+            this.unlock("s:");
+        }
+    }
+
+    async _setExpiration(key, time) {
+        await this._init();
+        await this.lock("s:");
+        try {
+            if (time) this.expirationTable.set(key, time);
+            else this.expirationTable.delete(key);
+            await this._store("s:expirationTable", this.expirationTable);
+        } finally {
+            this.unlock("s:");
+        }
+    }
+
+    async _setSize(key, size) {
+        await this._init();
+        await this.lock("s:");
+        try {
+            if (size) this.sizeTable.set(key, size);
+            else this.sizeTable.delete(key);
+            await this._store("s:sizeTable", this.sizeTable);
+        } finally {
+            this.unlock("s:");
+        }
     }
 
     async clear() {
         await this._init();
-
         const keys = this.accessTable.keys();
-        console.log(keys);
-
         for (const key of keys) {
             if (key.startsWith("s:")) continue;
             console.log("Clearing " + key);
@@ -123,8 +163,10 @@ export default class AbstractBrowserStore {
         if (key.startsWith("s:")) throw new Error("Key cannot start with s:");
 
         let value;
-        let exists = this.accessTable.has(key) && this.sizeTable.has(key); // corrupted data
+        let exists = this.accessTable.has(key) && this.sizeTable.has(key);
         if (!exists) {
+            // corrupted data
+            console.log("Corrupted data for " + key);
             await this.set(key, undefined);
             value = undefined;
         } else {
@@ -132,12 +174,12 @@ export default class AbstractBrowserStore {
         }
 
         if (value) {
-            this.accessTable.set(key, Date.now());
-            await this._store("s:accessTable", this.accessTable);
+            await this._setAccessTime(key, Date.now());
         }
 
         const expire = this.expirationTable.get(key);
         if (!value || (expire && expire < Date.now())) {
+            console.log("Refreshing " + key);
             if (refreshCallback) {
                 let refreshed = Promise.resolve(refreshCallback());
                 refreshed = refreshed.then(async (data) => {
@@ -170,7 +212,6 @@ export default class AbstractBrowserStore {
         for (let [key, access] of this.accessTable) {
             if (key.startsWith("s:")) continue;
             if (access < oldestAccess) {
-                alert("Deleting " + key);
                 oldestAccess = access;
                 oldestKey = key;
             }

@@ -1409,7 +1409,7 @@ export default class LiquidWallet {
      */
     async pinAsset(assetHash) {
         await this.check();
-        this.assetProvider.track(assetHash);
+        return this.assetProvider.track(assetHash);
     }
 
     /**
@@ -1418,7 +1418,7 @@ export default class LiquidWallet {
      */
     async unpinAsset(assetHash) {
         await this.check();
-        this.assetProvider.untrack(assetHash);
+        return this.assetProvider.untrack(assetHash);
     }
 
     /**
