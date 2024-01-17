@@ -165,8 +165,6 @@ export default class AbstractBrowserStore {
         let value;
         let exists = this.accessTable.has(key) && this.sizeTable.has(key);
         if (!exists) {
-            // corrupted data
-            console.log("Corrupted data for " + key);
             await this.set(key, undefined);
             value = undefined;
         } else {
