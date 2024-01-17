@@ -10,5 +10,6 @@ then
     if [ "$version" != "" ];
     then
         echo "$version" > ./dist/version.txt
+        echo "$version" > ./dist/app/version.txt
     fi
 fi
