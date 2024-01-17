@@ -665,7 +665,6 @@ class Html {
                 this.$0(el, "#buttonIcon");
                 el.classList.remove("withIcon");
             } else {
-                console.log("Set icon src", src);
                 const iconEl = this.$icon(el, ["buttonIcon", "icon"], "buttonIcon", true);
                 iconEl.setSrc(src);
                 el.classList.add("withIcon");

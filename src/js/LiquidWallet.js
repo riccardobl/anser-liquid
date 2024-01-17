@@ -192,7 +192,6 @@ export default class LiquidWallet {
                     if (!this.lastState) this.lastState = state;
                     let newState = this.lastState != state;
                     if (newState) {
-                        console.log("Received new state", state);
                         this.lastState = state;
                         this._executeRefreshCallbacks();
                     }

@@ -118,7 +118,6 @@ export default class WalletPage extends UIStage {
                     .assets()
                     .getAssetIcon(balance.asset)
                     .then((icon) => {
-                        console.log("Loading icon", icon, balance);
                         try {
                             iconEl.setSrc(icon);
                             assetEl.setCover(icon);
@@ -222,20 +221,7 @@ export default class WalletPage extends UIStage {
                     lq.assets()
                         .getAssetInfo(txData.info.outAsset)
                         .then((info) => {
-                            console.log("Info ", filter);
                             if (filter) {
-                                console.log(
-                                    "Filtering",
-                                    info.ticker,
-                                    info.name,
-                                    tx.tx_hash,
-                                    info.hash,
-                                    filter(info.hash, true),
-                                    filter(info.ticker),
-                                    filter(info.name),
-                                    filter(tx.tx_hash, true),
-                                );
-
                                 if (
                                     !filter(info.hash, true) &&
                                     !filter(info.ticker) &&

@@ -178,7 +178,6 @@ export default class AssetProvider {
                 },
                 true,
             );
-            console.log("Found icon", icon);
         }
         console.log("Not found icon,try static", this.staticIcons);
         if (!icon) {
