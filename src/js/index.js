@@ -16,12 +16,23 @@ import LinkOpener from "./utils/LinkOpener.js";
 
 async function versionCheck(ui) {
     try {
-        const currentVersion = await fetch("version.txt").then((r) => r.text());
+        const currentVersion = (
+            await fetch("version.txt?rand=" + Date.now() + "_" + Math.random(), {
+                cache: "no-store",
+            }).then((r) => r.text())
+        ).trim();
+
         const latestGithubReleaseData = await fetch(
             "https://api.github.com/repos/riccardobl/anser-liquid/releases/latest",
+            {
+                cache: "no-store",
+            },
         ).then((r) => r.json());
+
         if (!latestGithubReleaseData.tag_name) throw new Error("Cannot get latest version from github");
-        const latestVersion = latestGithubReleaseData.tag_name;
+        const latestVersion = latestGithubReleaseData.tag_name.trim();
+        console.log("Current version", currentVersion);
+        console.log("Latest version", latestVersion);
         if (currentVersion != latestVersion) {
             const alertEl = ui.info(
                 "New version available: " + latestVersion + ". Click here to visit the release page.",
