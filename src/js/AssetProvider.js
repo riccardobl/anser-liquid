@@ -8,7 +8,7 @@ import SpecialSymbols from "./SpecialSymbols.js";
  * Handles also pricing tracking, conversion and formatting.
  */
 
-const ASSET_REGEX = /^[A-Za-z0-9_-]+$/;
+const ASSET_REGEX = /^[A-Za-z0-9_ -]+$/;
 export default class AssetProvider {
     constructor(
         cache,
