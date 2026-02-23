@@ -241,7 +241,7 @@ class Html {
                 }
             } else {
                 el.classList.remove("outscroll");
-                TODO;
+                // TODO
                 // this.disableMomentumScroll(el);
             }
             return el;
@@ -619,8 +619,8 @@ class Html {
                 });
             } else {
                 el.value = value;
-                if (el.$$$.onChangeCallbakWrapper) {
-                    el.$$$.onChangeCallbakWrapper();
+                if (el.$$$.onChangeCallbackWrapper) {
+                    el.$$$.onChangeCallbackWrapper();
                 }
             }
             el.triggerRefresh();
@@ -629,10 +629,10 @@ class Html {
         el.getValue = () => {
             return el.value;
         };
-        if (el.$$$.onChangeCallbakWrapper) {
-            el.removeEventListener("input", el.$$$.onChangeCallbakWrapper);
+        if (el.$$$.onChangeCallbackWrapper) {
+            el.removeEventListener("input", el.$$$.onChangeCallbackWrapper);
         }
-        el.$$$.onChangeCallbakWrapper = () => {
+        el.$$$.onChangeCallbackWrapper = () => {
             if (el.$$$.onChangeCallbackScheduledTimeout) {
                 clearTimeout(el.$$$.onChangeCallbackScheduledTimeout);
             }
@@ -642,7 +642,7 @@ class Html {
                 }
             }, Constants.DEBOUNCE_CALLBACK_TIME);
         };
-        el.addEventListener("input", el.$$$.onChangeCallbakWrapper);
+        el.addEventListener("input", el.$$$.onChangeCallbackWrapper);
         return el;
     }
 
@@ -702,8 +702,8 @@ class Html {
                 });
             } else {
                 el.value = value;
-                if (el.$$$.onChangeCallbakWrapper) {
-                    el.$$$.onChangeCallbakWrapper();
+                if (el.$$$.onChangeCallbackWrapper) {
+                    el.$$$.onChangeCallbackWrapper();
                 }
                 el.triggerRefresh();
             }
@@ -972,7 +972,7 @@ class Html {
         el.removeOption = (value) => {
             if (!el.$$$.selectOptions) return;
             el.$$$.selectOptions[value] = undefined;
-            l.$$$.selectedOptions[value] = undefined;
+            el.$$$.selectedOptions[value] = undefined;
             if (el.$$$.selected === value) {
                 _selectPreferred();
             }

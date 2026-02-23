@@ -4,8 +4,27 @@
  * Could be extended to support swapping in the future, maybe.
  */
 
+// Allowed WebSocket origins for SideSwap
+const ALLOWED_SIDESWAP_ORIGINS = [
+    "api.sideswap.io",
+    "api-testnet.sideswap.io",
+];
+
+function isAllowedWebSocketUrl(url, allowedOrigins) {
+    try {
+        const urlObj = new URL(url);
+        return allowedOrigins.includes(urlObj.hostname);
+    } catch (e) {
+        return false;
+    }
+}
+
 export default class SideSwap {
     constructor(cache, store, sideSwapWs) {
+        // Validate WebSocket URL is from allowed origin
+        if (!isAllowedWebSocketUrl(sideSwapWs, ALLOWED_SIDESWAP_ORIGINS)) {
+            throw new Error("Invalid SideSwap WebSocket URL: not from allowed origin");
+        }
         this.id = 0;
         this.pending = {};
         this.assetSubscriptions = {};

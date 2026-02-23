@@ -1,5 +1,5 @@
 import { ElectrumWS } from "ws-electrumx-client";
-import Liquid, { address } from "liquidjs-lib";
+import Liquid from "liquidjs-lib";
 import ZkpLib from "@vulpemventures/secp256k1-zkp";
 import QrCode from "qrcode";
 import AssetProvider from "./AssetProvider.js";
@@ -10,6 +10,34 @@ import Esplora from "./Esplora.js";
 import { SLIP77Factory } from "slip77";
 import BrowserStore from "./storage/BrowserStore.js";
 import Errors from "./Errors.js";
+
+// Allowed WebSocket origins for Electrum
+const ALLOWED_ELECTRUM_ORIGINS = [
+    "blockstream.info",
+];
+
+// Allowed HTTPS origins for Esplora
+const ALLOWED_ESPLORA_ORIGINS = [
+    "blockstream.info",
+];
+
+function isAllowedWebSocketUrl(url, allowedOrigins) {
+    try {
+        const urlObj = new URL(url);
+        return allowedOrigins.includes(urlObj.hostname);
+    } catch (e) {
+        return false;
+    }
+}
+
+function isAllowedHttpsUrl(url, allowedOrigins) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.protocol === "https:" && allowedOrigins.includes(urlObj.hostname);
+    } catch (e) {
+        return false;
+    }
+}
 
 /**
  * The full wallet Api.
@@ -124,6 +152,14 @@ export default class LiquidWallet {
             }
         } else if (typeof sideswapWs === "function") {
             sideswapWs = sideswapWs(this.networkName);
+        }
+
+        // Validate URLs are from allowed origins
+        if (!isAllowedWebSocketUrl(electrumWs, ALLOWED_ELECTRUM_ORIGINS)) {
+            throw new Error("Invalid Electrum WebSocket URL: not from allowed origin");
+        }
+        if (!isAllowedHttpsUrl(esploraHttps, ALLOWED_ESPLORA_ORIGINS)) {
+            throw new Error("Invalid Esplora HTTPS URL: not from allowed origin or not HTTPS");
         }
 
         // get network object
@@ -1080,7 +1116,7 @@ export default class LiquidWallet {
                     const inp = Object.entries(inXAsset)[0];
                     info.outAsset = inp[0];
                     info.outAmount = inp[1];
-                    info.toAddress = address.address;
+                    info.toAddress = addr.address;
                 }
 
                 // TODO: Are self transactions parsed correctly?
@@ -1249,7 +1285,7 @@ export default class LiquidWallet {
                 const blindPrivKey = address.blindingPrivateKey;
 
                 if (!blindPrivKey) {
-                    throw new Error("Blinding private key error for script " + output.script.toString("hex"));
+                    throw new Error("Blinding private key error for script " + out.script.toString("hex"));
                 }
 
                 const zkpLib = this.zkpLib;

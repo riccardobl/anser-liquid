@@ -7,6 +7,8 @@ import SpecialSymbols from "./SpecialSymbols.js";
  * Provides pricing for liquid assets, fiat currencies, their icons and other info.
  * Handles also pricing tracking, conversion and formatting.
  */
+
+const ASSET_REGEX = /^[A-Za-z0-9_-]+$/;
 export default class AssetProvider {
     constructor(
         cache,
@@ -117,6 +119,7 @@ export default class AssetProvider {
         const out = [];
         const sideswapAsset = await this.sideSwap.getAllAssets();
         for (const k in sideswapAsset) {
+            if (!ASSET_REGEX.test(k) || k.length > 100) continue;
             out.push({
                 id: k,
                 hash: k,
@@ -126,6 +129,7 @@ export default class AssetProvider {
         if (includeFiat) {
             const fiatAssets = await this._getFiatData();
             for (const k in fiatAssets.data) {
+                if (!ASSET_REGEX.test(k) || k.length > 100) continue;
                 out.push({
                     hash: k,
                     assetHash: k,
@@ -388,9 +392,18 @@ export default class AssetProvider {
         let info = await this.cache.get("as:" + assetId);
         if (!info) {
             const response = await this.esplora.getAssetInfo(assetId);
-            const precision = response.precision || 0;
-            const ticker = response.ticker || "???";
-            const name = response.name || "???";
+            let precision = Number(response.precision || 0);
+            let ticker = response.ticker || "???";
+            let name = response.name || "???";
+
+            if(!ASSET_REGEX.test(ticker)||ticker.length>20){
+                ticker = "???";
+            }
+
+            if(!ASSET_REGEX.test(name)||name.length>50){
+                name = "???";
+            }            
+            
             info = { precision, ticker, name, hash: assetId };
 
             await this.cache.set("as:" + assetId, info);

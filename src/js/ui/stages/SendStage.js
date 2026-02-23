@@ -283,7 +283,7 @@ export default class SendStage extends UIStage {
             _updateInvoice();
         });
 
-        prioritySlideEl.setValue(PRIORITY, true);
+        prioritySlideEl.setValue(PRIORITY, false);
 
         confirmBtnEl.setAction(async () => {
             await _updateInvoice(true);

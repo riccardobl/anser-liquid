@@ -63,6 +63,11 @@ function txWitnessSize(inWitnessesSize, outWitnessesSize) {
     return inSize + outSize;
 }
 
+function varSliceSize(slice) {
+  const len = slice?.length ?? 0;
+  return varuint.encodingLength(len) + len;
+}
+
 // estimate pset virtual size after signing, take confidential outputs into account
 // aims to estimate the fee amount needed to be paid before blinding or signing the pset
 function estimateVirtualSize(pset, withFeeOutput) {

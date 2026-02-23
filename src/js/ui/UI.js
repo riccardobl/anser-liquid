@@ -305,7 +305,6 @@ UI.registerStage("options");
 UI.registerStage("send");
 UI.registerStage("receive");
 UI.registerModule("header");
-UI.registerModule("clarity");
 UI.registerModule("logo");
 UI.registerModule("globalmessage");
 
